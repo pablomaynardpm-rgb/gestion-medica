@@ -167,6 +167,15 @@
   .contactList li .del{margin-left:auto}
   .contactForm{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
   .contactForm input, .contactForm select{flex:1; min-width:140px}
+  .calcTotalBox{display:flex; align-items:baseline; gap:10px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin-bottom:14px}
+  .calcTotalLabel{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; font-weight:700}
+  .calcTotalValor{font-size:32px; font-weight:800; color:var(--accent)}
+  .calcServiciosList li{cursor:default}
+  .calcServiciosList li input[type=checkbox]{width:16px; height:16px; flex-shrink:0; cursor:pointer}
+  .calcServiciosList li .precio{color:var(--muted); font-weight:600; margin-left:auto; margin-right:6px}
+  .planRow .total{color:var(--muted); font-weight:600; margin-left:auto; margin-right:6px}
+  .planRow .archivo{color:var(--muted); font-size:11px}
+  .planRow .cargarBtn{font-size:11px; padding:4px 8px}
   .sanDropdown{position:relative; display:inline-block}
   .sanDropdownBtn{font-size:12px; padding:6px 10px; white-space:nowrap}
   .sanDropdownPanel{
@@ -438,6 +447,7 @@
     <button class="navtab" data-view="viewAgenda">Agenda</button>
     <button class="navtab" data-view="viewInternados">Internados</button>
     <button class="navtab" data-view="viewConsultorio">Consultorio</button>
+    <button class="navtab" data-view="viewCalculadora">Calculadora</button>
   </div>
 
   <details class="panel" id="panelMedicos">
@@ -1173,6 +1183,48 @@
     <div class="empty" id="consEmpty">Todavía no cargaste consultas.</div>
   </div>
 
+  <!-- ==================== CALCULADORA DE GUÍA ==================== -->
+  <div class="view" id="viewCalculadora">
+    <div class="panel">
+      <h2><i data-lucide="calculator"></i> Calculadora de guía</h2>
+      <div class="msg" style="margin-top:0; margin-bottom:12px">Tildá los servicios que vas a incluir y mostrale la pantalla al paciente — el total se calcula solo, sin tener que decirlo en voz alta.</div>
+      <div class="calcTotalBox">
+        <div class="calcTotalLabel">Total</div>
+        <div class="calcTotalValor" id="calcTotalValor">$0</div>
+      </div>
+      <ul class="contactList calcServiciosList" id="calcServiciosList" style="max-height:none"></ul>
+      <div class="contactForm" style="margin-top:12px">
+        <input type="text" id="calcNuevoServicioNombre" placeholder="Nuevo servicio (ej: Kinesiología)">
+        <input type="number" id="calcNuevoServicioPrecio" placeholder="Precio" step="0.01" min="0">
+        <button id="btnAddServicioGuia" class="secondary">Agregar servicio</button>
+      </div>
+      <div class="msg" id="calcServiciosMsg"></div>
+    </div>
+
+    <div class="panel">
+      <h2><i data-lucide="layers"></i> Planes guardados</h2>
+      <div class="msg" style="margin-top:0; margin-bottom:12px">Guardá la combinación tildada arriba como un plan con nombre (ej: "Plan Dorado") para volver a usarla en un click. Si le asignás un archivo PDF propio (subido a guia-premium/planes/), ese es el que se manda al enviar la guía de ese plan; si lo dejás vacío, se usa la guía base.</div>
+      <div class="contactForm">
+        <input type="text" id="calcNuevoPlanNombre" placeholder="Nombre del plan (ej: Plan Dorado)">
+        <input type="text" id="calcNuevoPlanArchivo" placeholder="Archivo PDF específico (opcional, ej: dorado.pdf)">
+        <button id="btnGuardarPlanGuia" class="secondary">Guardar plan con los servicios tildados</button>
+      </div>
+      <ul class="contactList" id="calcPlanesList" style="max-height:none; margin-top:12px"></ul>
+      <div class="msg" id="calcPlanesMsg"></div>
+    </div>
+
+    <div class="panel">
+      <h2><i data-lucide="send"></i> Enviar guía de un plan</h2>
+      <div class="msg" style="margin-top:0; margin-bottom:12px">Elegí el paciente y el plan: se arma un PDF (guía del plan + detalle de servicios y monto total + consentimiento del paciente) y se abre WhatsApp, igual que el botón de guía de la ficha del paciente.</div>
+      <div class="contactForm">
+        <select id="calcEnviarPaciente"><option value="">Elegí un paciente...</option></select>
+        <select id="calcEnviarPlan"><option value="">Elegí un plan...</option></select>
+        <button id="btnEnviarGuiaPlan">Enviar por WhatsApp</button>
+      </div>
+      <div class="msg" id="calcEnviarMsg"></div>
+    </div>
+  </div>
+
   <datalist id="sanatoriosDatalist"></datalist>
   <datalist id="sectoresDatalist"></datalist>
   <datalist id="pacientesDatalistInt"></datalist>
@@ -1251,6 +1303,9 @@ if('serviceWorker' in navigator){
   let medicos = [];
   let pacientes = [];
   let consultorioDias = [];
+  let serviciosGuia = [];
+  let planesGuia = [];
+  let calcSeleccionados = new Set();
   let sortKey = 'default', sortDir = 'asc';
 
   function isUtiUci(it){
@@ -1629,7 +1684,7 @@ if('serviceWorker' in navigator){
 
   function aplicarRestriccionesRol(){
     if(currentMedico.rol !== 'residente') return;
-    ['viewInterconsultas', 'viewConsultorio'].forEach(id => {
+    ['viewInterconsultas', 'viewConsultorio', 'viewCalculadora'].forEach(id => {
       const tab = document.querySelector(`.navtab[data-view="${id}"]`);
       if(tab) tab.style.display = 'none';
     });
@@ -1711,7 +1766,7 @@ if('serviceWorker' in navigator){
   }
 
   async function loadAll(){
-    const [itemsRes, contactsRes, zonasRes, sanatoriosRes, medicosRes, pacientesRes, internacionesRes, consultasRes, preciosRes, capturasRes, preciosIcRes, icFacturablesRes, consultorioDiasRes] = await Promise.all([
+    const [itemsRes, contactsRes, zonasRes, sanatoriosRes, medicosRes, pacientesRes, internacionesRes, consultasRes, preciosRes, capturasRes, preciosIcRes, icFacturablesRes, consultorioDiasRes, serviciosGuiaRes, planesGuiaRes] = await Promise.all([
       sb.from('interconsultas').select('*').order('created_at', { ascending: false }),
       sb.from('contactos').select('*').order('created_at', { ascending: true }),
       sb.from('zonas').select('*').order('created_at', { ascending: true }),
@@ -1724,7 +1779,9 @@ if('serviceWorker' in navigator){
       sb.from('interconsultas_capturas_pendientes').select('*').order('created_at', { ascending: false }),
       sb.from('precios_interconsulta').select('*'),
       sb.from('interconsultas_facturables').select('*').order('fecha', { ascending: false }),
-      sb.from('consultorio_dias').select('*').order('fecha', { ascending: true })
+      sb.from('consultorio_dias').select('*').order('fecha', { ascending: true }),
+      sb.from('servicios_guia').select('*').order('nombre', { ascending: true }),
+      sb.from('planes_guia').select('*, planes_guia_servicios(servicio_id)').order('nombre', { ascending: true })
     ]);
     if(itemsRes.error) flash('Error al cargar interconsultas: ' + itemsRes.error.message, true);
     if(contactsRes.error) flash('Error al cargar contactos: ' + contactsRes.error.message, true);
@@ -1742,6 +1799,8 @@ if('serviceWorker' in navigator){
     preciosInterconsulta = (preciosIcRes.data || []);
     interconsultasFacturables = (icFacturablesRes.data || []);
     consultorioDias = (consultorioDiasRes.data || []);
+    serviciosGuia = (serviciosGuiaRes.data || []);
+    planesGuia = (planesGuiaRes.data || []);
     renderCapturasPendientes();
     renderPreciosIc();
     renderIcFacturables();
@@ -1754,6 +1813,9 @@ if('serviceWorker' in navigator){
     renderResumen();
     renderConsultas();
     renderPreciosConsulta();
+    renderServiciosGuia();
+    renderPlanesGuia();
+    renderCalcEnviarPacienteSelect();
     $('#intFechaIngreso').value = toISODate(new Date());
     $('#consFecha').value = toISODate(new Date());
   }
@@ -3215,6 +3277,257 @@ if('serviceWorker' in navigator){
     if(!p) return;
     cerrarFabGroup();
     generarYEnviarGuia(p);
+  });
+
+  // ---- Calculadora de guía: servicios con precio que se van agregando,
+  // planes (combinaciones con nombre) armados a partir de esos servicios, y
+  // envío de la guía específica de un plan por WhatsApp reusando el mismo
+  // mecanismo de fusión de PDF que la guía de la ficha (portada + guía +
+  // consentimiento), con una página extra de detalle y monto total.
+  function planServicioIds(plan){
+    return (plan.planes_guia_servicios || []).map(r => r.servicio_id);
+  }
+  function calcTotalDeIds(ids){
+    const set = new Set(ids);
+    return serviciosGuia.filter(s => set.has(s.id)).reduce((sum, s) => sum + Number(s.precio), 0);
+  }
+  function fmtMoney(n){
+    return '$' + Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 });
+  }
+
+  function renderServiciosGuia(){
+    const list = $('#calcServiciosList');
+    if(!list) return;
+    list.innerHTML = serviciosGuia.length === 0
+      ? '<li style="color:var(--muted); justify-content:center">Todavía no agregaste servicios.</li>'
+      : serviciosGuia.slice().sort((a,b) => a.nombre.localeCompare(b.nombre)).map(s => `
+        <li data-id="${s.id}">
+          <input type="checkbox" data-action="toggleServicio" data-id="${s.id}" ${calcSeleccionados.has(s.id) ? 'checked' : ''}>
+          <span>${escapeHtml(s.nombre)}</span>
+          <span class="precio">${fmtMoney(s.precio)}</span>
+          <span class="del" data-action="deleteServicio" data-id="${s.id}" title="Quitar"><i data-lucide="x"></i></span>
+        </li>
+      `).join('');
+    if(window.lucide) lucide.createIcons();
+    updateCalcTotal();
+  }
+
+  function updateCalcTotal(){
+    const el = $('#calcTotalValor');
+    if(el) el.textContent = fmtMoney(calcTotalDeIds(calcSeleccionados));
+  }
+
+  $('#calcServiciosList').addEventListener('change', (e) => {
+    const chk = e.target.closest('[data-action="toggleServicio"]');
+    if(!chk) return;
+    if(chk.checked) calcSeleccionados.add(chk.dataset.id);
+    else calcSeleccionados.delete(chk.dataset.id);
+    updateCalcTotal();
+  });
+
+  $('#calcServiciosList').addEventListener('click', async (e) => {
+    const del = e.target.closest('[data-action="deleteServicio"]');
+    if(!del) return;
+    const id = del.dataset.id;
+    const { error } = await sb.from('servicios_guia').delete().eq('id', id);
+    if(error){ flashIn($('#calcServiciosMsg'), 'Error al borrar: ' + error.message, true); return; }
+    serviciosGuia = serviciosGuia.filter(s => s.id !== id);
+    calcSeleccionados.delete(id);
+    planesGuia.forEach(pl => { pl.planes_guia_servicios = (pl.planes_guia_servicios || []).filter(r => r.servicio_id !== id); });
+    renderServiciosGuia();
+    renderPlanesGuia();
+  });
+
+  $('#btnAddServicioGuia').addEventListener('click', async () => {
+    const nombre = $('#calcNuevoServicioNombre').value.trim();
+    const precio = parseFloat($('#calcNuevoServicioPrecio').value);
+    if(!nombre || isNaN(precio) || precio < 0){ flashIn($('#calcServiciosMsg'), 'Completá nombre y precio.', true); return; }
+    const { data, error } = await sb.from('servicios_guia').insert({ medico_id: currentUser.id, nombre, precio }).select().single();
+    if(error){ flashIn($('#calcServiciosMsg'), 'Error al agregar: ' + error.message, true); return; }
+    serviciosGuia.push(data);
+    calcSeleccionados.add(data.id);
+    $('#calcNuevoServicioNombre').value = ''; $('#calcNuevoServicioPrecio').value = '';
+    renderServiciosGuia();
+  });
+
+  function renderPlanesGuia(){
+    const list = $('#calcPlanesList');
+    if(!list) return;
+    list.innerHTML = planesGuia.length === 0
+      ? '<li style="color:var(--muted); justify-content:center">Todavía no guardaste planes.</li>'
+      : planesGuia.slice().sort((a,b) => a.nombre.localeCompare(b.nombre)).map(pl => `
+        <li class="planRow" data-id="${pl.id}">
+          <span>${escapeHtml(pl.nombre)}</span>
+          ${pl.archivo_pdf ? `<span class="archivo">(${escapeHtml(pl.archivo_pdf)})</span>` : ''}
+          <span class="total">${fmtMoney(calcTotalDeIds(planServicioIds(pl)))}</span>
+          <button type="button" class="secondary cargarBtn" data-action="cargarPlan" data-id="${pl.id}">Cargar</button>
+          <span class="del" data-action="deletePlan" data-id="${pl.id}" title="Borrar plan"><i data-lucide="x"></i></span>
+        </li>
+      `).join('');
+    if(window.lucide) lucide.createIcons();
+    renderCalcEnviarPlanSelect();
+  }
+
+  $('#calcPlanesList').addEventListener('click', async (e) => {
+    const cargar = e.target.closest('[data-action="cargarPlan"]');
+    if(cargar){
+      const plan = planesGuia.find(pl => pl.id === cargar.dataset.id);
+      if(plan){
+        calcSeleccionados = new Set(planServicioIds(plan));
+        renderServiciosGuia();
+      }
+      return;
+    }
+    const del = e.target.closest('[data-action="deletePlan"]');
+    if(del){
+      const { error } = await sb.from('planes_guia').delete().eq('id', del.dataset.id);
+      if(error){ flashIn($('#calcPlanesMsg'), 'Error al borrar: ' + error.message, true); return; }
+      planesGuia = planesGuia.filter(pl => pl.id !== del.dataset.id);
+      renderPlanesGuia();
+    }
+  });
+
+  $('#btnGuardarPlanGuia').addEventListener('click', async () => {
+    const nombre = $('#calcNuevoPlanNombre').value.trim();
+    const archivo = $('#calcNuevoPlanArchivo').value.trim() || null;
+    if(!nombre){ flashIn($('#calcPlanesMsg'), 'Ponele un nombre al plan.', true); return; }
+    if(calcSeleccionados.size === 0){ flashIn($('#calcPlanesMsg'), 'Tildá al menos un servicio arriba antes de guardar el plan.', true); return; }
+    const { data: plan, error } = await sb.from('planes_guia').insert({ medico_id: currentUser.id, nombre, archivo_pdf: archivo }).select().single();
+    if(error){ flashIn($('#calcPlanesMsg'), 'Error al guardar el plan: ' + error.message, true); return; }
+    const filas = Array.from(calcSeleccionados).map(servicio_id => ({ plan_id: plan.id, servicio_id }));
+    const { error: errorJoin } = await sb.from('planes_guia_servicios').insert(filas);
+    if(errorJoin){ flashIn($('#calcPlanesMsg'), 'Error al guardar los servicios del plan: ' + errorJoin.message, true); return; }
+    plan.planes_guia_servicios = filas.map(f => ({ servicio_id: f.servicio_id }));
+    planesGuia.push(plan);
+    $('#calcNuevoPlanNombre').value = ''; $('#calcNuevoPlanArchivo').value = '';
+    renderPlanesGuia();
+    flashIn($('#calcPlanesMsg'), `Plan "${nombre}" guardado.`);
+  });
+
+  function renderCalcEnviarPacienteSelect(){
+    const sel = $('#calcEnviarPaciente');
+    if(!sel) return;
+    const actual = sel.value;
+    sel.innerHTML = '<option value="">Elegí un paciente...</option>' + pacientes
+      .filter(p => normalizePhoneAR(p.telefono).length >= 11)
+      .slice().sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''))
+      .map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
+    if(actual) sel.value = actual;
+  }
+  function renderCalcEnviarPlanSelect(){
+    const sel = $('#calcEnviarPlan');
+    if(!sel) return;
+    const actual = sel.value;
+    sel.innerHTML = '<option value="">Elegí un plan...</option>' + planesGuia
+      .slice().sort((a,b) => a.nombre.localeCompare(b.nombre))
+      .map(pl => `<option value="${pl.id}">${escapeHtml(pl.nombre)}</option>`).join('');
+    if(actual) sel.value = actual;
+  }
+
+  async function generarYEnviarGuiaPlan(p, plan){
+    const d = normalizePhoneAR(p.telefono);
+    const institucion = matchInstitucionConsentimiento(p.sanatorio);
+    const archivoConsentimiento = p.tipo_consentimiento ? TIPO_CONSENTIMIENTO_ARCHIVO[p.tipo_consentimiento] : null;
+    if(d.length < 11 || !institucion || !archivoConsentimiento){
+      flashIn($('#calcEnviarMsg'), 'Faltan datos del paciente para armar la guía: verificá teléfono, sanatorio y tipo de consentimiento en su ficha.', true);
+      return;
+    }
+    const btn = $('#btnEnviarGuiaPlan');
+    btn.disabled = true;
+    try {
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const fetchBaseBytes = async () => {
+        if(plan.archivo_pdf){
+          const r = await fetch(`/guia-premium/planes/${plan.archivo_pdf}`);
+          if(r.ok) return r.arrayBuffer();
+        }
+        return fetch('/guia-premium/base.pdf').then(r => r.arrayBuffer());
+      };
+      const [baseBytes, consentBytes, logoBytes] = await Promise.all([
+        fetchBaseBytes(),
+        fetch(`/guia-premium/consentimientos/${institucion}/${archivoConsentimiento}`).then(r => r.arrayBuffer()),
+        fetch('/guia-premium/logo.png').then(r => r.arrayBuffer())
+      ]);
+
+      const out = await PDFDocument.create();
+      const logoImg = await out.embedPng(logoBytes);
+      const fontTitulo = await out.embedFont(StandardFonts.HelveticaBold);
+      const fontBody = await out.embedFont(StandardFonts.Helvetica);
+      const navy = rgb(0x0E/255, 0x4B/255, 0x78/255);
+      const gray = rgb(0x50/255, 0x56/255, 0x5E/255);
+      const bg = rgb(0xF7/255, 0xF9/255, 0xFB/255);
+      const softBlue = rgb(0xCE/255, 0xDE/255, 0xEE/255);
+      const W = 595.28, H = 841.89;
+
+      const cover = out.addPage([W, H]);
+      cover.drawRectangle({ x: 0, y: 0, width: W, height: H, color: bg });
+      const logoDim = logoImg.scale(46 / logoImg.width);
+      cover.drawImage(logoImg, { x: 56, y: H - 56 - logoDim.height, width: logoDim.width, height: logoDim.height });
+      cover.drawText('DR. PABLO MAYNARD', { x: 56 + logoDim.width + 12, y: H - 56 - 16, size: 14, font: fontTitulo, color: navy });
+      cover.drawText('Cirujano Torácico', { x: 56 + logoDim.width + 12, y: H - 56 - 32, size: 10, font: fontBody, color: gray });
+      cover.drawLine({ start: { x: 56, y: H - 110 }, end: { x: W - 56, y: H - 110 }, thickness: 1, color: softBlue });
+      cover.drawText('Guía del paciente', { x: 56, y: H - 170, size: 26, font: fontTitulo, color: navy });
+      cover.drawText(`Hola ${p.nombre || ''}`, { x: 56, y: H - 205, size: 16, font: fontTitulo, color: navy });
+
+      const detalle = out.addPage([W, H]);
+      detalle.drawRectangle({ x: 0, y: 0, width: W, height: H, color: bg });
+      detalle.drawText(plan.nombre, { x: 56, y: H - 80, size: 22, font: fontTitulo, color: navy });
+      detalle.drawText('Detalle de servicios incluidos', { x: 56, y: H - 108, size: 12, font: fontBody, color: gray });
+      let yD = H - 150;
+      const ids = planServicioIds(plan);
+      const serviciosPlan = serviciosGuia.filter(s => ids.includes(s.id));
+      for(const s of serviciosPlan){
+        detalle.drawText(s.nombre, { x: 56, y: yD, size: 12, font: fontBody, color: gray });
+        const precioTxt = fmtMoney(s.precio);
+        detalle.drawText(precioTxt, { x: W - 56 - fontBody.widthOfTextAtSize(precioTxt, 12), y: yD, size: 12, font: fontBody, color: gray });
+        yD -= 20;
+      }
+      yD -= 10;
+      detalle.drawLine({ start: { x: 56, y: yD }, end: { x: W - 56, y: yD }, thickness: 1, color: softBlue });
+      yD -= 30;
+      detalle.drawText('TOTAL', { x: 56, y: yD, size: 14, font: fontTitulo, color: navy });
+      const totalTxt = fmtMoney(calcTotalDeIds(ids));
+      detalle.drawText(totalTxt, { x: W - 56 - fontTitulo.widthOfTextAtSize(totalTxt, 20), y: yD - 4, size: 20, font: fontTitulo, color: navy });
+
+      const baseDoc = await PDFDocument.load(baseBytes);
+      const basePages = await out.copyPages(baseDoc, baseDoc.getPageIndices());
+      basePages.forEach(pg => out.addPage(pg));
+
+      const consentDoc = await PDFDocument.load(consentBytes);
+      const consentPages = await out.copyPages(consentDoc, consentDoc.getPageIndices());
+      consentPages.forEach(pg => out.addPage(pg));
+
+      const finalBytes = await out.save();
+      const blob = new Blob([finalBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const nombreArchivo = `Guia-${(p.nombre || 'paciente').replace(/\s+/g, '_')}-${plan.nombre.replace(/\s+/g, '_')}.pdf`;
+      const aDesc = document.createElement('a');
+      aDesc.href = url;
+      aDesc.download = nombreArchivo;
+      document.body.appendChild(aDesc);
+      aDesc.click();
+      aDesc.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+
+      const texto = `¡Hola ${p.nombre || ''}! Te comparto la guía de tu plan "${plan.nombre}" con el detalle de lo incluido y el consentimiento informado correspondiente. Cualquier duda, escribime por acá.`;
+      window.open(whatsappHref(d, texto), '_blank');
+      flashIn($('#calcEnviarMsg'), `Se descargó "${nombreArchivo}" — adjuntala en el chat de WhatsApp que se acaba de abrir.`);
+      await marcarGuiaEnviada(p);
+    } catch(err){
+      flashIn($('#calcEnviarMsg'), 'Error al armar la guía: ' + err.message, true);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  $('#btnEnviarGuiaPlan').addEventListener('click', () => {
+    const pacienteId = $('#calcEnviarPaciente').value;
+    const planId = $('#calcEnviarPlan').value;
+    if(!pacienteId || !planId){ flashIn($('#calcEnviarMsg'), 'Elegí un paciente y un plan.', true); return; }
+    const p = pacientes.find(pp => pp.id === pacienteId);
+    const plan = planesGuia.find(pl => pl.id === planId);
+    if(!p || !plan) return;
+    generarYEnviarGuiaPlan(p, plan);
   });
 
   // Mensaje pseudoautomático de invitación a dejar reseña en Google (click
