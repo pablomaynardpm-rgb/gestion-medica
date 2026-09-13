@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Gestión Médica</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/icon-192.png">
@@ -280,11 +280,21 @@
   .badge.cond-programar{background:rgba(245,158,11,0.15); color:var(--pending)}
   .badge.cond-programado{background:rgba(37,99,235,0.15); color:var(--accent)}
   .badge.cond-operado{background:rgba(22,163,74,0.15); color:var(--done)}
-  .fabGroup{position:fixed; bottom:28px; right:28px; z-index:50; display:flex; flex-direction:column; align-items:center; gap:12px}
+  /* bottom/right con margen extra + safe-area: en varios celulares Android el
+     borde inferior-derecho de la pantalla está tomado por gestos del sistema
+     (volver atrás deslizando desde el borde, o el gesto de "inicio" desde
+     abajo) que le pueden robar el toque a un botón demasiado pegado al
+     borde antes de que llegue a la página. touch-action:manipulation saca
+     el delay de 300ms y evita que el navegador dude entre tap/gesto. */
+  .fabGroup{
+    position:fixed; z-index:50; display:flex; flex-direction:column; align-items:center; gap:12px;
+    bottom:calc(32px + env(safe-area-inset-bottom, 0px));
+    right:calc(32px + env(safe-area-inset-right, 0px));
+  }
   .fab{
     width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
     font-size:28px; line-height:1; display:flex; align-items:center; justify-content:center;
-    box-shadow:0 4px 14px rgba(0,0,0,0.3); padding:0;
+    box-shadow:0 4px 14px rgba(0,0,0,0.3); padding:0; touch-action:manipulation;
   }
   .fabGroup .fabSub{display:none}
   .fabGroup.open .fabSub.eligible{display:flex}
