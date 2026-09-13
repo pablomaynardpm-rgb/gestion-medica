@@ -48,6 +48,32 @@
     }
   }
 </script>
+
+<!-- Lucide: set de íconos SVG consistente (reemplaza los emojis, que se ven
+     distinto en cada SO/navegador). Versión fijada a propósito (no @latest)
+     para que un cambio de versión de Lucide no rompa nombres de íconos acá.
+     Los íconos se marcan como <i data-lucide="nombre"></i> en cualquier
+     parte de la app (HTML estático o generado por JS) — el MutationObserver
+     de abajo los convierte a SVG automáticamente apenas aparecen en el DOM,
+     así ninguna función de render necesita acordarse de llamar a
+     lucide.createIcons() a mano. -->
+<script src="https://unpkg.com/lucide@1.45.0/dist/umd/lucide.js"></script>
+<script>
+  (function(){
+    var pendiente = false;
+    function convertir(){ if(window.lucide) lucide.createIcons(); }
+    var obs = new MutationObserver(function(){
+      if(pendiente) return;
+      pendiente = true;
+      requestAnimationFrame(function(){ pendiente = false; convertir(); });
+    });
+    document.addEventListener('DOMContentLoaded', function(){
+      convertir();
+      obs.observe(document.body, { childList: true, subtree: true });
+    });
+  })();
+</script>
+
 <style>
   :root{
     --bg:#f4f6f8; --panel:#ffffff; --border:#dde3ea; --text:#1f2937;
@@ -60,6 +86,7 @@
   }
   :root[data-theme="dark"]{ --bg:#12161c; --panel:#1a2029; --border:#2a323e; --text:#e5e9f0; --muted:#8b94a3; }
   *{box-sizing:border-box}
+  svg.lucide{width:1em; height:1em; vertical-align:-0.15em; flex-shrink:0}
   body{
     margin:0; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
     background:var(--bg); color:var(--text); padding:24px;
@@ -253,33 +280,41 @@
   .badge.cond-programar{background:rgba(245,158,11,0.15); color:var(--pending)}
   .badge.cond-programado{background:rgba(37,99,235,0.15); color:var(--accent)}
   .badge.cond-operado{background:rgba(22,163,74,0.15); color:var(--done)}
+  .fabGroup{position:fixed; bottom:28px; right:28px; z-index:50; display:flex; flex-direction:column; align-items:center; gap:12px}
   .fab{
-    position:fixed; bottom:28px; right:28px; width:56px; height:56px; border-radius:50%;
+    width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
     font-size:28px; line-height:1; display:flex; align-items:center; justify-content:center;
-    box-shadow:0 4px 14px rgba(0,0,0,0.3); z-index:50; padding:0;
+    box-shadow:0 4px 14px rgba(0,0,0,0.3); padding:0;
   }
+  .fabGroup .fabSub{display:none}
+  .fabGroup.open .fabSub.eligible{display:flex}
+  .fabToggle{background:#1E60C6; color:#fff}
+  .fabToggle:hover{background:#174a9c}
   a.fab.whatsappFab{background:#25D366; color:#fff; text-decoration:none}
   a.fab.whatsappFab:hover{background:#1fb457}
-  a.fab.reviewFab{background:#F5A623; color:#fff; text-decoration:none; bottom:96px}
+  a.fab.reviewFab{background:#F5A623; color:#fff; text-decoration:none}
   a.fab.reviewFab:hover{background:#d68f10}
   a.fab.reviewFab.sent{background:#9CA3AF; cursor:default; font-size:22px}
   a.fab.reviewFab.sent:hover{background:#9CA3AF}
-  a.fab.contactoFab{background:#1E60C6; color:#fff; text-decoration:none; bottom:164px}
+  a.fab.contactoFab{background:#1E60C6; color:#fff; text-decoration:none}
   a.fab.contactoFab:hover{background:#174a9c}
   .resumenKpis{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:12px; margin-bottom:20px}
   .kpiCard{border-radius:12px; padding:14px 16px; color:#fff; box-shadow:0 4px 14px rgba(0,0,0,0.18)}
   .kpiCard .kpiIcon{font-size:20px}
   .kpiCard .kpiNumero{font-size:26px; font-weight:700; margin-top:6px; line-height:1}
   .kpiCard .kpiLabel{font-size:12px; margin-top:4px; opacity:0.92}
-  .kpiCard.kpi-cirugias{background:#378ADD}
-  .kpiCard.kpi-internados{background:#1D9E75}
-  .kpiCard.kpi-interconsultas{background:#D85A30}
-  .kpiCard.kpi-consultas{background:#7F77DD}
-  .kpiCard.kpi-programar{background:#F59E0B}
-  .kpiCard.kpi-pendientes{background:#6B7280}
-  .kpiCard.kpi-ic-pendientes{background:#D85A30}
-  .kpiCard.kpi-ic-resueltas{background:#1D9E75}
-  .kpiCard.kpi-ic-facturar{background:#7F77DD}
+  /* Paleta alineada con el azul de marca (pablomaynard.com.ar usa #0E2A66/#1E60C6) —
+     tonos profundos tipo "joya" en vez de los colores genéricos de antes, con el
+     azul principal calcado directo de la marca para que quede una referencia visual clara. */
+  .kpiCard.kpi-cirugias{background:#1E60C6}
+  .kpiCard.kpi-internados{background:#0F766E}
+  .kpiCard.kpi-interconsultas{background:#B4530E}
+  .kpiCard.kpi-consultas{background:#5B21B6}
+  .kpiCard.kpi-programar{background:#A16207}
+  .kpiCard.kpi-pendientes{background:#475569}
+  .kpiCard.kpi-ic-pendientes{background:#B4530E}
+  .kpiCard.kpi-ic-resueltas{background:#0F766E}
+  .kpiCard.kpi-ic-facturar{background:#5B21B6}
   .kpiCard.kpiClickable{cursor:pointer; transition:transform .15s, box-shadow .15s}
   .kpiCard.kpiClickable:hover{transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.22)}
   .medicoAvatar{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; color:#fff; font-size:12px; font-weight:700; flex-shrink:0}
@@ -363,9 +398,9 @@
         </div>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
-        <button class="secondary !text-xs !py-1.5 !px-3" id="btnTheme">🌙 Modo oscuro</button>
-        <button class="secondary !text-xs !py-1.5 !px-3" id="btnGoogleCal">📅 Conectar Google Calendar</button>
-        <button class="secondary !text-xs !py-1.5 !px-3" id="btnNotif">🔔 Activar notificaciones</button>
+        <button class="secondary !text-xs !py-1.5 !px-3" id="btnTheme"><i data-lucide="moon"></i> Modo oscuro</button>
+        <button class="secondary !text-xs !py-1.5 !px-3" id="btnGoogleCal"><i data-lucide="calendar"></i> Conectar Google Calendar</button>
+        <button class="secondary !text-xs !py-1.5 !px-3" id="btnNotif"><i data-lucide="bell"></i> Activar notificaciones</button>
         <button class="!text-xs !py-1.5 !px-3 !bg-rose-50 !text-rose-600 hover:!bg-rose-100 dark:!bg-rose-950/40 dark:!text-rose-400" id="btnLogout">Cerrar sesión</button>
       </div>
     </div>
@@ -381,7 +416,7 @@
   </div>
 
   <details class="panel" id="panelMedicos">
-    <summary style="font-size:14px; font-weight:600">👥 Médicos del equipo</summary>
+    <summary style="font-size:14px; font-weight:600"><i data-lucide="users"></i> Médicos del equipo</summary>
     <div style="margin-top:16px">
       <ul class="contactList" id="medicosList"></ul>
       <div class="contactForm" style="margin-top:12px">
@@ -403,7 +438,7 @@
   </details>
 
   <details class="panel" id="panelSanatoriosAdmin" style="display:none">
-    <summary style="font-size:14px; font-weight:600">🏥 Sanatorios</summary>
+    <summary style="font-size:14px; font-weight:600"><i data-lucide="building-2"></i> Sanatorios</summary>
     <div style="margin-top:16px">
       <div class="msg" style="margin-top:0; margin-bottom:8px">Dirección, zona de facturación y contactos vinculados de cada sanatorio, todo en un solo lugar — visible y editable solo para vos.</div>
       <div class="contactForm">
@@ -418,27 +453,27 @@
   <div class="view active" id="viewResumen">
     <div class="resumenKpis" id="resumenKpisRow">
       <div class="kpiCard kpi-cirugias kpiClickable" data-kpi-action="pacientesCondicion" data-cond="programado" role="button" tabindex="0">
-        <div class="kpiIcon">✂️</div>
+        <div class="kpiIcon"><i data-lucide="scissors"></i></div>
         <div class="kpiNumero" id="kpiCirugias">0</div>
         <div class="kpiLabel">Cirugías programadas</div>
       </div>
       <div class="kpiCard kpi-internados kpiClickable" data-kpi-action="internados" role="button" tabindex="0">
-        <div class="kpiIcon">🛏️</div>
+        <div class="kpiIcon"><i data-lucide="bed"></i></div>
         <div class="kpiNumero" id="kpiInternados">0</div>
         <div class="kpiLabel">Internados</div>
       </div>
       <div class="kpiCard kpi-interconsultas kpiClickable" data-kpi-action="interconsultas" role="button" tabindex="0">
-        <div class="kpiIcon">💬</div>
+        <div class="kpiIcon"><i data-lucide="message-circle"></i></div>
         <div class="kpiNumero" id="kpiInterconsultas">0</div>
         <div class="kpiLabel">Interconsultas pendientes</div>
       </div>
       <div class="kpiCard kpi-programar kpiClickable" data-kpi-action="pacientesCondicion" data-cond="programar" role="button" tabindex="0">
-        <div class="kpiIcon">📋</div>
+        <div class="kpiIcon"><i data-lucide="clipboard-list"></i></div>
         <div class="kpiNumero" id="kpiProgramar">0</div>
         <div class="kpiLabel">Programar</div>
       </div>
       <div class="kpiCard kpi-pendientes kpiClickable" data-kpi-action="pacientesCondicion" data-cond="pendiente" role="button" tabindex="0">
-        <div class="kpiIcon">⏳</div>
+        <div class="kpiIcon"><i data-lucide="hourglass"></i></div>
         <div class="kpiNumero" id="kpiPendientes">0</div>
         <div class="kpiLabel">Pendientes</div>
       </div>
@@ -458,17 +493,17 @@
   <div class="view" id="viewInterconsultas">
     <div class="resumenKpis">
       <div class="kpiCard kpi-ic-pendientes">
-        <div class="kpiIcon">⏳</div>
+        <div class="kpiIcon"><i data-lucide="hourglass"></i></div>
         <div class="kpiNumero" id="kpiIcPendientes">0</div>
         <div class="kpiLabel">Pendientes</div>
       </div>
       <div class="kpiCard kpi-ic-resueltas">
-        <div class="kpiIcon">✅</div>
+        <div class="kpiIcon"><i data-lucide="check-circle-2"></i></div>
         <div class="kpiNumero" id="kpiIcResueltas">0</div>
         <div class="kpiLabel">Resueltas este mes</div>
       </div>
       <div class="kpiCard kpi-ic-facturar">
-        <div class="kpiIcon">💰</div>
+        <div class="kpiIcon"><i data-lucide="circle-dollar-sign"></i></div>
         <div class="kpiNumero" id="kpiIcFacturar">0</div>
         <div class="kpiLabel">Por facturar</div>
       </div>
@@ -493,7 +528,7 @@
     <div class="empty" id="emptyState">Todavía no cargaste interconsultas.</div>
 
     <details class="panel" id="panelCargarDatos" style="margin-top:16px">
-      <summary style="font-size:14px; font-weight:600">➕ Cargar mensajes</summary>
+      <summary style="font-size:14px; font-weight:600"><i data-lucide="plus"></i> Cargar mensajes</summary>
 
       <div style="margin-top:16px">
         <h2>Cargar mensajes</h2>
@@ -517,7 +552,7 @@
             <span class="msg" style="margin:0" id="capturaMsg"></span>
           </div>
           <div class="msg" style="margin-top:6px">
-            📷 O subí directamente la captura de pantalla de WhatsApp, igual que si se la mandaras al bot de Telegram. Se procesa sola en segundo plano (puede demorar hasta 2 horas) y la interconsulta aparece automáticamente arriba.
+            <i data-lucide="camera"></i> O subí directamente la captura de pantalla de WhatsApp, igual que si se la mandaras al bot de Telegram. Se procesa sola en segundo plano (puede demorar hasta 2 horas) y la interconsulta aparece automáticamente arriba.
           </div>
           <ul class="contactList" id="capturasPendientesList" style="margin-top:10px"></ul>
         </div>
@@ -605,7 +640,7 @@
             <label style="grid-column:1/-1">Notas<textarea data-pk="notas" id="pdNotas" placeholder="Notas generales..."></textarea></label>
           </div>
           <details style="margin-top:14px" id="copagoDetails">
-            <summary style="font-size:13px; font-weight:600; color:var(--text)" title="Copago">💰</summary>
+            <summary style="font-size:13px; font-weight:600; color:var(--text)" title="Copago"><i data-lucide="circle-dollar-sign"></i></summary>
             <div class="fichaGrid" style="margin-top:12px">
               <label>Monto<input type="text" data-pk="copago_monto" id="pdCopagoMonto" placeholder="ej: 50000"></label>
               <label>Estado
@@ -655,7 +690,7 @@
             <label>Consentimiento informado (link)
               <div class="row" style="margin-top:0; gap:6px; flex-wrap:nowrap">
                 <input type="text" data-pk="consentimiento_link" id="pdConsentimientoLink" placeholder="https://..." style="flex:1; min-width:0">
-                <button type="button" class="secondary linkOpenBtn" data-target="pdConsentimientoLink" title="Abrir consentimiento" style="padding:8px 10px">🔗</button>
+                <button type="button" class="secondary linkOpenBtn" data-target="pdConsentimientoLink" title="Abrir consentimiento" style="padding:8px 10px"><i data-lucide="link"></i></button>
               </div>
             </label>
             <label>Estado del consentimiento
@@ -672,8 +707,8 @@
             <input type="checkbox" id="pdOperado"> Ya fue operado (marca hoy como Fecha Qx)
           </label>
           <div class="row" style="margin-top:14px">
-            <button type="button" class="secondary" id="btnReprogramarCx">📅 Reprogramar</button>
-            <button type="button" class="danger" id="btnCancelarCx">✕ Cancelar cirugía</button>
+            <button type="button" class="secondary" id="btnReprogramarCx"><i data-lucide="calendar"></i> Reprogramar</button>
+            <button type="button" class="danger" id="btnCancelarCx"><i data-lucide="x"></i> Cancelar cirugía</button>
             <button type="button" class="secondary" id="btnAgregarCirugia">+ Agregar cirugía (reoperar)</button>
           </div>
           <div id="historialCirugias"></div>
@@ -740,7 +775,7 @@
               <label>Link del estudio
                 <div class="row" style="margin-top:0; gap:6px; flex-wrap:nowrap">
                   <input type="text" data-pqx="imagenes.tc.link" id="pqTcLink" placeholder="https://..." style="flex:1; min-width:0">
-                  <button type="button" class="secondary linkOpenBtn" data-target="pqTcLink" title="Abrir estudio" style="padding:8px 10px">🔗</button>
+                  <button type="button" class="secondary linkOpenBtn" data-target="pqTcLink" title="Abrir estudio" style="padding:8px 10px"><i data-lucide="link"></i></button>
                 </div>
               </label>
               <label>Usuario<input type="text" data-pqx="imagenes.tc.usuario" id="pqTcUsuario"></label>
@@ -759,7 +794,7 @@
               <label>Link del estudio
                 <div class="row" style="margin-top:0; gap:6px; flex-wrap:nowrap">
                   <input type="text" data-pqx="imagenes.pet.link" id="pqPetLink" placeholder="https://..." style="flex:1; min-width:0">
-                  <button type="button" class="secondary linkOpenBtn" data-target="pqPetLink" title="Abrir estudio" style="padding:8px 10px">🔗</button>
+                  <button type="button" class="secondary linkOpenBtn" data-target="pqPetLink" title="Abrir estudio" style="padding:8px 10px"><i data-lucide="link"></i></button>
                 </div>
               </label>
               <label>Usuario<input type="text" data-pqx="imagenes.pet.usuario" id="pqPetUsuario"></label>
@@ -789,7 +824,7 @@
           <label class="fieldFull" style="margin-top:0">Protocolo quirúrgico (link)
             <div class="row" style="margin-top:0; gap:6px; flex-wrap:nowrap">
               <input type="text" data-pk="protocolo_qx_link" id="pdProtocoloLink" placeholder="https://..." style="flex:1; min-width:0">
-              <button type="button" class="secondary linkOpenBtn" data-target="pdProtocoloLink" title="Abrir link" style="padding:8px 10px">🔗</button>
+              <button type="button" class="secondary linkOpenBtn" data-target="pdProtocoloLink" title="Abrir link" style="padding:8px 10px"><i data-lucide="link"></i></button>
             </div>
           </label>
           <label class="fieldFull">Anatomía patológica
@@ -798,9 +833,12 @@
         </div>
       </div>
 
-      <a id="pdWhatsappFab" class="fab whatsappFab" href="#" target="_blank" rel="noopener" title="Abrir WhatsApp" style="display:none">💬</a>
-      <a id="pdReviewFab" class="fab reviewFab" href="#" target="_blank" rel="noopener" title="Pedir reseña por WhatsApp" style="display:none">⭐</a>
-      <a id="pdContactoFab" class="fab contactoFab" href="#" target="_blank" rel="noopener" title="Enviar mi ficha de contacto por WhatsApp" style="display:none">📇</a>
+      <div class="fabGroup" id="pdFabGroup" style="display:none">
+        <a id="pdContactoFab" class="fab fabSub contactoFab" href="#" target="_blank" rel="noopener" title="Enviar mi ficha de contacto por WhatsApp"><i data-lucide="contact"></i></a>
+        <a id="pdReviewFab" class="fab fabSub reviewFab" href="#" target="_blank" rel="noopener" title="Pedir reseña por WhatsApp"><i data-lucide="star"></i></a>
+        <a id="pdWhatsappFab" class="fab fabSub whatsappFab" href="#" target="_blank" rel="noopener" title="Abrir WhatsApp"><i data-lucide="message-circle"></i></a>
+        <button type="button" id="pdFabToggle" class="fab fabToggle" title="Contactar al paciente"><i data-lucide="message-circle"></i></button>
+      </div>
     </div>
   </div>
   <datalist id="sanatoriosDatalist3"></datalist>
@@ -823,7 +861,7 @@
     </div>
 
     <details class="panel" id="panelConsultorioDias">
-      <summary style="font-size:13px; font-weight:600">🗓️ Agendar días de consultorio</summary>
+      <summary style="font-size:13px; font-weight:600"><i data-lucide="calendar-clock"></i> Agendar días de consultorio</summary>
       <div style="margin-top:12px">
         <div class="msg" style="margin-top:0; margin-bottom:8px">Marcá qué días tenés consultorio en cada sanatorio, para verlo junto con las cirugías programadas y evitar que se pisen.</div>
         <div class="contactForm">
@@ -929,7 +967,7 @@
     <div class="modalCard">
       <div class="row" style="margin-top:0; justify-content:space-between">
         <h2 style="margin:0" id="evolucionTitulo">Evolución</h2>
-        <span class="del" id="btnCerrarEvolucion" title="Cerrar">✕</span>
+        <span class="del" id="btnCerrarEvolucion" title="Cerrar"><i data-lucide="x"></i></span>
       </div>
       <div class="msg" id="evolucionSub" style="margin-top:2px"></div>
       <div class="contactForm" style="margin-top:8px">
@@ -945,7 +983,7 @@
     <div class="modalCard">
       <div class="row" style="margin-top:0; justify-content:space-between">
         <h2 style="margin:0">Agregar interconsulta manual</h2>
-        <span class="del" id="btnCerrarManualIc" title="Cerrar">✕</span>
+        <span class="del" id="btnCerrarManualIc" title="Cerrar"><i data-lucide="x"></i></span>
       </div>
       <form id="manualIcForm">
         <label class="loginLabel">Nombre y apellido</label>
@@ -976,12 +1014,12 @@
   <div class="view" id="viewConsultorio">
     <div class="resumenKpis">
       <div class="kpiCard kpi-cirugias">
-        <div class="kpiIcon">💵</div>
+        <div class="kpiIcon"><i data-lucide="banknote"></i></div>
         <div class="kpiNumero" id="kpiConsFacturadoMes">$0</div>
         <div class="kpiLabel">Facturado este mes</div>
       </div>
       <div class="kpiCard kpi-ic-facturar">
-        <div class="kpiIcon">📋</div>
+        <div class="kpiIcon"><i data-lucide="clipboard-list"></i></div>
         <div class="kpiNumero" id="kpiConsIcPorFacturar">$0</div>
         <div class="kpiLabel">Interconsultas por facturar</div>
       </div>
@@ -1027,7 +1065,7 @@
     </div>
 
     <details class="panel" id="panelPreciosConsulta">
-      <summary style="font-size:14px; font-weight:600">💰 Precios por sanatorio y obra social</summary>
+      <summary style="font-size:14px; font-weight:600"><i data-lucide="circle-dollar-sign"></i> Precios por sanatorio y obra social</summary>
       <div style="margin-top:16px">
         <div class="msg" style="margin-top:0; margin-bottom:8px">Se usa para autocompletar el valor al cargar una consulta nueva.</div>
         <div class="contactForm">
@@ -1051,7 +1089,7 @@
     </details>
 
     <details class="panel" id="panelIcFacturables">
-      <summary style="font-size:14px; font-weight:600">📋 Interconsultas facturables (Berazategui, etc.)</summary>
+      <summary style="font-size:14px; font-weight:600"><i data-lucide="clipboard-list"></i> Interconsultas facturables (Berazategui, etc.)</summary>
       <div style="margin-top:16px">
         <div class="msg" style="margin-top:0; margin-bottom:8px">Se cargan solas al contestar o programar una interconsulta de un sanatorio con valor de interconsulta configurado (panel de Interconsultas). Borralas una vez que ya las facturaste, así llevás el control de lo pendiente.</div>
         <div class="toolbar" style="margin-top:0">
@@ -1436,7 +1474,7 @@ if('serviceWorker' in navigator){
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
   function actualizarBotonTema(){
-    $('#btnTheme').textContent = temaEfectivo() === 'dark' ? '☀️ Modo claro' : '🌙 Modo oscuro';
+    $('#btnTheme').innerHTML = temaEfectivo() === 'dark' ? '<i data-lucide="sun"></i> Modo claro' : '<i data-lucide="moon"></i> Modo oscuro';
   }
   $('#btnTheme').addEventListener('click', () => {
     const nuevo = temaEfectivo() === 'dark' ? 'light' : 'dark';
@@ -1542,10 +1580,10 @@ if('serviceWorker' in navigator){
     const { data } = await sb.from('medico_calendar_tokens').select('connected_at').eq('medico_id', currentUser.id).maybeSingle();
     const btn = $('#btnGoogleCal');
     if(data){
-      btn.textContent = '📅 Google Calendar conectado ✓';
+      btn.innerHTML = '<i data-lucide="calendar"></i> Google Calendar conectado <i data-lucide="check"></i>';
       btn.disabled = true;
     } else {
-      btn.textContent = '📅 Conectar Google Calendar';
+      btn.innerHTML = '<i data-lucide="calendar"></i> Conectar Google Calendar';
       btn.disabled = false;
     }
   }
@@ -1693,7 +1731,7 @@ if('serviceWorker' in navigator){
                   <button type="button" class="secondary sanDropdownBtn sanatoriosBtn" data-id="${m.id}">${escapeHtml(sanatorioResumenTexto(m.sanatorios_permitidos))} ▾</button>
                   <div class="sanDropdownPanel sanatoriosPanel" data-id="${m.id}">${sanatorioCheckboxesHtml(m.sanatorios_permitidos)}</div>
                 </div>` : ''}
-                <span class="del" data-action="deleteMedico" data-id="${m.id}" title="Borrar">✕</span>`
+                <span class="del" data-action="deleteMedico" data-id="${m.id}" title="Borrar"><i data-lucide="x"></i></span>`
               : `<span class="msg" style="margin:0; margin-left:auto">${m.rol === 'residente' ? 'Residente' : ''}</span>`
           }
         </li>
@@ -2087,7 +2125,7 @@ if('serviceWorker' in navigator){
   }
 
   const CAPTURAS_BUCKET = 'interconsultas-capturas';
-  const CAPTURA_ESTADO_LABEL = { pendiente: '⏳ Pendiente de procesar', procesada: '✅ Procesada', error: '⚠️ Error' };
+  const CAPTURA_ESTADO_LABEL = { pendiente: '<i data-lucide="hourglass"></i> Pendiente de procesar', procesada: '<i data-lucide="check-circle-2"></i> Procesada', error: '<i data-lucide="triangle-alert"></i> Error' };
 
   function renderCapturasPendientes(){
     const list = $('#capturasPendientesList');
@@ -2103,7 +2141,7 @@ if('serviceWorker' in navigator){
           <span>${escapeHtml(nombreArchivo)}</span>
           <span class="arrow">·</span>
           <span class="sanat" title="${escapeHtml(c.error_mensaje || '')}">${estadoLabel} · ${fecha}</span>
-          <span class="del" data-action="deleteCaptura" data-id="${c.id}" data-path="${escapeHtml(c.storage_path)}" title="Quitar de la cola">✕</span>
+          <span class="del" data-action="deleteCaptura" data-id="${c.id}" data-path="${escapeHtml(c.storage_path)}" title="Quitar de la cola"><i data-lucide="x"></i></span>
         </li>
       `;
       }).join('');
@@ -2150,7 +2188,7 @@ if('serviceWorker' in navigator){
           <span>${escapeHtml(p.sanatorio)}</span>
           <span class="arrow">→</span>
           <span class="sanat">$${Number(p.valor).toFixed(2)} por interconsulta</span>
-          <span class="del" data-action="deleteValorIc" data-id="${p.id}" title="Quitar">✕</span>
+          <span class="del" data-action="deleteValorIc" data-id="${p.id}" title="Quitar"><i data-lucide="x"></i></span>
         </li>
       `).join('');
   }
@@ -2218,7 +2256,7 @@ if('serviceWorker' in navigator){
             <div class="internadosGroupHead" style="border-left:6px solid ${color}">
               <span class="sanatorioDot" style="background:${color}"></span>
               <span class="internadosGroupTitle">${escapeHtml(nombre)}</span>
-              <span class="del" data-action="deleteSanatorioAdmin" data-nombre="${escapeHtml(nombre)}" title="Borrar sanatorio" style="margin-left:auto">✕</span>
+              <span class="del" data-action="deleteSanatorioAdmin" data-nombre="${escapeHtml(nombre)}" title="Borrar sanatorio" style="margin-left:auto"><i data-lucide="x"></i></span>
             </div>
             <div class="panel" style="margin-top:0">
               <div class="fichaGrid">
@@ -2241,7 +2279,7 @@ if('serviceWorker' in navigator){
                   : contactosSanatorio.map(c => `
                     <li data-id="${c.id}">
                       <span>${escapeHtml(c.contacto)}</span>
-                      <span class="del" data-action="deleteContactoAdmin" data-id="${c.id}" title="Quitar">✕</span>
+                      <span class="del" data-action="deleteContactoAdmin" data-id="${c.id}" title="Quitar"><i data-lucide="x"></i></span>
                     </li>
                   `).join('')}
               </ul>
@@ -2339,7 +2377,7 @@ if('serviceWorker' in navigator){
     return `<div class="internadoCard" data-id="${it.id}" style="border-left:5px solid ${color}">
       <div class="row" style="margin-top:0; justify-content:space-between; align-items:center">
         <span class="badge ${it.estado}" data-id="${it.id}" data-toggle="estado">${it.estado}</span>
-        <span class="del" data-id="${it.id}" data-action="delete" title="Borrar">✕</span>
+        <span class="del" data-id="${it.id}" data-action="delete" title="Borrar"><i data-lucide="x"></i></span>
       </div>
       <div class="nombre" contenteditable="true" data-id="${it.id}" data-key="paciente" style="margin-top:6px">${escapeHtml(it.paciente)}</div>
       <div class="meta" contenteditable="true" data-id="${it.id}" data-key="sanatorio" style="font-weight:600">${escapeHtml(it.sanatorio)}</div>
@@ -2353,7 +2391,7 @@ if('serviceWorker' in navigator){
       <div class="meta" contenteditable="true" data-id="${it.id}" data-key="zona">${escapeHtml(it.zona)}</div>
       <div class="orig" title="${escapeHtml(it.original)}">${escapeHtml(it.original)}</div>
       <button class="secondary" data-action="programarCx" data-id="${it.id}" style="margin-top:10px; width:100%; font-size:12px; padding:7px">→ Programar Cx</button>
-      <button class="success" data-action="contestada" data-id="${it.id}" style="margin-top:6px; width:100%; font-size:12px; padding:7px">✓ Contestada</button>
+      <button class="success" data-action="contestada" data-id="${it.id}" style="margin-top:6px; width:100%; font-size:12px; padding:7px"><i data-lucide="check"></i> Contestada</button>
     </div>`;
   }
 
@@ -2690,7 +2728,7 @@ if('serviceWorker' in navigator){
     return `<div class="internadoCard pacRow" data-id="${p.id}" style="border-left:5px solid ${color}">
       <div class="row" style="margin-top:0; justify-content:space-between; align-items:flex-start">
         <div class="nombre">${escapeHtml(p.nombre)}</div>
-        ${puedeBorrar ? `<span class="del" data-id="${p.id}" data-action="deletePaciente" title="Borrar">✕</span>` : ''}
+        ${puedeBorrar ? `<span class="del" data-id="${p.id}" data-action="deletePaciente" title="Borrar"><i data-lucide="x"></i></span>` : ''}
       </div>
       <div class="meta" style="font-weight:600">${sanatorioChip(p.sanatorio)}</div>
       ${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ''}
@@ -2815,12 +2853,45 @@ if('serviceWorker' in navigator){
     return `intent://send?${params}#Intent;scheme=whatsapp;package=com.whatsapp.w4b;S.browser_fallback_url=${encodeURIComponent(base)};end`;
   }
 
+  // Los 3 botones de contacto de la ficha (WhatsApp / reseña / mi contacto)
+  // viven juntos en #pdFabGroup, colapsados detrás de un único botón toggle
+  // (#pdFabToggle) — cada uno se marca "eligible" cuando corresponde
+  // mostrarlo, y el grupo entero se oculta si ninguno aplica.
+  function updateFabGroupVisibility(){
+    const group = $('#pdFabGroup');
+    if(!group) return;
+    const hayAlguno = Array.from(group.querySelectorAll('.fabSub')).some(f => f.classList.contains('eligible'));
+    group.style.display = hayAlguno ? 'flex' : 'none';
+    if(!hayAlguno) cerrarFabGroup();
+  }
+
+  function cerrarFabGroup(){
+    const group = $('#pdFabGroup');
+    if(!group) return;
+    group.classList.remove('open');
+    $('#pdFabToggle').innerHTML = '<i data-lucide="message-circle"></i>';
+  }
+
+  $('#pdFabToggle').addEventListener('click', () => {
+    const group = $('#pdFabGroup');
+    const abrir = !group.classList.contains('open');
+    group.classList.toggle('open', abrir);
+    $('#pdFabToggle').innerHTML = abrir ? '<i data-lucide="x"></i>' : '<i data-lucide="message-circle"></i>';
+  });
+  $('#pdFabGroup').addEventListener('click', (e) => {
+    if(e.target.closest('.fabSub')) cerrarFabGroup();
+  });
+  document.addEventListener('click', (e) => {
+    if(!e.target.closest('#pdFabGroup')) cerrarFabGroup();
+  });
+
   function updateWhatsappFab(telefono){
     const fab = $('#pdWhatsappFab');
     const d = normalizePhoneAR(telefono);
-    if(d.length < 11){ fab.style.display = 'none'; return; }
-    fab.href = whatsappHref(d, '');
-    fab.style.display = 'flex';
+    const elegible = d.length >= 11;
+    fab.classList.toggle('eligible', elegible);
+    if(elegible) fab.href = whatsappHref(d, '');
+    updateFabGroupVisibility();
   }
 
   // Manda por WhatsApp el link a la página de contacto de Pablo (pablomaynard.com.ar/contacto),
@@ -2831,10 +2902,13 @@ if('serviceWorker' in navigator){
     const fab = $('#pdContactoFab');
     if(!fab) return;
     const d = p ? normalizePhoneAR(p.telefono) : '';
-    if(d.length < 11){ fab.style.display = 'none'; return; }
-    const texto = `¡Hola ${p.nombre || ''}! Te paso mi ficha de contacto para que la guardes en tu celular: ${CONTACTO_LINK}`;
-    fab.href = whatsappHref(d, texto);
-    fab.style.display = 'flex';
+    const elegible = d.length >= 11;
+    fab.classList.toggle('eligible', elegible);
+    if(elegible){
+      const texto = `¡Hola ${p.nombre || ''}! Te paso mi ficha de contacto para que la guardes en tu celular: ${CONTACTO_LINK}`;
+      fab.href = whatsappHref(d, texto);
+    }
+    updateFabGroupVisibility();
   }
 
   // Mensaje pseudoautomático de invitación a dejar reseña en Google (click
@@ -2846,20 +2920,23 @@ if('serviceWorker' in navigator){
     if(!fab) return;
     const link = currentMedico && currentMedico.es_admin && currentMedico.google_review_link;
     const d = p ? normalizePhoneAR(p.telefono) : '';
-    if(!link || d.length < 11){ fab.style.display = 'none'; return; }
-    fab.style.display = 'flex';
-    if(p.review_solicitado_at){
-      fab.classList.add('sent');
-      fab.textContent = '✓';
-      fab.title = 'Ya le pediste una reseña el ' + new Date(p.review_solicitado_at).toLocaleDateString('es-AR');
-      fab.removeAttribute('href');
-    } else {
-      fab.classList.remove('sent');
-      fab.textContent = '⭐';
-      fab.title = 'Pedir reseña por WhatsApp';
-      const texto = `¡Hola ${p.nombre || ''}! Fue un gusto haber podido atenderte. Si tenés un minuto, me ayudaría muchísimo que dejes tu reseña en Google acá: ${link} — con tu puntuación y, en pocas líneas, cómo te sentiste con la atención. Comentarios como el tuyo son los que más ayudan a que otros pacientes me encuentren y se animen a consultarme. ¡Muchas gracias!`;
-      fab.href = whatsappHref(d, texto);
+    const elegible = !!link && d.length >= 11;
+    fab.classList.toggle('eligible', elegible);
+    if(elegible){
+      if(p.review_solicitado_at){
+        fab.classList.add('sent');
+        fab.innerHTML = '<i data-lucide="check"></i>';
+        fab.title = 'Ya le pediste una reseña el ' + new Date(p.review_solicitado_at).toLocaleDateString('es-AR');
+        fab.removeAttribute('href');
+      } else {
+        fab.classList.remove('sent');
+        fab.innerHTML = '<i data-lucide="star"></i>';
+        fab.title = 'Pedir reseña por WhatsApp';
+        const texto = `¡Hola ${p.nombre || ''}! Fue un gusto haber podido atenderte. Si tenés un minuto, me ayudaría muchísimo que dejes tu reseña en Google acá: ${link} — con tu puntuación y, en pocas líneas, cómo te sentiste con la atención. Comentarios como el tuyo son los que más ayudan a que otros pacientes me encuentren y se animen a consultarme. ¡Muchas gracias!`;
+        fab.href = whatsappHref(d, texto);
+      }
     }
+    updateFabGroupVisibility();
   }
 
   async function marcarReviewSolicitada(p){
@@ -3199,7 +3276,7 @@ if('serviceWorker' in navigator){
     const htmls = await Promise.all(fotos.map(async path => {
       const { data } = await sb.storage.from(STORAGE_BUCKET).createSignedUrl(path, 3600);
       const url = data ? data.signedUrl : '';
-      const delBtn = currentMedico.rol === 'residente' ? '' : `<span class="del" data-tipo="${tipo}" data-path="${escapeHtml(path)}" title="Borrar">✕</span>`;
+      const delBtn = currentMedico.rol === 'residente' ? '' : `<span class="del" data-tipo="${tipo}" data-path="${escapeHtml(path)}" title="Borrar"><i data-lucide="x"></i></span>`;
       return `<div class="fotoThumb"><img src="${url}" loading="lazy">${delBtn}</div>`;
     }));
     container.innerHTML = htmls.join('');
@@ -3314,7 +3391,7 @@ if('serviceWorker' in navigator){
   function consultorioChipHtml(c){
     const hora = horaRangoTexto(c);
     const label = 'Consultorio' + (hora ? ' ' + hora : '') + (c.sanatorio ? ' — ' + c.sanatorio : '');
-    return `<div class="calEventChip" data-consultorio-id="${c.id}" style="background:var(--purple)" title="${escapeHtml(label)}">🗓️ ${hora ? escapeHtml(hora) + ' ' : ''}${escapeHtml(c.sanatorio || 'Consultorio')}</div>`;
+    return `<div class="calEventChip" data-consultorio-id="${c.id}" style="background:var(--purple)" title="${escapeHtml(label)}"><i data-lucide="calendar-clock"></i> ${hora ? escapeHtml(hora) + ' ' : ''}${escapeHtml(c.sanatorio || 'Consultorio')}</div>`;
   }
 
   function weekEventCardHtml(p){
@@ -3329,7 +3406,7 @@ if('serviceWorker' in navigator){
 
   function consultorioWeekEventHtml(c){
     const hora = horaRangoTexto(c);
-    return `<div class="calConsultorioChip" data-consultorio-id="${c.id}" title="Quitar">🗓️ Consultorio${hora ? ' ' + escapeHtml(hora) : ''}${c.sanatorio ? ' · ' + escapeHtml(c.sanatorio) : ''}</div>`;
+    return `<div class="calConsultorioChip" data-consultorio-id="${c.id}" title="Quitar"><i data-lucide="calendar-clock"></i> Consultorio${hora ? ' ' + escapeHtml(hora) : ''}${c.sanatorio ? ' · ' + escapeHtml(c.sanatorio) : ''}</div>`;
   }
 
   function renderMonthHtml(map, consultorioMap){
@@ -3369,7 +3446,7 @@ if('serviceWorker' in navigator){
         <div class="calWeekDayHead">${DOW_LABELS[i]} ${d.getDate()}</div>
         ${consultorioEvents.map(consultorioWeekEventHtml).join('')}
         ${events.length === 0 && consultorioEvents.length === 0 ? '<div class="calEmptyDay">—</div>' : events.map(weekEventCardHtml).join('')}
-        ${events.length > 0 && consultorioEvents.length > 0 ? `<div class="calOverlapWarning">⚠️ Cirugía y consultorio el mismo día</div>` : ''}
+        ${events.length > 0 && consultorioEvents.length > 0 ? `<div class="calOverlapWarning"><i data-lucide="triangle-alert"></i> Cirugía y consultorio el mismo día</div>` : ''}
       </div>`;
     }
     html += `</div>`;
@@ -3379,7 +3456,7 @@ if('serviceWorker' in navigator){
   function consultorioDayItemHtml(c){
     const hora = horaRangoTexto(c);
     return `<div class="calDayItem" data-consultorio-id="${c.id}" style="border-left:4px solid var(--purple)">
-      <div class="calDayItemName">🗓️ Consultorio${hora ? ' · ' + escapeHtml(hora) : ''}</div>
+      <div class="calDayItemName"><i data-lucide="calendar-clock"></i> Consultorio${hora ? ' · ' + escapeHtml(hora) : ''}</div>
       ${c.sanatorio ? `<div class="calDayItemMeta">${sanatorioChip(c.sanatorio)}</div>` : ''}
     </div>`;
   }
@@ -3390,7 +3467,7 @@ if('serviceWorker' in navigator){
     const consultorioEvents = consultorioMap[iso] || [];
     if(events.length === 0 && consultorioEvents.length === 0) return `<div class="empty">No hay pacientes ni consultorio programados este día.</div>`;
     return `<div class="calDayList">`
-      + (events.length > 0 && consultorioEvents.length > 0 ? `<div class="calOverlapWarning">⚠️ Tenés cirugía y consultorio el mismo día</div>` : '')
+      + (events.length > 0 && consultorioEvents.length > 0 ? `<div class="calOverlapWarning"><i data-lucide="triangle-alert"></i> Tenés cirugía y consultorio el mismo día</div>` : '')
       + consultorioEvents.map(consultorioDayItemHtml).join('')
       + events.map(p => `
       <div class="calDayItem" data-id="${p.id}" style="border-left:4px solid ${sanatorioColor(p.sanatorio)||'#64748b'}">
@@ -3677,7 +3754,7 @@ if('serviceWorker' in navigator){
       ${condicion ? `<div style="margin-top:6px" ${condicionClickeable ? `data-paciente-id="${paciente.id}"` : ''}>${condicionBadgeHtml(paciente)}</div>` : ''}
       <div class="dias">${diasInternado(i.fecha_ingreso)} día(s) internado</div>
       <div class="row" style="margin-top:8px; gap:6px">
-        <button type="button" class="secondary" data-action="editarUbicacionCard" data-id="${i.id}" title="Editar sector/habitación/cama" style="font-size:12px; padding:6px 8px">✏️</button>
+        <button type="button" class="secondary" data-action="editarUbicacionCard" data-id="${i.id}" title="Editar sector/habitación/cama" style="font-size:12px; padding:6px 8px"><i data-lucide="pencil"></i></button>
         <button type="button" class="danger" data-action="darAltaCard" data-id="${i.id}" style="flex:1; font-size:12px; padding:6px 4px">Dar de alta</button>
         ${paciente ? `<button type="button" class="secondary" data-paciente-id="${paciente.id}" style="flex:1; font-size:12px; padding:6px 4px">Ir a ficha</button>` : ''}
       </div>
@@ -3878,9 +3955,9 @@ if('serviceWorker' in navigator){
           <div style="width:24px; height:24px; border-radius:50%; margin:4px auto; display:flex; align-items:center; justify-content:center; font-size:12px; ${isToday ? 'background:var(--accent); color:#fff; font-weight:700;' : ''}">${d.getDate()}</div>
           <div style="display:flex; flex-direction:column; gap:2px">
             ${cirugiasDia.map(p => `<div class="calEventChip" data-paciente-id="${p.id}" style="background:${sanatorioColor(p.sanatorio)||'#64748b'}; font-size:10px" title="${escapeHtml(p.nombre + (p.operacion ? ' — ' + p.operacion : ''))}">${escapeHtml(p.operacion || p.nombre)}</div>`).join('')}
-            ${consultoriosDia.map(c => `<div class="calEventChip" style="background:var(--purple); font-size:10px" title="Consultorio${c.sanatorio ? ' — ' + c.sanatorio : ''}">🗓️ ${escapeHtml(c.sanatorio || 'Consultorio')}</div>`).join('')}
+            ${consultoriosDia.map(c => `<div class="calEventChip" style="background:var(--purple); font-size:10px" title="Consultorio${c.sanatorio ? ' — ' + c.sanatorio : ''}"><i data-lucide="calendar-clock"></i> ${escapeHtml(c.sanatorio || 'Consultorio')}</div>`).join('')}
           </div>
-          ${cirugiasDia.length > 0 && consultoriosDia.length > 0 ? `<div class="calOverlapWarning" style="justify-content:center">⚠️</div>` : ''}
+          ${cirugiasDia.length > 0 && consultoriosDia.length > 0 ? `<div class="calOverlapWarning" style="justify-content:center"><i data-lucide="triangle-alert"></i></div>` : ''}
         </div>`;
       }).join('') + `</div>`;
   }
@@ -3982,13 +4059,25 @@ if('serviceWorker' in navigator){
     });
   }
 
-  $('#resumenKpisRow').addEventListener('click', (e) => {
-    const card = e.target.closest('[data-kpi-action]');
-    if(!card) return;
+  function activarKpiCard(card){
     const action = card.dataset.kpiAction;
     if(action === 'internados'){ document.querySelector('.navtab[data-view="viewInternados"]').click(); return; }
     if(action === 'interconsultas'){ document.querySelector('.navtab[data-view="viewInterconsultas"]').click(); return; }
     if(action === 'pacientesCondicion'){ irAPacientesCondicion(card.dataset.cond); return; }
+  }
+  $('#resumenKpisRow').addEventListener('click', (e) => {
+    const card = e.target.closest('[data-kpi-action]');
+    if(card) activarKpiCard(card);
+  });
+  // Las tarjetas KPI son <div role="button" tabindex="0">, no <button> reales,
+  // así que el navegador no dispara click solo al enfocarlas — hace falta
+  // este handler para que Enter/Espacio también funcionen con teclado.
+  $('#resumenKpisRow').addEventListener('keydown', (e) => {
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('[data-kpi-action]');
+    if(!card) return;
+    e.preventDefault();
+    activarKpiCard(card);
   });
 
   // ==================== CONSULTORIO ====================
@@ -4038,7 +4127,7 @@ if('serviceWorker' in navigator){
         </select>
       </td>
       <td contenteditable="true" data-id="${c.id}" data-key="valor">${c.valor != null ? escapeHtml(c.valor) : ''}</td>
-      <td><span class="del" data-id="${c.id}" data-action="deleteConsulta" title="Borrar">✕</span></td>
+      <td><span class="del" data-id="${c.id}" data-action="deleteConsulta" title="Borrar"><i data-lucide="x"></i></span></td>
     </tr>`;
   }
 
@@ -4192,7 +4281,7 @@ if('serviceWorker' in navigator){
       <td>${escapeHtml(c.paciente || '')}</td>
       <td>${tipoLabel}</td>
       <td>${c.valor != null ? escapeHtml(c.valor) : ''}</td>
-      <td><span class="del" data-id="${c.id}" data-action="deleteIcFacturable" title="Borrar">✕</span></td>
+      <td><span class="del" data-id="${c.id}" data-action="deleteIcFacturable" title="Borrar"><i data-lucide="x"></i></span></td>
     </tr>`;
   }
 
@@ -4263,7 +4352,7 @@ if('serviceWorker' in navigator){
           <span>${escapeHtml(p.sanatorio)}</span>
           <span class="arrow">→</span>
           <span class="sanat">${p.os === 'unico' ? 'Todas las OS' : escapeHtml(p.os)}: $${Number(p.valor).toFixed(2)}</span>
-          <span class="del" data-action="deletePrecio" data-id="${p.id}" title="Quitar">✕</span>
+          <span class="del" data-action="deletePrecio" data-id="${p.id}" title="Quitar"><i data-lucide="x"></i></span>
         </li>
       `).join('');
   }
