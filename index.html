@@ -357,6 +357,14 @@
   .internadoCard .nombre{font-weight:700; font-size:14px; margin-top:2px}
   .internadoCard .meta{font-size:12px; color:var(--muted); margin-top:6px}
   .internadoCard .dias{font-size:11px; color:var(--accent); font-weight:600; margin-top:8px}
+  /* Nivel del programa: un marco + insignia en la tarjeta, sin tocar el
+     border-left (que ya codifica sanatorio/condición) — se suman, no compiten. */
+  .internadoCard.nivel-dorado{box-shadow:0 0 0 2px #D4AF37, 0 2px 8px rgba(0,0,0,0.08); background:linear-gradient(135deg, rgba(212,175,55,0.10), var(--panel) 60%)}
+  .internadoCard.nivel-dorado:hover{box-shadow:0 0 0 2px #D4AF37, 0 6px 16px rgba(0,0,0,0.14)}
+  .internadoCard.nivel-platinum{box-shadow:0 0 0 2px #9CA3AF, 0 2px 8px rgba(0,0,0,0.08); background:linear-gradient(135deg, rgba(156,163,175,0.10), var(--panel) 60%)}
+  .internadoCard.nivel-platinum:hover{box-shadow:0 0 0 2px #9CA3AF, 0 6px 16px rgba(0,0,0,0.14)}
+  .badge.nivel-badge-dorado{background:rgba(212,175,55,0.18); color:#9A7B0A; font-weight:800; text-transform:uppercase; letter-spacing:.03em}
+  .badge.nivel-badge-platinum{background:rgba(156,163,175,0.22); color:#54595F; font-weight:800; text-transform:uppercase; letter-spacing:.03em}
   .modalOverlay{
     position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100;
     display:flex; align-items:center; justify-content:center; padding:20px;
@@ -729,6 +737,24 @@
               </select>
               <div class="meta" id="pdGuiaEnviadaInfo" style="margin-top:4px"></div>
             </label>
+          </div>
+          <div class="fieldFull" style="margin-top:10px">
+            <div style="font-size:13px; color:var(--text); margin-bottom:6px">Componentes del programa (con terceros)</div>
+            <div style="display:flex; flex-wrap:wrap; gap:14px">
+              <label style="display:flex; align-items:center; gap:6px; font-weight:normal; font-size:13px; cursor:pointer">
+                <input type="checkbox" data-pk="incluye_anatomia_patologica" id="pdIncluyeAnatomia"> Anatomía patológica
+              </label>
+              <label style="display:flex; align-items:center; gap:6px; font-weight:normal; font-size:13px; cursor:pointer">
+                <input type="checkbox" data-pk="incluye_kinesiologia" id="pdIncluyeKinesio"> Kinesiología
+              </label>
+              <label style="display:flex; align-items:center; gap:6px; font-weight:normal; font-size:13px; cursor:pointer">
+                <input type="checkbox" data-pk="incluye_neumonologia_preqx" id="pdIncluyeNeumo"> Neumonología (preQx)
+              </label>
+              <label style="display:flex; align-items:center; gap:6px; font-weight:normal; font-size:13px; cursor:pointer">
+                <input type="checkbox" data-pk="incluye_cardiologia_preqx" id="pdIncluyeCardio"> Cardiología (preQx)
+              </label>
+            </div>
+            <div class="meta" id="pdNivelProgramaInfo" style="margin-top:6px"></div>
           </div>
           <div class="msg" id="fechaQxLockMsg" style="margin-top:8px">Definí Materiales en "En quirófano" o "No requiere" para poder programar la fecha.</div>
           <label style="display:flex; align-items:center; gap:8px; margin-top:14px; font-size:13px; font-weight:normal; cursor:pointer">
@@ -2709,6 +2735,32 @@ if('serviceWorker' in navigator){
     return `<span class="badge cond-${cond}">${CONDICION_LABEL[cond]}</span>`;
   }
 
+  // Nivel del programa según qué componentes (que dependen de terceros)
+  // incluye este paciente — solo aplica una vez que está en el programa
+  // (tipo_consentimiento cargado). "Dorado" = los 4 incluidos, "Platinum" =
+  // le falta alguno. Deliberadamente NO se usan las palabras "premium"/"VIP"
+  // en ningún texto visible, tal como pidió Pablo.
+  const NIVEL_PROGRAMA_COMPONENTES = ['incluye_anatomia_patologica', 'incluye_kinesiologia', 'incluye_neumonologia_preqx', 'incluye_cardiologia_preqx'];
+  function pacienteNivelPrograma(p){
+    if(!p || !p.tipo_consentimiento) return '';
+    return NIVEL_PROGRAMA_COMPONENTES.every(k => p[k]) ? 'dorado' : 'platinum';
+  }
+  const NIVEL_PROGRAMA_LABEL = { dorado: 'Dorado', platinum: 'Platinum' };
+  function nivelProgramaCardClass(p){
+    const nivel = pacienteNivelPrograma(p);
+    return nivel ? ` nivel-${nivel}` : '';
+  }
+  function nivelProgramaBadgeHtml(p){
+    const nivel = pacienteNivelPrograma(p);
+    return nivel ? `<span class="badge nivel-badge-${nivel}">${NIVEL_PROGRAMA_LABEL[nivel]}</span>` : '';
+  }
+  function renderNivelProgramaInfo(p){
+    const el = $('#pdNivelProgramaInfo');
+    if(!el) return;
+    const nivel = pacienteNivelPrograma(p);
+    el.textContent = nivel ? `Nivel del programa: ${NIVEL_PROGRAMA_LABEL[nivel]}` : '';
+  }
+
   function setMatSelectClass(el, value){
     el.classList.remove('mat-no_requiere', 'mat-pendiente_autorizacion', 'mat-autorizados', 'mat-en_quirofano');
     if(value) el.classList.add('mat-' + value);
@@ -2755,7 +2807,7 @@ if('serviceWorker' in navigator){
   function pacienteCardHtml(p, color){
     const puedeBorrar = currentMedico.rol !== 'residente';
     const meta = [p.edad ? p.edad + ' años' : '', p.dni ? 'DNI ' + p.dni : ''].filter(Boolean).join(' · ');
-    return `<div class="internadoCard pacRow" data-id="${p.id}" style="border-left:5px solid ${color}">
+    return `<div class="internadoCard pacRow${nivelProgramaCardClass(p)}" data-id="${p.id}" style="border-left:5px solid ${color}">
       <div class="row" style="margin-top:0; justify-content:space-between; align-items:flex-start">
         <div class="nombre">${escapeHtml(p.nombre)}</div>
         ${puedeBorrar ? `<span class="del" data-id="${p.id}" data-action="deletePaciente" title="Borrar"><i data-lucide="x"></i></span>` : ''}
@@ -2764,6 +2816,7 @@ if('serviceWorker' in navigator){
       ${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ''}
       ${p.diagnostico ? `<div class="meta">${escapeHtml(p.diagnostico)}</div>` : ''}
       ${p.fecha_qx ? `<div class="dias">${escapeHtml(p.fecha_qx)}</div>` : ''}
+      ${nivelProgramaBadgeHtml(p) ? `<div style="margin-top:6px">${nivelProgramaBadgeHtml(p)}</div>` : ''}
     </div>`;
   }
 
@@ -3305,6 +3358,11 @@ if('serviceWorker' in navigator){
     $('#pdConsentimientoLink').value = p.consentimiento_link || '';
     $('#pdConsentimientoEstado').value = p.consentimiento_estado || '';
     $('#pdTipoConsentimiento').value = p.tipo_consentimiento || '';
+    $('#pdIncluyeAnatomia').checked = !!p.incluye_anatomia_patologica;
+    $('#pdIncluyeKinesio').checked = !!p.incluye_kinesiologia;
+    $('#pdIncluyeNeumo').checked = !!p.incluye_neumonologia_preqx;
+    $('#pdIncluyeCardio').checked = !!p.incluye_cardiologia_preqx;
+    renderNivelProgramaInfo(p);
     $('#pdOperado').checked = !!p.operado;
     renderHistorialCirugias(p);
     $('#pdDatosClinicos').value = p.datos_clinicos || '';
@@ -3379,6 +3437,11 @@ if('serviceWorker' in navigator){
     if(key === 'telefono' || key === 'nombre'){ updateReviewFab(p); updateContactoFab(p); }
     if(['telefono','nombre','sanatorio','tipo_consentimiento'].includes(key)) updateGuiaFab(p);
     if(key === 'operacion') await autoSuggestTipoConsentimiento(p);
+    if(['tipo_consentimiento','incluye_anatomia_patologica','incluye_kinesiologia','incluye_neumonologia_preqx','incluye_cardiologia_preqx'].includes(key)){
+      renderNivelProgramaInfo(p);
+      renderPacientes();
+      renderInternados();
+    }
     if(key === 'fecha_qx' && value && !error){
       const yaInternado = internaciones.some(i => i.paciente_id === p.id && !i.fecha_alta);
       if(!yaInternado){
@@ -3433,6 +3496,10 @@ if('serviceWorker' in navigator){
       const value = el.value || null;
       savePacienteField(el.dataset.pk, value);
       if(el.classList.contains('matSelect')){ setMatSelectClass(el, value || ''); updateFechaQxLock(value || ''); }
+      return;
+    }
+    if(el.tagName === 'INPUT' && el.type === 'checkbox' && el.dataset.pk){
+      savePacienteField(el.dataset.pk, el.checked);
       return;
     }
     if(el.dataset.pqx && (el.tagName === 'SELECT' || el.type === 'checkbox')){
@@ -4061,12 +4128,13 @@ if('serviceWorker' in navigator){
     // La etiqueta de condición también lleva a la ficha (para completar/revisar
     // la cirugía programada) — salvo que ya esté operado.
     const condicionClickeable = condicion && condicion !== 'operado';
-    return `<div class="internadoCard" data-id="${i.id}" style="border-left:5px solid ${color}">
+    return `<div class="internadoCard${paciente ? nivelProgramaCardClass(paciente) : ''}" data-id="${i.id}" style="border-left:5px solid ${color}">
       <div class="habCama">${escapeHtml(i.habitacion)}${i.cama ? ' · Cama ' + escapeHtml(i.cama) : ''}</div>
       <div class="nombre">${escapeHtml(nombre)}</div>
       <div class="meta">${i.sector ? escapeHtml(i.sector) : ''}</div>
       ${os ? `<div class="meta">${escapeHtml(os)}</div>` : ''}
       ${condicion ? `<div style="margin-top:6px" ${condicionClickeable ? `data-paciente-id="${paciente.id}"` : ''}>${condicionBadgeHtml(paciente)}</div>` : ''}
+      ${paciente && nivelProgramaBadgeHtml(paciente) ? `<div style="margin-top:6px">${nivelProgramaBadgeHtml(paciente)}</div>` : ''}
       <div class="dias">${diasInternado(i.fecha_ingreso)} día(s) internado</div>
       <div class="row" style="margin-top:8px; gap:6px">
         <button type="button" class="secondary" data-action="editarUbicacionCard" data-id="${i.id}" title="Editar sector/habitación/cama" style="font-size:12px; padding:6px 8px"><i data-lucide="pencil"></i></button>
@@ -4230,12 +4298,12 @@ if('serviceWorker' in navigator){
   function resumenCirugiaCardHtml(p, color){
     const meta = [p.edad ? p.edad + ' años' : '', p.os || ''].filter(Boolean).join(' · ');
     const fechaLine = p.fecha_qx ? escapeHtml(p.fecha_qx) + (p.hora_qx ? ' · ' + escapeHtml(p.hora_qx.slice(0,5)) : '') : '';
-    return `<div class="internadoCard" data-paciente-id="${p.id}" style="border-left:5px solid ${color}">
+    return `<div class="internadoCard${nivelProgramaCardClass(p)}" data-paciente-id="${p.id}" style="border-left:5px solid ${color}">
       <div class="nombre">${escapeHtml(p.nombre)}</div>
       ${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ''}
       ${p.operacion ? `<div class="meta">${escapeHtml(p.operacion)}</div>` : ''}
       ${p.diagnostico ? `<div class="meta">${escapeHtml(p.diagnostico)}</div>` : ''}
-      <div style="margin-top:6px">${condicionBadgeHtml(p)}</div>
+      <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap">${condicionBadgeHtml(p)}${nivelProgramaBadgeHtml(p)}</div>
       ${fechaLine ? `<div class="dias">${fechaLine}</div>` : ''}
     </div>`;
   }
