@@ -1,0 +1,3786 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión Médica — Dr. Pablo Maynard</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="theme-color" content="#0E2A66">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gestión Médica">
+<script>
+  (function(){
+    try {
+      var t = localStorage.getItem('tema');
+      if(t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch(e){}
+  })();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  tailwind.config = {
+    darkMode: ['class', '[data-theme="dark"]'],
+    theme: {
+      extend: {
+        colors: {
+          brandNavy: '#0E2A66',
+          brandBlue: '#1E60C6',
+          brandLightBlue: '#3B82F6',
+          brandBg: '#F8FAFD',
+          brandSurface: '#FFFFFF',
+          brandSubtle: '#E0EDFD',
+          brandBorder: '#E2E8F0',
+          brandMuted: '#64748B'
+        }
+      }
+    }
+  }
+</script>
+<style>
+  :root{
+    --bg:#F8FAFD; --panel:#ffffff; --border:#E2E8F0; --text:#0F172A;
+    --muted:#64748B; --accent:#1E60C6; --accent-dark:#0E2A66;
+    --pending:#f59e0b; --done:#16a34a; --danger:#dc2626; --danger-dark:#b91c1c;
+    --purple:#7c3aed; --purple-bg:rgba(124,58,237,0.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ --bg:#0f172a; --panel:#1e293b; --border:#334155; --text:#f8fafc; --muted:#94a3b8; }
+  }
+  :root[data-theme="dark"]{ --bg:#0f172a; --panel:#1e293b; --border:#334155; --text:#f8fafc; --muted:#94a3b8; }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text); padding-bottom:40px;
+  }
+  .app-container{ max-width: 1280px; margin: 0 auto; padding: 20px 16px; }
+  h1{font-size:18px; margin:0; font-weight:800; letter-spacing:-0.02em}
+  .sub{color:var(--muted); font-size:12px;}
+  .panel{
+    background:var(--panel); border:1px solid var(--border); border-radius:14px;
+    padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.03);
+  }
+  .panel h2{font-size:15px; margin:0 0 14px 0; font-weight:700; color:var(--text); display:flex; align-items:center; gap:8px;}
+  .panel h3.subhead{font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted); margin:18px 0 10px 0; padding-bottom:6px; border-bottom:1px solid var(--border)}
+  textarea{
+    width:100%; min-height:90px; resize:vertical; font-family:inherit; font-size:13px;
+    padding:10px 12px; border:1px solid var(--border); border-radius:8px;
+    background:var(--bg); color:var(--text); transition:border-color .15s;
+  }
+  textarea:focus{outline:none; border-color:var(--accent)}
+  .row{display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap}
+  button{
+    cursor:pointer; border:none; border-radius:8px; padding:8px 14px;
+    font-size:13px; font-weight:600; background:var(--accent); color:#fff;
+    transition:all .15s ease;
+  }
+  button:hover{background:var(--accent-dark)}
+  button:disabled{opacity:.5; cursor:not-allowed}
+  button.secondary{background:var(--panel); color:var(--text); border:1px solid var(--border)}
+  button.secondary:hover{background:var(--bg); border-color:var(--muted)}
+  button.danger{background:var(--danger)}
+  button.danger:hover{background:var(--danger-dark)}
+  button.success{background:var(--done)}
+  button.success:hover{background:#15803d}
+  .msg{font-size:12px; color:var(--muted); margin-top:6px; min-height:16px}
+  .msg.error{color:var(--danger); font-weight:600}
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px}
+  input[type=text], input[type=number], input[type=email], input[type=password], input[type=date], input[type=time], select, textarea.small{
+    padding:8px 12px; border:1px solid var(--border); border-radius:8px;
+    background:var(--panel); color:var(--text); font-size:13px; transition:border-color .15s;
+  }
+  input:focus, select:focus{outline:none; border-color:var(--accent)}
+  input[type=text]{min-width:200px}
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th, td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle}
+  th{cursor:pointer; user-select:none; color:var(--muted); font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap}
+  th:hover{color:var(--text)}
+  tr:hover td{background:rgba(30,96,198,0.03)}
+  td[contenteditable=true]{outline:none; min-width:60px; padding:4px 6px; border-radius:4px}
+  td[contenteditable=true]:focus{background:rgba(30,96,198,0.08); box-shadow:0 0 0 1px var(--accent)}
+  .badge{
+    display:inline-flex; align-items:center; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:700;
+    cursor:pointer; white-space:nowrap; text-transform:capitalize;
+  }
+  .badge.pendiente{background:rgba(245,158,11,0.15); color:var(--pending)}
+  .badge.resuelta{background:rgba(22,163,74,0.15); color:var(--done)}
+  .badge.consultorio{background:rgba(30,96,198,0.15); color:var(--accent)}
+  .badge.quirurgica{background:var(--purple-bg); color:var(--purple)}
+  .orig{color:var(--muted); font-size:11px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer}
+  .orig:hover{white-space:normal; overflow:visible}
+  .del{color:var(--muted); cursor:pointer; font-size:14px; line-height:1; padding:4px; border-radius:4px; transition:color .15s}
+  .del:hover{color:var(--danger)}
+  .empty{color:var(--muted); text-align:center; padding:40px 16px; font-size:13px}
+  .count{color:var(--muted); font-size:12px; font-weight:600; margin-left:auto}
+  details summary{cursor:pointer; font-size:13px; font-weight:600; color:var(--text); user-select:none}
+  .contactList{list-style:none; margin:10px 0 0 0; padding:0; display:flex; flex-direction:column; gap:6px; max-height:180px; overflow-y:auto}
+  .contactList li{
+    display:flex; align-items:center; gap:8px; font-size:13px;
+    background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:6px 10px;
+  }
+  .contactList li .arrow{color:var(--muted)}
+  .contactList li .sanat{font-weight:600}
+  .contactList li .del{margin-left:auto}
+  .contactForm{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+  .contactForm input, .contactForm select{flex:1; min-width:140px}
+  .sanDropdown{position:relative; display:inline-block}
+  .sanDropdownBtn{font-size:12px; padding:6px 10px; white-space:nowrap}
+  .sanDropdownPanel{
+    display:none; position:absolute; z-index:30; top:calc(100% + 4px); left:0;
+    background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:8px;
+    min-width:200px; max-height:240px; overflow-y:auto; flex-direction:column; gap:2px;
+    box-shadow:0 6px 20px rgba(0,0,0,.15);
+  }
+  .sanDropdownPanel.open{display:flex}
+  .sanDropdownPanel label{display:flex; align-items:center; gap:8px; font-size:13px; padding:4px 6px; border-radius:6px; cursor:pointer}
+  .sanDropdownPanel label:hover{background:var(--bg)}
+  .sanDropdownPanel label.todosOpt{border-bottom:1px solid var(--border); margin-bottom:2px; padding-bottom:6px; font-weight:600}
+  .loginWrap{
+    min-height:85vh; display:flex; align-items:center; justify-content:center; padding:16px;
+  }
+  .loginBox{
+    background:var(--panel); border:1px solid var(--border); border-radius:16px;
+    padding:32px; width:100%; max-width:380px; box-shadow:0 8px 30px rgba(0,0,0,0.06);
+  }
+  .loginLabel{display:block; font-size:12px; font-weight:600; color:var(--muted); margin:12px 0 4px}
+  .loginBox input{width:100%}
+  .navtabs{display:flex; gap:4px; overflow-x:auto; border-bottom:1px solid var(--border); padding-bottom:2px}
+  .navtab{
+    background:transparent; color:var(--muted); border:none; border-bottom:2px solid transparent;
+    border-radius:0; padding:10px 14px; font-size:13px; font-weight:600; white-space:nowrap;
+  }
+  .navtab:hover{background:transparent; color:var(--text)}
+  .navtab.active{color:var(--accent); border-bottom-color:var(--accent)}
+  .view{display:none}
+  .view.active{display:block}
+
+  /* Sub-tabs de la Ficha */
+  .ficha-tab{
+    display:inline-flex; align-items:center; gap:6px; padding:8px 14px; font-size:13px; font-weight:600;
+    border-radius:8px; color:var(--muted); background:transparent; transition:all .15s ease; cursor:pointer;
+  }
+  .ficha-tab:hover{ color:var(--text); background:rgba(30,96,198,0.05); }
+  .ficha-tab.active{ color:#fff; background:var(--accent); }
+  .ficha-tab-content{ display:none; }
+  .ficha-tab-content.active{ display:block; }
+
+  /* Ficha Grid & Estructura */
+  .fichaGrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:12px}
+  .fichaGrid label, #viewPacientes textarea{display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--muted); font-weight:600}
+  .fichaGrid input, #viewPacientes textarea{font-size:13px; color:var(--text); font-weight:normal}
+  #viewPacientes textarea{width:100%; min-height:70px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); font-family:inherit; resize:vertical}
+
+  /* ANTECEDENTES: Casillas de verificación estilo checklist */
+  .antGrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(210px,1fr)); gap:10px}
+  .antGrid label{
+    display:flex; align-items:center; gap:10px; font-size:13px; font-weight:600; cursor:pointer;
+    background:var(--panel); padding:10px 14px; border-radius:10px; border:1px solid var(--border);
+    color:var(--text); transition:all .15s ease; box-shadow:0 1px 2px rgba(0,0,0,0.02);
+  }
+  .antGrid label:hover{border-color:var(--accent); background:var(--bg)}
+  .antGrid input[type="checkbox"]{
+    width:18px; height:18px; accent-color:var(--accent); cursor:pointer; flex-shrink:0;
+  }
+
+  .imgSubcard{border:1px solid var(--border); border-radius:10px; padding:14px; margin-top:12px; background:var(--bg)}
+  .imgSubcard h3{font-size:13px; font-weight:700; margin:0 0 10px 0; color:var(--text)}
+  .fotoGrid{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+  .fotoThumb{position:relative; width:84px; height:84px; border-radius:8px; overflow:hidden; border:1px solid var(--border); background:var(--panel); box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+  .fotoThumb img{width:100%; height:100%; object-fit:cover; display:block}
+  .fotoThumb .del{position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.6); color:#fff; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; font-size:12px; line-height:1}
+  .pacRow{cursor:pointer}
+  select.matSelect{
+    font-weight:700; font-size:12px; border-radius:8px; padding:8px 10px; border:1px solid var(--border);
+  }
+  select.matSelect option{font-weight:normal}
+  select.matSelect.mat-no_requiere{background:var(--purple-bg); color:var(--purple)}
+  select.matSelect.mat-pendiente_autorizacion{background:rgba(220,38,38,0.15); color:var(--danger)}
+  select.matSelect.mat-autorizados{background:rgba(30,96,198,0.15); color:var(--accent)}
+  select.matSelect.mat-en_quirofano{background:rgba(22,163,74,0.15); color:var(--done)}
+  .fieldFull{display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--muted); margin-top:12px; font-weight:600}
+  .fieldFull input, .fieldFull textarea, .fieldFull select{font-size:13px; color:var(--text); font-weight:normal}
+  .sanatorioDot{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; flex-shrink:0}
+  .sanatorioChip{display:inline-flex; align-items:center; font-weight:600}
+  .calNav{display:flex; align-items:center; gap:6px}
+  .calLabel{font-weight:700; font-size:14px; margin-left:8px; text-transform:capitalize}
+  .calViewSwitch{display:flex; gap:4px}
+  .calViewBtn.active{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .calMonthGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:1px; background:var(--border)}
+  .calMonthHead{background:transparent}
+  .calDowLabel{background:var(--bg); padding:8px; font-size:11px; font-weight:700; text-transform:uppercase; color:var(--muted); text-align:center}
+  .calDayCell{background:var(--panel); min-height:96px; padding:6px; font-size:11px}
+  .calDayCell.otherMonth{opacity:.4}
+  .calDayCell.today .calDayNum{background:var(--accent); color:#fff; border-radius:50%}
+  .calDayNum{display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; font-weight:700; margin-bottom:4px}
+  .calEventChip{display:block; font-size:11px; padding:2px 6px; border-radius:4px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; color:#fff; font-weight:600}
+  .calMoreLabel{font-size:10px; color:var(--muted); margin-top:2px; cursor:default}
+  .calWeekGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:10px; padding:16px}
+  .calWeekDay{background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px; min-height:160px}
+  .calWeekDay.today{border-color:var(--accent)}
+  .calWeekDayHead{font-size:12px; font-weight:700; margin-bottom:8px; text-transform:capitalize}
+  .calEmptyDay{font-size:11px; color:var(--muted)}
+  .calWeekEvent{background:var(--panel); border-radius:6px; padding:6px 8px; margin-bottom:6px; cursor:pointer}
+  .calWeekEventName{font-size:12px; font-weight:700}
+  .calWeekEventMeta{font-size:11px; color:var(--muted); margin-top:2px}
+  .calDayList{display:flex; flex-direction:column; gap:10px; padding:16px}
+  .calDayItem{background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px 14px; cursor:pointer}
+  .calDayItemName{font-weight:700; font-size:14px}
+  .calDayItemMeta{font-size:12px; color:var(--muted); margin-top:4px}
+  .badge.mat-no_requiere{background:var(--purple-bg); color:var(--purple)}
+  .badge.mat-pendiente_autorizacion{background:rgba(220,38,38,0.15); color:var(--danger)}
+  .badge.mat-autorizados{background:rgba(30,96,198,0.15); color:var(--accent)}
+  .badge.mat-en_quirofano{background:rgba(22,163,74,0.15); color:var(--done)}
+  .badge.cond-pendiente{background:rgba(107,114,128,0.15); color:var(--muted)}
+  .badge.cond-programar{background:rgba(245,158,11,0.15); color:var(--pending)}
+  .badge.cond-programado{background:rgba(30,96,198,0.15); color:var(--accent)}
+  .badge.cond-operado{background:rgba(22,163,74,0.15); color:var(--done)}
+  .fab{
+    position:fixed; bottom:28px; right:28px; width:54px; height:54px; border-radius:50%;
+    font-size:24px; line-height:1; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 20px rgba(0,0,0,0.25); z-index:50; padding:0;
+  }
+  a.fab.whatsappFab{background:#25D366; color:#fff; text-decoration:none}
+  a.fab.whatsappFab:hover{background:#1fb457}
+  .internadosGroup{margin-bottom:20px}
+  .internadosGroupHead{
+    display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--panel);
+    border:1px solid var(--border); border-radius:8px; margin-bottom:10px;
+  }
+  .internadosGroupTitle{font-weight:700; font-size:14px}
+  .internadosGroupCount{margin-left:auto; font-size:11px; font-weight:700; color:var(--muted); background:var(--bg); padding:2px 8px; border-radius:999px; border:1px solid var(--border)}
+  .internadosCards{display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:12px; margin-bottom:12px}
+  .resumenSubhead{font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:8px 0 6px 2px}
+  
+  /* Nódulo Pulmonar Box */
+  .pretestResult{margin-top:16px; padding:16px; background:var(--panel); border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03)}
+  .pretestModelo{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; font-weight:700}
+  .pretestNumero{font-size:36px; font-weight:800; margin-top:4px; line-height:1; color:#0E2A66}
+  .pretestBar{height:8px; border-radius:999px; background:var(--border); margin-top:12px; overflow:hidden}
+  .pretestBarFill{height:100%; border-radius:999px; transition:width .3s; width:0}
+  .pretestCategoria{font-size:12px; font-weight:700; margin-top:8px}
+  
+  .internadoCard{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:12px 14px;
+    cursor:pointer; transition:all .15s ease; box-shadow:0 1px 2px rgba(0,0,0,0.02);
+  }
+  .internadoCard:hover{box-shadow:0 4px 12px rgba(0,0,0,0.06); transform:translateY(-1px)}
+  .internadoCard .habCama{font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.03em}
+  .internadoCard .nombre{font-weight:700; font-size:14px; margin-top:2px}
+  .internadoCard .meta{font-size:12px; color:var(--muted); margin-top:4px}
+  .internadoCard .dias{font-size:11px; color:var(--accent); font-weight:600; margin-top:6px}
+  .modalOverlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.4); backdrop-filter:blur(2px); z-index:100;
+    display:flex; align-items:center; justify-content:center; padding:16px;
+  }
+  .modalCard{
+    background:var(--panel); border-radius:14px; padding:22px; width:100%; max-width:480px;
+    max-height:85vh; overflow-y:auto; box-shadow:0 10px 30px rgba(0,0,0,0.2);
+  }
+  .evolucionList{margin-top:12px; display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto}
+  .evolucionItem{background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 10px}
+  .evolucionItem .fecha{font-size:11px; color:var(--muted); font-weight:600}
+  .evolucionItem .texto{font-size:13px; margin-top:3px; white-space:pre-wrap}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="loginWrap">
+  <form id="loginForm" class="loginBox">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center p-1.5 border border-blue-200">
+        <svg viewBox="0 0 100 100" class="w-full h-full text-blue-600" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="50" cy="50" r="46" stroke-width="3" />
+          <path d="M50 15 v25 M46 18 h8 M46 24 h8 M46 30 h8 M46 36 h8" stroke-width="2.5" />
+          <path d="M50 40 L35 55 M50 40 L65 55" stroke-width="4" stroke="#0E2A66" />
+          <path d="M35 55 C22 55 18 68 22 82 C25 87 38 88 45 84 C47 75 45 60 35 55 Z" />
+          <path d="M65 55 C78 55 82 68 78 82 C75 87 62 88 55 84 C53 75 55 60 65 55 Z" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-[#0E2A66]">DR. PABLO MAYNARD</h1>
+        <div class="text-xs text-slate-500 font-medium">Gestión Quirúrgica & Consultorio</div>
+      </div>
+    </div>
+    <div class="sub">Ingresá con tu cuenta médica.</div>
+    <label class="loginLabel">Email</label>
+    <input type="email" id="loginEmail" required autocomplete="username">
+    <label class="loginLabel">Contraseña</label>
+    <input type="password" id="loginPassword" required autocomplete="current-password">
+    <button type="submit" id="btnLogin" style="width:100%; margin-top:18px">Ingresar al sistema</button>
+    <div class="msg" id="loginMsg"></div>
+  </form>
+</div>
+
+<div id="setupScreen" class="loginWrap" style="display:none">
+  <form id="setupForm" class="loginBox" style="max-width:380px">
+    <h1>Completá tu perfil</h1>
+    <div class="sub">Para empezar a usar la app necesitamos algunos datos.</div>
+    <label class="loginLabel">Nombre y apellido</label>
+    <input type="text" id="setupNombre" required style="width:100%">
+    <label class="loginLabel">Especialidad</label>
+    <input type="text" id="setupEspecialidad" placeholder="ej: Cirugía torácica" style="width:100%">
+    <label class="loginLabel">Contraseña nueva (dejar vacío para no cambiarla)</label>
+    <input type="password" id="setupPassword" minlength="6" placeholder="mínimo 6 caracteres" style="width:100%">
+    <button type="submit" id="btnSetup" style="width:100%; margin-top:16px">Guardar y continuar</button>
+    <div class="msg" id="setupMsg"></div>
+  </form>
+</div>
+
+<div id="appScreen" style="display:none">
+  <!-- HEADER INSTITUCIONAL -->
+  <header class="bg-white dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40 px-4 sm:px-6 py-2.5 shadow-xs">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center p-1.5 border border-blue-200 dark:border-blue-900 shrink-0">
+          <svg viewBox="0 0 100 100" class="w-full h-full text-blue-600" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="50" cy="50" r="46" stroke-width="3" />
+            <path d="M50 15 v25 M46 18 h8 M46 24 h8 M46 30 h8 M46 36 h8" stroke-width="2.5" />
+            <path d="M50 40 L35 55 M50 40 L65 55" stroke-width="4" stroke="#0E2A66" />
+            <path d="M35 55 C22 55 18 68 22 82 C25 87 38 88 45 84 C47 75 45 60 35 55 Z" />
+            <path d="M65 55 C78 55 82 68 78 82 C75 87 62 88 55 84 C53 75 55 60 65 55 Z" />
+            <path d="M35 55 L28 65 M32 62 L26 73 M65 55 L72 65 M68 62 L74 73" stroke-width="2" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-sm sm:text-base font-bold text-[#0E2A66] dark:text-white leading-tight">
+            DR. PABLO MAYNARD
+          </h1>
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 font-medium" id="userchip">
+            <span>Cirujano Torácico</span> · <span class="text-blue-600 dark:text-blue-400 font-semibold">MN 128828 / MP 232938</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <button class="secondary !py-1.5 !px-2.5 !text-xs" id="btnTheme">🌙 Modo oscuro</button>
+        <button class="secondary !py-1.5 !px-2.5 !text-xs" id="btnGoogleCal">📅 Google Calendar</button>
+        <button class="secondary !py-1.5 !px-2.5 !text-xs" id="btnNotif">🔔 Notificaciones</button>
+        <button class="!bg-rose-50 !text-rose-600 hover:!bg-rose-100 !py-1.5 !px-2.5 !text-xs dark:!bg-rose-950/40 dark:!text-rose-400" id="btnLogout">Salir</button>
+      </div>
+    </div>
+
+    <!-- TABS DE NAVEGACIÓN -->
+    <nav class="max-w-7xl mx-auto flex gap-1 mt-2.5 overflow-x-auto border-t border-slate-100 dark:border-slate-800 pt-1.5">
+      <button class="navtab active" data-view="viewResumen">Resumen</button>
+      <button class="navtab" data-view="viewInterconsultas">Interconsultas</button>
+      <button class="navtab" data-view="viewPacientes">Pacientes</button>
+      <button class="navtab" data-view="viewAgenda">Agenda</button>
+      <button class="navtab" data-view="viewInternados">Internados</button>
+      <button class="navtab" data-view="viewConsultorio">Consultorio</button>
+    </nav>
+  </header>
+
+  <div class="app-container">
+    <details class="panel" id="panelMedicos">
+      <summary style="font-size:13px; font-weight:700">👥 Médicos del equipo</summary>
+      <div style="margin-top:14px">
+        <ul class="contactList" id="medicosList"></ul>
+        <div class="contactForm" style="margin-top:12px">
+          <input type="email" id="inviteEmail" placeholder="Email del médico a invitar">
+          <input type="text" id="inviteNombre" placeholder="Nombre y apellido">
+          <input type="text" id="inviteEspecialidad" placeholder="Especialidad (opcional)">
+          <select id="inviteRol">
+            <option value="medico">Médico</option>
+            <option value="residente">Residente</option>
+          </select>
+          <div class="sanDropdown" id="inviteSanatoriosDropdown" style="display:none">
+            <button type="button" class="secondary sanDropdownBtn" id="inviteSanatoriosBtn">Todos los sanatorios ▾</button>
+            <div class="sanDropdownPanel" id="inviteSanatoriosPanel"></div>
+          </div>
+          <button id="btnInvite" class="secondary">Invitar</button>
+        </div>
+        <div class="msg" id="inviteMsg"></div>
+      </div>
+    </details>
+
+    <details class="panel" id="panelSanatoriosAdmin" style="display:none">
+      <summary style="font-size:13px; font-weight:700">🏥 Sanatorios</summary>
+      <div style="margin-top:14px">
+        <div class="msg" style="margin-top:0; margin-bottom:8px">Dirección, zona de facturación y contactos vinculados de cada sanatorio — editable solo para vos.</div>
+        <div class="contactForm">
+          <input type="text" id="nuevoSanatorioNombre" placeholder="Nombre del sanatorio nuevo">
+          <button id="btnAddSanatorioAdmin" class="secondary">Agregar sanatorio</button>
+        </div>
+        <div id="sanatoriosAdminGrid" style="margin-top:14px"></div>
+      </div>
+    </details>
+
+    <!-- ==================== RESUMEN ==================== -->
+    <div class="view active" id="viewResumen">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-5" id="resumenKpiCards">
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 flex items-center justify-between shadow-xs">
+          <div>
+            <div class="text-xs font-semibold text-slate-500 dark:text-slate-400">Cirugías Programadas</div>
+            <div class="text-2xl font-bold text-[#0E2A66] dark:text-white mt-0.5" id="kpiCirugias">0</div>
+          </div>
+          <div class="w-9 h-9 rounded-lg bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400 flex items-center justify-center text-base font-bold">📅</div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 flex items-center justify-between shadow-xs">
+          <div>
+            <div class="text-xs font-semibold text-slate-500 dark:text-slate-400">Pacientes Internados</div>
+            <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5" id="kpiInternados">0</div>
+          </div>
+          <div class="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-base font-bold">🛏️</div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 flex items-center justify-between shadow-xs">
+          <div>
+            <div class="text-xs font-semibold text-slate-500 dark:text-slate-400">Interconsultas Pendientes</div>
+            <div class="text-2xl font-bold text-amber-500 mt-0.5" id="kpiInterconsultas">0</div>
+          </div>
+          <div class="w-9 h-9 rounded-lg bg-amber-50 dark:bg-slate-700 text-amber-500 flex items-center justify-center text-base font-bold">⏳</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <span class="count" id="resumenCount"></span>
+      </div>
+      <div id="resumenContainer"></div>
+      <div class="empty" id="resumenEmpty">No hay cirugías programadas, internados ni interconsultas pendientes.</div>
+    </div>
+
+    <!-- ==================== INTERCONSULTAS ==================== -->
+    <div class="view" id="viewInterconsultas">
+      <div class="toolbar">
+        <input type="text" id="search" placeholder="Buscar paciente, sanatorio, dx...">
+        <select id="filterSanatorio"><option value="">Todos los sanatorios</option></select>
+        <select id="filterZona"><option value="">Todas las zonas</option></select>
+        <select id="filterEstado">
+          <option value="">Todos los estados</option>
+          <option value="pendiente" selected>Pendientes</option>
+          <option value="resuelta">Resueltas</option>
+        </select>
+        <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px">Desde <input type="date" id="filterDesde"></label>
+        <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px">Hasta <input type="date" id="filterHasta"></label>
+        <button class="secondary" id="btnExport">Exportar CSV</button>
+        <button class="danger" id="btnClear">Borrar todo</button>
+        <span class="count" id="count"></span>
+      </div>
+
+      <div id="icGrid"></div>
+      <div class="empty" id="emptyState">Todavía no cargaste interconsultas.</div>
+
+      <details class="panel" id="panelCargarDatos" style="margin-top:16px">
+        <summary style="font-size:13px; font-weight:700">➕ Cargar mensajes de WhatsApp / Capturas</summary>
+
+        <div style="margin-top:14px">
+          <h2>Cargar texto copiado</h2>
+          <textarea id="input" placeholder="Pegá acá el texto exportado del chat de WhatsApp o mensajes sueltos..."></textarea>
+          <div class="row">
+            <button id="btnProcess">Procesar mensajes</button>
+            <button id="btnAddManual" class="secondary">+ Agregar fila manual</button>
+            <span class="msg" id="msg"></span>
+          </div>
+
+          <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border)">
+            <div class="row" style="margin-top:0">
+              <input type="file" id="capturaFile" accept="image/*" multiple>
+              <span class="msg" style="margin:0" id="capturaMsg"></span>
+            </div>
+            <div class="msg" style="margin-top:6px">
+              📷 O subí capturas de WhatsApp. Se procesan en segundo plano con el bot.
+            </div>
+            <ul class="contactList" id="capturasPendientesList" style="margin-top:10px"></ul>
+          </div>
+        </div>
+
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border)">
+          <h2>Valor de interconsulta por sanatorio</h2>
+          <div class="contactForm">
+            <input type="text" id="valorIcSanatorio" placeholder="Sanatorio" list="sanatoriosDatalist">
+            <input type="number" id="valorIcInput" placeholder="Valor $" step="0.01" min="0">
+            <button id="btnAddValorIc" class="secondary">Vincular</button>
+          </div>
+          <ul class="contactList" id="valorIcList"></ul>
+        </div>
+      </details>
+    </div>
+
+    <!-- ==================== PACIENTES ==================== -->
+    <div class="view" id="viewPacientes">
+      <div id="pacListView">
+        <div class="toolbar">
+          <input type="text" id="pacSearch" placeholder="Buscar por nombre, DNI o teléfono...">
+          <span class="count" id="pacCount"></span>
+        </div>
+
+        <div class="panel">
+          <h2><i data-lucide="user-plus" class="w-4 h-4 text-blue-600"></i> Nuevo paciente</h2>
+          <div class="contactForm">
+            <input type="text" id="pacNombre" placeholder="Nombre y apellido *">
+            <input type="text" id="pacSanatorio" placeholder="Sanatorio" list="sanatoriosDatalist3">
+            <input type="number" id="pacEdad" placeholder="Edad" min="0" max="130" style="max-width:80px">
+            <input type="text" id="pacDni" placeholder="DNI">
+            <input type="text" id="pacOs" placeholder="Obra Social">
+            <input type="text" id="pacNroAfiliado" placeholder="Nro. afiliado">
+            <input type="text" id="pacTelefono" placeholder="Teléfono">
+            <input type="text" id="pacDiagnostico" placeholder="Diagnóstico">
+            <button id="btnAddPaciente">Agregar</button>
+          </div>
+          <div class="msg" id="pacMsg"></div>
+        </div>
+
+        <div class="panel" style="padding:0; overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Sanatorio</th>
+                <th>Edad</th>
+                <th>DNI</th>
+                <th>Diagnóstico</th>
+                <th>Fecha Qx</th>
+                <th>Condición</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="pacTbody"></tbody>
+          </table>
+          <div class="empty" id="pacEmpty">Todavía no cargaste pacientes.</div>
+        </div>
+      </div>
+
+      <!-- Ficha detallada estructurada por secciones -->
+      <div id="pacDetailView" style="display:none">
+        
+        <!-- HEADER DE LA FICHA CON DATOS RÁPIDOS -->
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-xs mb-4">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <button class="secondary flex items-center justify-center !p-2 rounded-xl" id="btnPacBack" title="Volver al listado">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+              </button>
+              <div>
+                <div class="flex items-center gap-2.5">
+                  <h2 class="text-lg sm:text-xl font-bold text-[#0E2A66] dark:text-white m-0" id="pdHeaderNombre">Paciente</h2>
+                  <span id="pdCondicion"></span>
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2 flex-wrap" id="pdHeaderMeta">
+                  <span id="pdHeaderSanatorio" class="font-semibold text-blue-600"></span> · 
+                  <span id="pdHeaderEdad"></span> · 
+                  <span id="pdHeaderOs"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Botones de Acción Directa en Quirófano -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <button type="button" class="secondary flex items-center gap-1.5 !py-1.5 !px-3 !text-xs" id="btnReprogramarCx">
+                <i data-lucide="calendar" class="w-3.5 h-3.5 text-blue-600"></i> Reprogramar
+              </button>
+              <button type="button" class="danger flex items-center gap-1.5 !py-1.5 !px-3 !text-xs" id="btnCancelarCx">
+                <i data-lucide="calendar-x" class="w-3.5 h-3.5"></i> Cancelar Cx
+              </button>
+              <button type="button" class="secondary flex items-center gap-1.5 !py-1.5 !px-3 !text-xs" id="btnAgregarCirugia">
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-600"></i> Reoperar
+              </button>
+            </div>
+          </div>
+
+          <!-- BARRA DE SUB-PESTAÑAS DE LA FICHA -->
+          <div class="flex gap-1.5 mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 overflow-x-auto">
+            <button type="button" class="ficha-tab active" data-fichatab="tabFichaGeneral">
+              <i data-lucide="user" class="w-4 h-4"></i> Datos Generales
+            </button>
+            <button type="button" class="ficha-tab" data-fichatab="tabFichaAntecedentes">
+              <i data-lucide="clipboard-list" class="w-4 h-4"></i> Antecedentes
+            </button>
+            <button type="button" class="ficha-tab" data-fichatab="tabFichaQuirofano">
+              <i data-lucide="scissors" class="w-4 h-4"></i> Quirófano
+            </button>
+            <button type="button" class="ficha-tab" data-fichatab="tabFichaPreQx">
+              <i data-lucide="stethoscope" class="w-4 h-4"></i> Prequirúrgico & Imágenes
+            </button>
+            <button type="button" class="ficha-tab" data-fichatab="tabFichaProtocolo">
+              <i data-lucide="microscope" class="w-4 h-4"></i> Protocolo & Patología
+            </button>
+          </div>
+        </div>
+
+        <!-- SUB-PESTAÑA 1: DATOS GENERALES -->
+        <div class="ficha-tab-content active" id="tabFichaGeneral">
+          <div class="panel">
+            <h2><i data-lucide="user" class="w-4 h-4 text-blue-600"></i> Identificación & Contacto</h2>
+            <div class="fichaGrid">
+              <label>Nombre y apellido<input type="text" data-pk="nombre" id="pdNombre"></label>
+              <label>Sanatorio <span id="pdSanatorioDot" class="sanatorioDot" style="background:transparent"></span><input type="text" data-pk="sanatorio" id="pdSanatorio" list="sanatoriosDatalist3"></label>
+              <label>Edad<input type="number" data-pk="edad" id="pdEdad" min="0" max="130"></label>
+              <label>Sexo
+                <select data-pk="sexo" id="pdSexo">
+                  <option value="">Sin definir</option>
+                  <option value="masculino">Masculino</option>
+                  <option value="femenino">Femenino</option>
+                </select>
+              </label>
+              <label>DNI<input type="text" data-pk="dni" id="pdDni"></label>
+              <label>OS (obra social)<input type="text" data-pk="os" id="pdOs"></label>
+              <label>Nro. afiliado<input type="text" data-pk="nro_afiliado" id="pdNroAfiliado"></label>
+              <label>Teléfono<input type="text" data-pk="telefono" id="pdTelefono"></label>
+              <label class="col-span-full">Diagnóstico<input type="text" data-pk="diagnostico" id="pdDiagnostico"></label>
+              <label class="col-span-full">Notas clínicas generales<textarea data-pk="notas" id="pdNotas" placeholder="Notas adicionales del paciente..."></textarea></label>
+            </div>
+            
+            <details style="margin-top:16px" id="copagoDetails" class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+              <summary style="font-size:13px; font-weight:700; color:var(--text); cursor:pointer">💰 Copago / Arancel Privado</summary>
+              <div class="fichaGrid" style="margin-top:12px">
+                <label>Monto ($)<input type="text" data-pk="copago_monto" id="pdCopagoMonto" placeholder="ej: 50000"></label>
+                <label>Estado del pago
+                  <select data-pk="copago_estado" id="pdCopagoEstado">
+                    <option value="">Sin definir</option>
+                    <option value="pago">Pago</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="no_acepta">No acepta</option>
+                  </select>
+                </label>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <!-- SUB-PESTAÑA 2: ANTECEDENTES PERSONALES CON CHECKLIST VISUAL -->
+        <div class="ficha-tab-content" id="tabFichaAntecedentes">
+          <div class="panel">
+            <h2><i data-lucide="clipboard-list" class="w-4 h-4 text-blue-600"></i> Checklist de Factores de Riesgo & Comorbilidades</h2>
+            <div class="msg mb-3">Marcá los antecedentes positivos del paciente (se guardan automáticamente):</div>
+            <div class="antGrid" id="pdAntecedentesGrid"></div>
+            <label class="fieldFull" style="margin-top:16px">Otros antecedentes
+              <input type="text" id="pdAntecedentesOtros" placeholder="Otros antecedentes de relevancia...">
+            </label>
+          </div>
+        </div>
+
+        <!-- SUB-PESTAÑA 3: QUIRÓFANO Y CIRUGÍA -->
+        <div class="ficha-tab-content" id="tabFichaQuirofano">
+          <div class="panel">
+            <h2><i data-lucide="scissors" class="w-4 h-4 text-blue-600"></i> Programación Quirúrgica & Materiales</h2>
+            <div class="fichaGrid">
+              <label class="col-span-full">Operación a realizar<input type="text" data-pk="operacion" id="pdOperacion" placeholder="ej: Lobectomía Superior Derecha por UVATS"></label>
+              <label>Materiales
+                <select class="matSelect" data-pk="materiales" id="pdMateriales">
+                  <option value="">Sin definir</option>
+                  <option value="no_requiere">No requiere</option>
+                  <option value="pendiente_autorizacion">Pendiente de autorización</option>
+                  <option value="autorizados">Autorizados</option>
+                  <option value="en_quirofano">En quirófano</option>
+                </select>
+              </label>
+              <label>Fecha Qx<input type="date" data-pk="fecha_qx" id="pdFechaQx"></label>
+              <label>Hora Qx<input type="time" data-pk="hora_qx" id="pdHoraQx"></label>
+              <label>Consentimiento informado (link)
+                <div class="row" style="margin-top:0; gap:6px; flex-wrap:nowrap">
+                  <input type="text" data-pk="consentimiento_link" id="pdConsentimientoLink" placeholder="https://..." style="flex:1; min-width:0">
+                  <button type="button" class="secondary linkOpenBtn" data-target="pdConsentimientoLink" title="Abrir consentimiento" style="padding:8px 10px">🔗</button>
+                </div>
+              </label>
+              <label>Estado del consentimiento
+                <select data-pk="consentimiento_estado" id="pdConsentimientoEstado">
+                  <option value="">Sin definir</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="entregado">Entregado</option>
+                  <option value="firmado">Firmado</option>
+                </select>
+              </label>
+            </div>
+            
+            <div class="msg text-amber-600 font-semibold" id="fechaQxLockMsg" style="margin-top:10px">
+              ⚠️ Definí Materiales en "En quirófano" o "No requiere" para poder programar la fecha quirúrgica.
+            </div>
+
+            <label style="display:flex; align-items:center; gap:8px; margin-top:16px; font-size:13px; font-weight:700; cursor:pointer; background:var(--bg); padding:10px 14px; border-radius:10px; border:1px solid var(--border)">
+              <input type="checkbox" id="pdOperado" class="w-4 h-4 text-blue-600 rounded"> Marcar como Operado hoy
+            </label>
+
+            <div id="historialCirugias" style="margin-top:16px"></div>
+          </div>
+        </div>
+
+        <!-- SUB-PESTAÑA 4: PREQUIRÚRGICO & IMÁGENES & CÁLCULO DE NÓDULO -->
+        <div class="ficha-tab-content" id="tabFichaPreQx">
+          <div class="panel">
+            <h2><i data-lucide="stethoscope" class="w-4 h-4 text-blue-600"></i> Evaluación Prequirúrgica</h2>
+            
+            <h3 class="subhead" style="margin-top:0">Laboratorio</h3>
+            <div class="fichaGrid" id="pqLaboratorioGrid"></div>
+
+            <h3 class="subhead">Riesgo Cardiovascular (RCV)</h3>
+            <textarea data-pqx="rcv" id="pqRcv" style="min-height:60px" placeholder="Evaluación cardiológica preoperatoria..."></textarea>
+
+            <h3 class="subhead">Funcional Respiratorio</h3>
+            <div class="fichaGrid">
+              <label>Espirometría · CVF<input type="text" data-pqx="funcional_respiratorio.espirometria.cvf" id="pqCvf" placeholder="ej: 3.2 L (85%)"></label>
+              <label>Espirometría · VEF1<input type="text" data-pqx="funcional_respiratorio.espirometria.vef1" id="pqVef1" placeholder="ej: 2.5 L (78%)"></label>
+              <label>DLCO<input type="text" data-pqx="funcional_respiratorio.dlco" id="pqDlco" placeholder="ej: 75%"></label>
+            </div>
+
+            <h3 class="subhead">Imágenes Diagnósticas</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="imgSubcard">
+                <h3>TC de Tórax</h3>
+                <div class="fichaGrid">
+                  <label class="col-span-full">Link del estudio
+                    <div class="row" style="margin-top:0; gap:6px; flex-wrap:nowrap">
+                      <input type="text" data-pqx="imagenes.tc.link" id="pqTcLink" placeholder="https://..." style="flex:1; min-width:0">
+                      <button type="button" class="secondary linkOpenBtn" data-target="pqTcLink" title="Abrir estudio" style="padding:8px 10px">🔗</button>
+                    </div>
+                  </label>
+                  <label>Usuario<input type="text" data-pqx="imagenes.tc.usuario" id="pqTcUsuario"></label>
+                  <label>Contraseña<input type="text" data-pqx="imagenes.tc.password" id="pqTcPassword"></label>
+                </div>
+                <div class="row" style="margin-top:10px">
+                  <input type="file" id="pqTcFile" accept="image/*" multiple>
+                  <span class="msg" style="margin:0" id="pqTcMsg"></span>
+                </div>
+                <div class="fotoGrid" id="pqTcFotos"></div>
+              </div>
+
+              <div class="imgSubcard">
+                <h3>PET-TC</h3>
+                <div class="fichaGrid">
+                  <label class="col-span-full">Link del estudio
+                    <div class="row" style="margin-top:0; gap:6px; flex-wrap:nowrap">
+                      <input type="text" data-pqx="imagenes.pet.link" id="pqPetLink" placeholder="https://..." style="flex:1; min-width:0">
+                      <button type="button" class="secondary linkOpenBtn" data-target="pqPetLink" title="Abrir estudio" style="padding:8px 10px">🔗</button>
+                    </div>
+                  </label>
+                  <label>Usuario<input type="text" data-pqx="imagenes.pet.usuario" id="pqPetUsuario"></label>
+                  <label>Contraseña<input type="text" data-pqx="imagenes.pet.password" id="pqPetPassword"></label>
+                  <label class="col-span-full">Captación FDG
+                    <select data-pqx="imagenes.pet.captacion" id="pqPetCaptacion">
+                      <option value="">Sin cargar</option>
+                      <option value="ninguna">Sin captación</option>
+                      <option value="discreta">Discreta</option>
+                      <option value="moderada">Moderada</option>
+                      <option value="intensa">Intensa</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="row" style="margin-top:10px">
+                  <input type="file" id="pqPetFile" accept="image/*" multiple>
+                  <span class="msg" style="margin:0" id="pqPetMsg"></span>
+                </div>
+                <div class="fotoGrid" id="pqPetFotos"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Calculadora Nódulo Pulmonar -->
+          <div class="panel" id="pretestNoduloSection" style="display:none">
+            <h2><i data-lucide="calculator" class="w-4 h-4 text-blue-600"></i> Calculadora Pretest de Malignidad</h2>
+            <div class="fichaGrid">
+              <label>Diámetro (mm)<input type="number" min="0" step="1" data-pqx="nodulo.diametro_mm" id="pqNoduloDiametro"></label>
+              <label>N° de nódulos<input type="number" min="1" step="1" data-pqx="nodulo.numero_nodulos" id="pqNoduloCantidad" placeholder="1"></label>
+              <label>Tipo de nódulo
+                <select data-pqx="nodulo.tipo" id="pqNoduloTipo">
+                  <option value="solido">Sólido</option>
+                  <option value="subsolido">Subsólido (parcialmente sólido)</option>
+                  <option value="no_solido">No sólido (vidrio esmerilado)</option>
+                </select>
+              </label>
+            </div>
+            <div class="antGrid" style="margin-top:12px">
+              <label><input type="checkbox" data-pqx="nodulo.espiculacion" id="pqNoduloEspiculacion"> Espiculación</label>
+              <label><input type="checkbox" data-pqx="nodulo.lobulo_superior" id="pqNoduloLoboSuperior"> Lóbulo superior</label>
+              <label><input type="checkbox" data-pqx="nodulo.enfisema" id="pqNoduloEnfisema"> Enfisema</label>
+              <label><input type="checkbox" data-pqx="nodulo.antecedente_familiar" id="pqNoduloFamiliar"> Antecedente familiar de Ca. Pulmón</label>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div class="pretestResult">
+                <div class="pretestModelo" id="pretestModeloLabel">Modelo de Brock (PanCan - TC)</div>
+                <div class="pretestNumero" id="pretestNumero">0%</div>
+                <div class="pretestBar"><div class="pretestBarFill" id="pretestBarFill"></div></div>
+                <div class="pretestCategoria" id="pretestCategoria"></div>
+              </div>
+              <div class="pretestResult" id="pretestHerderBlock" style="display:none">
+                <div class="pretestModelo">Modelo de Herder (Mayo + PET)</div>
+                <div class="pretestNumero" id="pretestHerderNumero">0%</div>
+                <div class="pretestBar"><div class="pretestBarFill" id="pretestHerderBarFill"></div></div>
+                <div class="pretestCategoria" id="pretestHerderCategoria"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-PESTAÑA 5: PROTOCOLO & PATOLOGÍA -->
+        <div class="ficha-tab-content" id="tabFichaProtocolo">
+          <div class="panel">
+            <h2><i data-lucide="microscope" class="w-4 h-4 text-blue-600"></i> Protocolo Quirúrgico & Anatomía Patológica</h2>
+            <label class="fieldFull" style="margin-top:0">Protocolo quirúrgico (link digital)
+              <div class="row" style="margin-top:0; gap:6px; flex-wrap:nowrap">
+                <input type="text" data-pk="protocolo_qx_link" id="pdProtocoloLink" placeholder="https://..." style="flex:1; min-width:0">
+                <button type="button" class="secondary linkOpenBtn" data-target="pdProtocoloLink" title="Abrir link" style="padding:8px 10px">🔗</button>
+              </div>
+            </label>
+            <label class="fieldFull" style="margin-top:16px">Informe de anatomía patológica
+              <textarea data-pk="anatomia_patologica_link" id="pdAnatPatLink" placeholder="Escribir o pegar informe histopatológico..." style="min-height:120px"></textarea>
+            </label>
+          </div>
+        </div>
+
+        <a id="pdWhatsappFab" class="fab whatsappFab" href="#" target="_blank" rel="noopener" title="Abrir WhatsApp" style="display:none">💬</a>
+      </div>
+    </div>
+    <datalist id="sanatoriosDatalist3"></datalist>
+
+    <!-- ==================== AGENDA ==================== -->
+    <div class="view" id="viewAgenda">
+      <div class="toolbar">
+        <div class="calNav">
+          <button class="secondary" id="calPrev">‹</button>
+          <button class="secondary" id="calToday">Hoy</button>
+          <button class="secondary" id="calNext">›</button>
+          <span id="calLabel" class="calLabel"></span>
+        </div>
+        <div class="calViewSwitch">
+          <button class="secondary calViewBtn active" data-calview="day">Día</button>
+          <button class="secondary calViewBtn" data-calview="week">Semana</button>
+          <button class="secondary calViewBtn" data-calview="month">Mes</button>
+        </div>
+        <select id="agFilterSanatorio"><option value="">Todos los sanatorios</option></select>
+      </div>
+      <div class="panel" id="calContainer" style="padding:0; overflow:hidden"></div>
+      <button id="btnFabAdd" class="fab" title="Agregar paciente">+</button>
+    </div>
+
+    <!-- ==================== INTERNADOS ==================== -->
+    <div class="view" id="viewInternados">
+      <div class="toolbar">
+        <select id="intFilterSanatorio"><option value="">Todos los sanatorios</option></select>
+        <select id="intFilterSector"><option value="">Todos los sectores</option></select>
+        <span class="count" id="intCount"></span>
+      </div>
+
+      <div class="panel">
+        <h2>Nuevo ingreso</h2>
+        <div class="contactForm">
+          <input type="text" id="intPaciente" placeholder="Paciente" list="pacientesDatalistInt">
+          <input type="text" id="intSanatorio" placeholder="Sanatorio" list="sanatoriosDatalist">
+          <input type="text" id="intSector" placeholder="Sector / Piso" list="sectoresDatalist">
+          <input type="text" id="intHabitacion" placeholder="Habitación">
+          <input type="text" id="intCama" placeholder="Cama">
+          <input type="date" id="intFechaIngreso">
+          <button id="btnAddInternacion">Ingresar</button>
+        </div>
+        <div class="msg" id="intMsg"></div>
+      </div>
+
+      <div class="internadosGrid" id="internadosGrid"></div>
+      <div class="empty" id="intEmpty">No hay pacientes internados activos.</div>
+    </div>
+
+    <!-- ==================== CONSULTORIO ==================== -->
+    <div class="view" id="viewConsultorio">
+      <div class="toolbar">
+        <select id="consFilterSanatorio"><option value="">Todos los sanatorios</option></select>
+        <select id="consFilterOs">
+          <option value="">Todas las OS</option>
+          <option value="PAMI">PAMI</option>
+          <option value="OSDE">OSDE</option>
+          <option value="Swiss Medical">Swiss Medical</option>
+          <option value="Medife">Medife</option>
+          <option value="Samisalud">Samisalud</option>
+          <option value="IOMA">IOMA</option>
+          <option value="Particular">Particular</option>
+        </select>
+        <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px">Desde <input type="date" id="consFilterDesde"></label>
+        <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px">Hasta <input type="date" id="consFilterHasta"></label>
+        <button class="secondary" id="btnExportConsultas">Exportar CSV</button>
+        <span class="count" id="consCount"></span>
+      </div>
+
+      <div class="panel">
+        <h2>Nuevo registro</h2>
+        <div class="contactForm">
+          <input type="date" id="consFecha">
+          <input type="text" id="consSanatorio" placeholder="Sanatorio" list="sanatoriosDatalist">
+          <input type="text" id="consPaciente" placeholder="Paciente">
+          <select id="consOs">
+            <option value="">OS</option>
+            <option value="PAMI">PAMI</option>
+            <option value="OSDE">OSDE</option>
+            <option value="Swiss Medical">Swiss Medical</option>
+            <option value="Medife">Medife</option>
+            <option value="Samisalud">Samisalud</option>
+            <option value="IOMA">IOMA</option>
+            <option value="Particular">Particular</option>
+          </select>
+          <input type="number" id="consValor" placeholder="Valor $" step="0.01" min="0">
+          <button id="btnAddConsulta">Agregar</button>
+        </div>
+        <div class="msg" id="consMsg"></div>
+      </div>
+
+      <details class="panel" id="panelPreciosConsulta">
+        <summary style="font-size:13px; font-weight:700">💰 Precios por sanatorio y obra social</summary>
+        <div style="margin-top:14px">
+          <div class="msg" style="margin-top:0; margin-bottom:8px">Se usa para autocompletar el valor al cargar una consulta nueva.</div>
+          <div class="contactForm">
+            <input type="text" id="precioSanatorio" placeholder="Sanatorio" list="sanatoriosDatalist">
+            <select id="precioOs">
+              <option value="">OS</option>
+              <option value="unico">Valor único (todas las OS)</option>
+              <option value="PAMI">PAMI</option>
+              <option value="OSDE">OSDE</option>
+              <option value="Swiss Medical">Swiss Medical</option>
+              <option value="Medife">Medife</option>
+              <option value="Samisalud">Samisalud</option>
+              <option value="IOMA">IOMA</option>
+              <option value="Particular">Particular</option>
+            </select>
+            <input type="number" id="precioValor" placeholder="Valor $" step="0.01" min="0">
+            <button id="btnAddPrecio" class="secondary">Vincular</button>
+          </div>
+          <ul class="contactList" id="preciosList"></ul>
+        </div>
+      </details>
+
+      <details class="panel" id="panelIcFacturables">
+        <summary style="font-size:13px; font-weight:700">📋 Interconsultas facturables</summary>
+        <div style="margin-top:14px">
+          <div class="msg" style="margin-top:0; margin-bottom:8px">Se registran automáticamente al contestar o programar interconsultas.</div>
+          <div class="toolbar" style="margin-top:0">
+            <span class="count" id="icFactCount"></span>
+            <button class="secondary" id="btnExportIcFacturables">Exportar CSV</button>
+          </div>
+          <div id="icFacturablesGrid"></div>
+          <div class="empty" id="icFacturablesEmpty" style="display:none">Sin interconsultas facturables pendientes.</div>
+        </div>
+      </details>
+
+      <div id="consultasGrid"></div>
+      <div class="empty" id="consEmpty">Todavía no cargaste consultas.</div>
+    </div>
+  </div>
+
+  <datalist id="sanatoriosDatalist"></datalist>
+  <datalist id="sectoresDatalist"></datalist>
+  <datalist id="pacientesDatalistInt"></datalist>
+</div>
+
+<!-- MODALES -->
+<div class="modalOverlay" id="evolucionOverlay" style="display:none">
+  <div class="modalCard">
+    <div class="row" style="margin-top:0; justify-content:space-between">
+      <h2 style="margin:0" id="evolucionTitulo">Evolución</h2>
+      <span class="del" id="btnCerrarEvolucion" title="Cerrar">✕</span>
+    </div>
+    <div class="msg" id="evolucionSub" style="margin-top:2px"></div>
+    <div class="contactForm" style="margin-top:8px">
+      <input type="text" id="evolSector" placeholder="Sector / Piso" list="sectoresDatalist">
+      <input type="text" id="evolHabitacion" placeholder="Habitación">
+      <input type="text" id="evolCama" placeholder="Cama">
+    </div>
+    <div class="msg" id="evolucionLocMsg" style="margin-top:4px"></div>
+    <div id="evolucionList" class="evolucionList"></div>
+    <div class="row" style="margin-top:12px">
+      <textarea id="evolucionInput" placeholder="Nueva evolución..." style="min-height:60px; flex:1"></textarea>
+    </div>
+    <div class="row">
+      <button id="btnAddEvolucion">Agregar evolución</button>
+      <button class="danger" id="btnDarDeAlta">Dar de alta</button>
+    </div>
+  </div>
+</div>
+
+<div class="modalOverlay" id="manualIcOverlay" style="display:none">
+  <div class="modalCard">
+    <div class="row" style="margin-top:0; justify-content:space-between">
+      <h2 style="margin:0">Agregar interconsulta manual</h2>
+      <span class="del" id="btnCerrarManualIc" title="Cerrar">✕</span>
+    </div>
+    <form id="manualIcForm">
+      <label class="loginLabel">Nombre y apellido</label>
+      <input type="text" id="manualIcPaciente" required style="width:100%">
+      <label class="loginLabel">Sanatorio</label>
+      <input type="text" id="manualIcSanatorio" list="sanatoriosDatalist" style="width:100%">
+      <label class="loginLabel">Diagnóstico</label>
+      <input type="text" id="manualIcDiagnostico" style="width:100%">
+      <label class="loginLabel">Fecha</label>
+      <input type="date" id="manualIcFecha" style="width:100%">
+      <div class="row" style="margin-top:0">
+        <div style="flex:1">
+          <label class="loginLabel">Piso</label>
+          <input type="text" id="manualIcPiso" style="width:100%">
+        </div>
+        <div style="flex:1">
+          <label class="loginLabel">Cama</label>
+          <input type="text" id="manualIcCama" style="width:100%">
+        </div>
+      </div>
+      <button type="submit" style="width:100%; margin-top:16px">Guardar</button>
+      <div class="msg" id="manualIcMsg"></div>
+    </form>
+  </div>
+</div>
+
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
+
+(function(){
+  const SUPABASE_URL = 'https://cwcsounmbitxmlxedqdu.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_rnjTnwiI3kQHTBXBVl8sGA_Cip2sfJ2';
+  const VAPID_PUBLIC_KEY = 'BMeaUny_IWTFYB6CayMJj1KhVh6Ufv1XwGX9dZeeJMERhKEpWdEiwAh8O8VkGkNdOC-SfCHfUq49KYIaWdHgM4g';
+  const GOOGLE_CLIENT_ID = '612852155292-615n055ps8mn9kc08hoch1qh9bumq597.apps.googleusercontent.com';
+  const GOOGLE_OAUTH_REDIRECT = SUPABASE_URL + '/functions/v1/google-oauth-callback';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const $ = sel => document.querySelector(sel);
+
+  function urlBase64ToUint8Array(base64String){
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for(let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+    return outputArray;
+  }
+
+  async function activarNotificaciones(){
+    if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+      flash('Tu navegador no soporta notificaciones push.', true);
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    if(perm !== 'granted'){
+      flash('No se activaron las notificaciones (permiso denegado).', true);
+      return;
+    }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    const raw = sub.toJSON();
+    const { error } = await sb.from('push_subscriptions').upsert({
+      endpoint: raw.endpoint,
+      p256dh: raw.keys.p256dh,
+      auth: raw.keys.auth
+    }, { onConflict: 'endpoint' });
+    if(error){ flash('Error al guardar la suscripción: ' + error.message, true); return; }
+    flash('Notificaciones activadas.');
+  }
+
+  async function syncBadge(){
+    if(!('setAppBadge' in navigator)) return;
+    const count = items.filter(it => it.estado === 'pendiente').length;
+    try {
+      if(count > 0) await navigator.setAppBadge(count);
+      else await navigator.clearAppBadge();
+    } catch(e) {}
+  }
+
+  let currentUser = null;
+  let currentMedico = null;
+  let items = [];
+  let contacts = [];
+  let zonas = [];
+  let capturasPendientes = [];
+  let preciosInterconsulta = [];
+  let interconsultasFacturables = [];
+  let sanatoriosRef = [];
+  let medicos = [];
+  let pacientes = [];
+  let sortKey = 'default', sortDir = 'asc';
+
+  function isUtiUci(it){
+    const hay = ((it.habitacion || '') + ' ' + (it.cama || '')).toLowerCase();
+    return /\b(uti|uci)\b/.test(hay);
+  }
+
+  function camaNumeric(it){
+    const m = String(it.cama || '').match(/\d+/);
+    return m ? parseInt(m[0], 10) : Number.MAX_SAFE_INTEGER;
+  }
+
+  function defaultCompare(a, b){
+    const sa = (a.sanatorio || '').toLowerCase(), sb = (b.sanatorio || '').toLowerCase();
+    if(sa !== sb) return sa < sb ? -1 : 1;
+    const ua = isUtiUci(a) ? 0 : 1, ub = isUtiUci(b) ? 0 : 1;
+    if(ua !== ub) return ua - ub;
+    const ca = camaNumeric(a), cb = camaNumeric(b);
+    if(ca !== cb) return ca - cb;
+    return 0;
+  }
+
+  function digitsOnly(s){ return String(s || '').replace(/\D+/g, ''); }
+
+  function lookupSanatorioForSender(sender){
+    if(!sender) return '';
+    const s = sender.trim().toLowerCase();
+    if(!s) return '';
+    const sDigits = digitsOnly(sender);
+    let bestLen = -1, bestSan = '';
+    for(const c of contacts){
+      const cName = (c.contacto || '').trim().toLowerCase();
+      if(!cName) continue;
+      let isMatch = (s === cName || s.includes(cName) || cName.includes(s));
+      if(!isMatch && sDigits.length >= 6){
+        const cDigits = digitsOnly(c.contacto);
+        if(cDigits.length >= 6 && (sDigits.includes(cDigits) || cDigits.includes(sDigits))) isMatch = true;
+      }
+      if(isMatch){
+        if(cName.length > bestLen){ bestLen = cName.length; bestSan = c.sanatorio; }
+      }
+    }
+    return bestSan;
+  }
+
+  function lookupZonaForSanatorio(sanatorio){
+    if(!sanatorio) return '';
+    const s = normalize(sanatorio);
+    const match = zonas.find(z => normalize(z.sanatorio) === s);
+    return match ? match.zona : '';
+  }
+
+  const lineStart = /^\[?(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s+(\d{1,2}:\d{2}(?::\d{2})?\s?(?:[ap]\.?\s?m\.?)?)\]?\s*[-–]\s*([^:]{1,60}):\s?(.*)$/i;
+  const lineStartIOS = /^\[(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s+(\d{1,2}:\d{2}(?::\d{2})?\s?(?:[ap]\.?\s?m\.?)?)\]\s*([^:]{1,60}):\s?(.*)$/i;
+
+  function splitIntoMessages(raw){
+    const lines = raw.split(/\r?\n/);
+    const messages = [];
+    let current = null;
+    for(const line of lines){
+      let m = line.match(lineStart) || line.match(lineStartIOS);
+      if(m){
+        if(current) messages.push(current);
+        current = { fecha: m[1], hora: m[2], sender: m[3].trim(), text: m[4] };
+      } else if(current){
+        current.text += '\n' + line;
+      } else {
+        if(line.trim() !== ''){
+          if(!current) current = { fecha:'', hora:'', sender:'', text: line };
+          else current.text += '\n' + line;
+        }
+      }
+    }
+    if(current) messages.push(current);
+
+    if(messages.length <= 1 && !raw.match(lineStart) && !raw.match(lineStartIOS)){
+      return raw.split(/\n\s*\n/).map(t => t.trim()).filter(Boolean).map(t => ({fecha:'', hora:'', sender:'', text:t}));
+    }
+    return messages.filter(m => m.text && m.text.trim() !== '');
+  }
+
+  function extractField(text, patterns){
+    for(const p of patterns){
+      const m = text.match(p);
+      if(m && m[1]) return m[1].trim().replace(/[.,;]+$/,'');
+    }
+    return '';
+  }
+
+  function parseMessage(raw){
+    const text = raw.text;
+    let sanatorio = extractField(text, [
+      /sanatorio[:\s]+([^\n,;]+)/i,
+      /cl[íi]nica[:\s]+([^\n,;]+)/i,
+      /hospital[:\s]+([^\n,;]+)/i
+    ]);
+    if(!sanatorio) sanatorio = lookupSanatorioForSender(raw.sender);
+    const zona = lookupZonaForSanatorio(sanatorio);
+    const paciente = extractField(text, [
+      /paciente[:\s]+([^\n,;]+)/i,
+      /pcte\.?[:\s]+([^\n,;]+)/i
+    ]);
+    const habitacion = extractField(text, [
+      /habitaci[oó]n[:\s]+([^\n,;]+)/i,
+      /\bhab\.?[:\s]+([^\n,;\s]+)/i
+    ]);
+    const piso = extractField(text, [
+      /piso[:\s]+([^\n,;]+)/i
+    ]);
+    const cama = extractField(text, [
+      /\bcama[:\s]+([^\n,;]+)/i
+    ]);
+    const diagnostico = extractField(text, [
+      /diagn[oó]stico[:\s]+([^\n;]+)/i,
+      /\bdx\.?[:\s]+([^\n;]+)/i
+    ]);
+    let fecha = raw.fecha || '';
+    if(fecha && raw.hora) fecha = fecha + ' ' + raw.hora;
+
+    return {
+      fecha,
+      sanatorio, zona, paciente, habitacion, piso, cama, diagnostico,
+      estado: 'pendiente',
+      fechaResuelta: '',
+      original: (raw.sender ? raw.sender + ': ' : '') + text.trim()
+    };
+  }
+
+  function normalize(s){
+    return String(s || '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  const SANATORIO_PALETTE = [
+    '#1E60C6','#0EA5E9','#0284C7','#10B981','#059669','#F59E0B','#D97706',
+    '#7C3AED','#6366F1','#EC4899','#EF4444','#F97316','#84CC16','#14B8A6'
+  ];
+  function sanatorioColor(nombre){
+    const n = normalize(nombre);
+    if(!n) return null;
+    let h = 0;
+    for(let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0;
+    return SANATORIO_PALETTE[h % SANATORIO_PALETTE.length];
+  }
+  function sanatorioDot(nombre){
+    const c = sanatorioColor(nombre);
+    return c ? `<span class="sanatorioDot" style="background:${c}"></span>` : '';
+  }
+  function sanatorioChip(nombre){
+    return `<span class="sanatorioChip">${sanatorioDot(nombre)}${escapeHtml(nombre)}</span>`;
+  }
+
+  function findDuplicate(newItem, list){
+    list = list || items;
+    const p = normalize(newItem.paciente);
+    const s = normalize(newItem.sanatorio);
+    if(!p) return null;
+    const match = list.find(it => normalize(it.paciente) === p && (!s || normalize(it.sanatorio) === s));
+    if(!match) return null;
+    if(match.estado === 'pendiente') return { item: match, skip: true, reason: 'ya estaba pendiente' };
+    if(match.estado === 'resuelta'){
+      if(match.fechaResuelta){
+        const days = (Date.now() - new Date(match.fechaResuelta).getTime()) / 86400000;
+        if(days >= 2) return { item: match, skip: true, reason: 'ya resuelta hace 2+ días' };
+      }
+    }
+    return { item: match, skip: false, reason: 'posible reingreso' };
+  }
+
+  function normalizeDateForSort(fecha){
+    const m = fecha.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s*(\d{1,2}:\d{2})?/);
+    if(!m) return fecha || '';
+    let [, d, mo, y, hm] = m;
+    if(y.length === 2) y = '20' + y;
+    return `${y.padStart(4,'0')}-${mo.padStart(2,'0')}-${d.padStart(2,'0')} ${hm||'00:00'}`;
+  }
+
+  function mapRowToItem(row){
+    return {
+      id: row.id,
+      fecha: row.fecha || '',
+      sanatorio: row.sanatorio || '',
+      zona: row.zona || '',
+      paciente: row.paciente || '',
+      habitacion: row.habitacion || '',
+      piso: row.piso || '',
+      cama: row.cama || '',
+      diagnostico: row.diagnostico || '',
+      estado: row.estado || 'pendiente',
+      fechaResuelta: row.fecha_resuelta || '',
+      exportadoAt: row.exportado_at || '',
+      original: row.original || ''
+    };
+  }
+
+  const loginScreen = $('#loginScreen');
+  const setupScreen = $('#setupScreen');
+  const appScreen = $('#appScreen');
+  const loginForm = $('#loginForm');
+  const loginMsg = $('#loginMsg');
+  const setupForm = $('#setupForm');
+  const setupMsg = $('#setupMsg');
+  const icGrid = $('#icGrid');
+  const msgEl = $('#msg');
+  const emptyState = $('#emptyState');
+  const countEl = $('#count');
+  const filterSanatorio = $('#filterSanatorio');
+  const filterZona = $('#filterZona');
+  const filterEstado = $('#filterEstado');
+  const filterDesde = $('#filterDesde');
+  const filterHasta = $('#filterHasta');
+  const searchInput = $('#search');
+
+  function flash(text, isError){
+    msgEl.textContent = text;
+    msgEl.classList.toggle('error', !!isError);
+    setTimeout(() => { if(msgEl.textContent === text) msgEl.textContent = ''; }, 4000);
+  }
+
+  function flashIn(el, text, isError){
+    el.textContent = text;
+    el.classList.toggle('error', !!isError);
+    setTimeout(() => { if(el.textContent === text) el.textContent = ''; }, 4000);
+  }
+
+  function escapeHtml(s){
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = $('#loginEmail').value.trim();
+    const password = $('#loginPassword').value;
+    const btn = $('#btnLogin');
+    btn.disabled = true;
+    loginMsg.textContent = '';
+    loginMsg.classList.remove('error');
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    btn.disabled = false;
+    if(error){
+      loginMsg.textContent = 'No se pudo ingresar: ' + error.message;
+      loginMsg.classList.add('error');
+    }
+  });
+
+  setupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nombre = $('#setupNombre').value.trim();
+    const especialidad = $('#setupEspecialidad').value.trim();
+    const password = $('#setupPassword').value;
+    if(!nombre){ flashIn(setupMsg, 'Ingresá tu nombre.', true); return; }
+    const btn = $('#btnSetup');
+    btn.disabled = true;
+    if(password){
+      const { error: pwErr } = await sb.auth.updateUser({ password });
+      if(pwErr){ flashIn(setupMsg, 'Error al establecer la contraseña: ' + pwErr.message, true); btn.disabled = false; return; }
+    }
+    const { data, error } = await sb.from('medicos')
+      .upsert({ id: currentUser.id, nombre, especialidad: especialidad || null, rol: setupRol, supervisor_id: setupSupervisorId, sanatorios_permitidos: setupSanatorios }, { onConflict: 'id' })
+      .select().single();
+    btn.disabled = false;
+    if(error){ flashIn(setupMsg, 'Error al guardar el perfil: ' + error.message, true); return; }
+    currentMedico = data;
+    await enterApp();
+  });
+
+  function temaEfectivo(){
+    const guardado = localStorage.getItem('tema');
+    if(guardado === 'light' || guardado === 'dark') return guardado;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function actualizarBotonTema(){
+    $('#btnTheme').textContent = temaEfectivo() === 'dark' ? '☀️ Modo claro' : '🌙 Modo oscuro';
+  }
+  $('#btnTheme').addEventListener('click', () => {
+    const nuevo = temaEfectivo() === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('tema', nuevo);
+    document.documentElement.setAttribute('data-theme', nuevo);
+    actualizarBotonTema();
+  });
+  actualizarBotonTema();
+
+  $('#btnLogout').addEventListener('click', async () => {
+    await sb.auth.signOut();
+  });
+
+  $('#btnNotif').addEventListener('click', activarNotificaciones);
+
+  sb.auth.onAuthStateChange((event, session) => {
+    if(event === 'INITIAL_SESSION'){
+      if(session){ currentUser = session.user; checkProfileAndEnter(); } else showLogin();
+      return;
+    }
+    if(event === 'SIGNED_IN'){ currentUser = session.user; checkProfileAndEnter(); }
+    if(event === 'SIGNED_OUT'){ showLogin(); }
+  });
+
+  function showLogin(){
+    loginScreen.style.display = 'flex';
+    setupScreen.style.display = 'none';
+    appScreen.style.display = 'none';
+    $('#loginPassword').value = '';
+  }
+
+  let setupRol = 'medico';
+  let setupSupervisorId = null;
+  let setupSanatorios = null;
+
+  function showSetup(prefill){
+    loginScreen.style.display = 'none';
+    setupScreen.style.display = 'flex';
+    appScreen.style.display = 'none';
+    setupRol = 'medico';
+    setupSupervisorId = null;
+    setupSanatorios = null;
+    if(prefill){
+      $('#setupNombre').value = prefill.nombre || '';
+      $('#setupEspecialidad').value = prefill.especialidad || '';
+      if(prefill.rol === 'residente'){
+        setupRol = 'residente';
+        setupSupervisorId = prefill.supervisor_id || null;
+        setupSanatorios = Array.isArray(prefill.sanatorios_permitidos) && prefill.sanatorios_permitidos.length > 0
+          ? prefill.sanatorios_permitidos : null;
+      }
+    }
+  }
+
+  async function checkProfileAndEnter(){
+    const { data, error } = await sb.from('medicos').select('*').eq('id', currentUser.id).maybeSingle();
+    if(error){ flashIn(loginMsg, 'Error al verificar el perfil: ' + error.message, true); return; }
+    if(!data){
+      const meta = currentUser.user_metadata || {};
+      showSetup({ nombre: meta.nombre || '', especialidad: meta.especialidad || '', rol: meta.rol || 'medico', supervisor_id: meta.supervisor_id || null, sanatorios_permitidos: meta.sanatorios_permitidos || null });
+      return;
+    }
+    currentMedico = data;
+    await enterApp();
+  }
+
+  async function enterApp(){
+    loginScreen.style.display = 'none';
+    setupScreen.style.display = 'none';
+    appScreen.style.display = 'block';
+    $('#userchip').innerHTML = `<b>${escapeHtml(currentMedico.nombre)}</b>${currentMedico.especialidad ? ' · ' + escapeHtml(currentMedico.especialidad) : ''}${currentMedico.rol === 'residente' ? ' · Residente' : ''} · <span class="text-blue-600 font-semibold">MN 128828 / MP 232938</span>`;
+    const panelSanatoriosAdmin = $('#panelSanatoriosAdmin');
+    if(panelSanatoriosAdmin) panelSanatoriosAdmin.style.display = currentMedico.es_admin ? '' : 'none';
+    aplicarRestriccionesRol();
+    await loadAll();
+    await checkGoogleCalendarStatus();
+    handleGoogleCalendarRedirect();
+  }
+
+  function aplicarRestriccionesRol(){
+    if(currentMedico.rol !== 'residente') return;
+    ['viewInterconsultas', 'viewConsultorio'].forEach(id => {
+      const tab = document.querySelector(`.navtab[data-view="${id}"]`);
+      if(tab) tab.style.display = 'none';
+    });
+    const panelMedicos = $('#panelMedicos');
+    if(panelMedicos) panelMedicos.style.display = 'none';
+    const copagoDetails = $('#copagoDetails');
+    if(copagoDetails) copagoDetails.style.display = 'none';
+    const activeTab = document.querySelector('.navtab.active');
+    if(activeTab && activeTab.style.display === 'none'){
+      document.querySelector('.navtab[data-view="viewResumen"]').click();
+    }
+  }
+
+  async function checkGoogleCalendarStatus(){
+    const { data } = await sb.from('medico_calendar_tokens').select('connected_at').eq('medico_id', currentUser.id).maybeSingle();
+    const btn = $('#btnGoogleCal');
+    if(data){
+      btn.textContent = '📅 Google Calendar ✓';
+      btn.disabled = true;
+    } else {
+      btn.textContent = '📅 Conectar Calendar';
+      btn.disabled = false;
+    }
+  }
+
+  $('#btnGoogleCal').addEventListener('click', () => {
+    const params = new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      redirect_uri: GOOGLE_OAUTH_REDIRECT,
+      response_type: 'code',
+      scope: 'https://www.googleapis.com/auth/calendar.events',
+      access_type: 'offline',
+      prompt: 'consent',
+      state: currentUser.id
+    });
+    window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+  });
+
+  function handleGoogleCalendarRedirect(){
+    const params = new URLSearchParams(window.location.search);
+    const calendar = params.get('calendar');
+    if(!calendar) return;
+    if(calendar === 'connected'){
+      flash('Google Calendar conectado correctamente.');
+      checkGoogleCalendarStatus();
+    } else {
+      flash('No se pudo conectar Google Calendar. Probá de nuevo.', true);
+    }
+    params.delete('calendar');
+    const qs = params.toString();
+    history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : ''));
+  }
+
+  let calendarSyncQueue = Promise.resolve();
+  function syncCalendarEvent(pacienteId){
+    calendarSyncQueue = calendarSyncQueue.then(async () => {
+      const { error } = await sb.functions.invoke('sync-calendar-event', { body: { paciente_id: pacienteId } });
+      if(error) flashIn($('#pacMsg'), 'No se pudo sincronizar con Google Calendar: ' + (await mensajeErrorFuncion(error)), true);
+    }).catch(() => {});
+    return calendarSyncQueue;
+  }
+
+  async function mensajeErrorFuncion(error){
+    try {
+      const body = await error.context.json();
+      if(body && body.error) return body.error;
+    } catch(_e){}
+    return error.message;
+  }
+
+  async function loadAll(){
+    const [itemsRes, contactsRes, zonasRes, sanatoriosRes, medicosRes, pacientesRes, internacionesRes, consultasRes, preciosRes, capturasRes, preciosIcRes, icFacturablesRes] = await Promise.all([
+      sb.from('interconsultas').select('*').order('created_at', { ascending: false }),
+      sb.from('contactos').select('*').order('created_at', { ascending: true }),
+      sb.from('zonas').select('*').order('created_at', { ascending: true }),
+      sb.from('sanatorios').select('*').order('nombre', { ascending: true }),
+      sb.from('medicos').select('*').order('nombre', { ascending: true }),
+      sb.from('pacientes').select('*').order('nombre', { ascending: true }),
+      sb.from('internaciones').select('*').order('fecha_ingreso', { ascending: false }),
+      sb.from('consultas').select('*').order('fecha', { ascending: false }),
+      sb.from('precios_consulta').select('*'),
+      sb.from('interconsultas_capturas_pendientes').select('*').order('created_at', { ascending: false }),
+      sb.from('precios_interconsulta').select('*'),
+      sb.from('interconsultas_facturables').select('*').order('fecha', { ascending: false })
+    ]);
+    if(itemsRes.error) flash('Error al cargar interconsultas: ' + itemsRes.error.message, true);
+    if(contactsRes.error) flash('Error al cargar contactos: ' + contactsRes.error.message, true);
+    if(zonasRes.error) flash('Error al cargar zonas: ' + zonasRes.error.message, true);
+    items = (itemsRes.data || []).map(mapRowToItem);
+    contacts = (contactsRes.data || []).map(c => ({ id: c.id, contacto: c.contacto, sanatorio: c.sanatorio }));
+    zonas = (zonasRes.data || []).map(z => ({ id: z.id, sanatorio: z.sanatorio, zona: z.zona }));
+    sanatoriosRef = (sanatoriosRes.data || []);
+    medicos = (medicosRes.data || []);
+    pacientes = (pacientesRes.data || []);
+    internaciones = (internacionesRes.data || []);
+    consultas = (consultasRes.data || []);
+    preciosConsulta = (preciosRes.data || []);
+    capturasPendientes = (capturasRes.data || []);
+    preciosInterconsulta = (preciosIcRes.data || []);
+    interconsultasFacturables = (icFacturablesRes.data || []);
+    renderCapturasPendientes();
+    renderPreciosIc();
+    renderIcFacturables();
+    renderSanatoriosAdmin();
+    renderMedicos();
+    render();
+    renderPacientes();
+    renderCalendar();
+    renderInternados();
+    renderResumen();
+    renderConsultas();
+    renderPreciosConsulta();
+    $('#intFechaIngreso').value = toISODate(new Date());
+    $('#consFecha').value = toISODate(new Date());
+  }
+
+  document.querySelectorAll('.navtab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.navtab').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === btn.dataset.view));
+    });
+  });
+
+  // Manejador de las Sub-Pestañas de la Ficha del Paciente
+  document.querySelectorAll('.ficha-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ficha-tab').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.ficha-tab-content').forEach(c => c.classList.toggle('active', c.id === btn.dataset.fichatab));
+      if(window.lucide) lucide.createIcons();
+    });
+  });
+
+  function renderMedicos(){
+    const list = $('#medicosList');
+    const esMedico = currentMedico && currentMedico.rol === 'medico';
+    list.innerHTML = medicos.length === 0
+      ? '<li style="color:var(--muted); justify-content:center">Sin médicos cargados.</li>'
+      : medicos.map(m => `
+        <li>
+          <span>${escapeHtml(m.nombre)}</span>
+          ${m.especialidad ? `<span class="arrow">·</span><span class="sanat">${escapeHtml(m.especialidad)}</span>` : ''}
+          ${m.id === currentUser.id
+            ? '<span class="msg" style="margin:0; margin-left:auto">(vos)</span>'
+            : esMedico
+              ? `<select class="rolSelect" data-id="${m.id}" style="margin-left:auto; font-size:12px; padding:4px 8px">
+                  <option value="medico" ${m.rol !== 'residente' ? 'selected' : ''}>Médico</option>
+                  <option value="residente" ${m.rol === 'residente' ? 'selected' : ''}>Residente</option>
+                </select>
+                ${m.rol === 'residente' ? `<div class="sanDropdown">
+                  <button type="button" class="secondary sanDropdownBtn sanatoriosBtn" data-id="${m.id}">${escapeHtml(sanatorioResumenTexto(m.sanatorios_permitidos))} ▾</button>
+                  <div class="sanDropdownPanel sanatoriosPanel" data-id="${m.id}">${sanatorioCheckboxesHtml(m.sanatorios_permitidos)}</div>
+                </div>` : ''}
+                <span class="del" data-action="deleteMedico" data-id="${m.id}" title="Borrar">✕</span>`
+              : `<span class="msg" style="margin:0; margin-left:auto">${m.rol === 'residente' ? 'Residente' : ''}</span>`
+          }
+        </li>
+      `).join('');
+  }
+
+  function sanatorioCheckboxesHtml(seleccionados){
+    const nombres = sanatoriosRef.map(s => s.nombre).sort((a,b) => a.localeCompare(b));
+    const esTodos = !seleccionados;
+    return `<label class="todosOpt"><input type="checkbox" value="__todos__" ${esTodos ? 'checked' : ''}> Todos los sanatorios</label>`
+      + nombres.map(n => `<label><input type="checkbox" value="${escapeHtml(n)}" ${!esTodos && seleccionados.includes(n) ? 'checked' : ''}> ${escapeHtml(n)}</label>`).join('');
+  }
+
+  function sanatorioResumenTexto(seleccionados){
+    if(!seleccionados) return 'Todos los sanatorios';
+    return seleccionados.length === 1 ? seleccionados[0] : `${seleccionados.length} sanatorios`;
+  }
+
+  function normalizarSeleccionSanatorios(panel, huboClickEnTodos){
+    const boxes = Array.from(panel.querySelectorAll('input[type="checkbox"]'));
+    const todosBox = boxes.find(b => b.value === '__todos__');
+    if(huboClickEnTodos && todosBox.checked){
+      boxes.forEach(b => { if(b !== todosBox) b.checked = false; });
+    } else if(boxes.some(b => b !== todosBox && b.checked)){
+      todosBox.checked = false;
+    } else {
+      todosBox.checked = true;
+    }
+  }
+
+  function sanatoriosSeleccionados(panel){
+    const marcados = Array.from(panel.querySelectorAll('input[type="checkbox"]:checked')).map(b => b.value).filter(v => v !== '__todos__');
+    return marcados.length === 0 ? null : marcados;
+  }
+
+  function cerrarDropdownsSanatorios(exceptPanel){
+    document.querySelectorAll('.sanDropdownPanel.open').forEach(p => { if(p !== exceptPanel) p.classList.remove('open'); });
+  }
+  document.addEventListener('click', (e) => {
+    if(!e.target.closest('.sanDropdown')) cerrarDropdownsSanatorios(null);
+  });
+
+  $('#medicosList').addEventListener('change', async (e) => {
+    const rolSel = e.target.closest('.rolSelect');
+    if(rolSel){
+      const nuevoRol = rolSel.value;
+      const patch = { rol: nuevoRol, supervisor_id: nuevoRol === 'residente' ? currentUser.id : null, sanatorios_permitidos: null };
+      const { error } = await sb.from('medicos').update(patch).eq('id', rolSel.dataset.id);
+      if(error){ flash('Error al actualizar el rol: ' + error.message, true); return; }
+      const m = medicos.find(x => x.id === rolSel.dataset.id);
+      if(m) Object.assign(m, patch);
+      flash(nuevoRol === 'residente' ? 'Ahora ve solo tus pacientes, agenda y resumen.' : 'Ahora tiene acceso completo.');
+      renderMedicos();
+      return;
+    }
+    const sanBox = e.target.closest('.sanatoriosPanel input[type="checkbox"]');
+    if(sanBox){
+      const panel = sanBox.closest('.sanatoriosPanel');
+      normalizarSeleccionSanatorios(panel, sanBox.value === '__todos__');
+      const sanatorios_permitidos = sanatoriosSeleccionados(panel);
+      const { error } = await sb.from('medicos').update({ sanatorios_permitidos }).eq('id', panel.dataset.id);
+      if(error){ flash('Error al actualizar los sanatorios: ' + error.message, true); return; }
+      const m = medicos.find(x => x.id === panel.dataset.id);
+      if(m) m.sanatorios_permitidos = sanatorios_permitidos;
+      const btn = document.querySelector(`.sanatoriosBtn[data-id="${panel.dataset.id}"]`);
+      if(btn) btn.textContent = sanatorioResumenTexto(sanatorios_permitidos) + ' ▾';
+      flash(sanatorios_permitidos ? `Restringido a: ${sanatorios_permitidos.join(', ')}.` : 'Ahora ve todos los sanatorios.');
+    }
+  });
+
+  $('#medicosList').addEventListener('click', (e) => {
+    const btn = e.target.closest('.sanatoriosBtn');
+    if(!btn) return;
+    const panel = document.querySelector(`.sanatoriosPanel[data-id="${btn.dataset.id}"]`);
+    if(!panel) return;
+    const abierto = panel.classList.contains('open');
+    cerrarDropdownsSanatorios(null);
+    panel.classList.toggle('open', !abierto);
+  });
+
+  $('#medicosList').addEventListener('click', async (e) => {
+    const del = e.target.closest('[data-action="deleteMedico"]');
+    if(!del) return;
+    const m = medicos.find(x => x.id === del.dataset.id);
+    if(!m) return;
+
+    const pacientesCount = pacientes.filter(p => p.medico_id === m.id).length;
+    const internacionesCount = internaciones.filter(i => i.medico_id === m.id).length;
+    const consultasCount = consultas.filter(c => c.medico_id === m.id).length;
+    let msg = `¿Borrar a ${m.nombre}? Pierde el acceso a la cuenta de inmediato.`;
+    if(pacientesCount || internacionesCount || consultasCount){
+      msg += ` ADEMÁS se borran TODOS sus datos propios: ${pacientesCount} paciente(s), ${internacionesCount} internación(es), ${consultasCount} consulta(s). Esta acción no se puede deshacer.`;
+    }
+    if(!confirm(msg)) return;
+
+    del.textContent = '…';
+    const { data, error } = await sb.functions.invoke('delete-medico', { body: { medico_id: m.id } });
+    if(error){ flash('Error al borrar: ' + (await mensajeErrorFuncion(error)), true); renderMedicos(); return; }
+    if(data && data.error){ flash('Error al borrar: ' + data.error, true); renderMedicos(); return; }
+    medicos = medicos.filter(x => x.id !== m.id);
+    pacientes = pacientes.filter(p => p.medico_id !== m.id);
+    internaciones = internaciones.filter(i => i.medico_id !== m.id);
+    consultas = consultas.filter(c => c.medico_id !== m.id);
+    renderMedicos();
+    renderPacientes();
+    renderCalendar();
+    renderInternados();
+    renderConsultas();
+    render();
+    flash(data && data.warning ? data.warning : `${m.nombre} fue borrado.`, !data || !data.warning);
+  });
+
+  function actualizarVisibilidadInviteSanatorios(){
+    const rol = $('#inviteRol').value;
+    const wrap = $('#inviteSanatoriosDropdown');
+    const panel = $('#inviteSanatoriosPanel');
+    wrap.style.display = rol === 'residente' ? '' : 'none';
+    if(rol === 'residente'){
+      const actual = sanatoriosSeleccionados(panel);
+      panel.innerHTML = sanatorioCheckboxesHtml(actual);
+      $('#inviteSanatoriosBtn').textContent = sanatorioResumenTexto(actual) + ' ▾';
+    }
+  }
+  $('#inviteRol').addEventListener('change', actualizarVisibilidadInviteSanatorios);
+  $('#inviteSanatoriosBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const panel = $('#inviteSanatoriosPanel');
+    const abierto = panel.classList.contains('open');
+    cerrarDropdownsSanatorios(null);
+    panel.classList.toggle('open', !abierto);
+  });
+  $('#inviteSanatoriosPanel').addEventListener('change', (e) => {
+    const box = e.target.closest('input[type="checkbox"]');
+    if(!box) return;
+    const panel = $('#inviteSanatoriosPanel');
+    normalizarSeleccionSanatorios(panel, box.value === '__todos__');
+    $('#inviteSanatoriosBtn').textContent = sanatorioResumenTexto(sanatoriosSeleccionados(panel)) + ' ▾';
+  });
+
+  $('#btnInvite').addEventListener('click', async () => {
+    const email = $('#inviteEmail').value.trim();
+    const nombre = $('#inviteNombre').value.trim();
+    const especialidad = $('#inviteEspecialidad').value.trim();
+    const rol = $('#inviteRol').value;
+    const sanatorios = rol === 'residente' ? sanatoriosSeleccionados($('#inviteSanatoriosPanel')) : null;
+    if(!email || !nombre){ flashIn($('#inviteMsg'), 'Completá el email y el nombre.', true); return; }
+    const btn = $('#btnInvite');
+    btn.disabled = true;
+    const { data, error } = await sb.functions.invoke('invite-medico', { body: { email, nombre, especialidad, rol, sanatorios } });
+    btn.disabled = false;
+    if(error){ flashIn($('#inviteMsg'), 'Error al invitar: ' + (await mensajeErrorFuncion(error)), true); return; }
+    if(data && data.error){ flashIn($('#inviteMsg'), 'Error al invitar: ' + data.error, true); return; }
+    $('#inviteEmail').value = '';
+    $('#inviteNombre').value = '';
+    $('#inviteEspecialidad').value = '';
+    $('#inviteRol').value = 'medico';
+    actualizarVisibilidadInviteSanatorios();
+    flashIn($('#inviteMsg'), `Invitación enviada a ${email} (${rol === 'residente' ? 'residente' : 'médico'}).`);
+  });
+
+  $('#btnProcess').addEventListener('click', async () => {
+    const raw = $('#input').value;
+    if(!raw.trim()){ flash('Pegá algún texto primero.'); return; }
+    const parsed = splitIntoMessages(raw).map(parseMessage);
+    if(parsed.length === 0){ flash('No se detectaron mensajes.'); return; }
+
+    let working = items.slice();
+    let toInsert = [], skipped = 0;
+    for(const p of parsed){
+      const dup = findDuplicate(p, working);
+      if(dup && dup.skip){ skipped++; continue; }
+      working.push(p);
+      toInsert.push(p);
+    }
+
+    if(toInsert.length === 0){
+      $('#input').value = '';
+      flash(`Se agregaron 0 interconsulta(s)` + (skipped ? `, se omitieron ${skipped} por duplicadas.` : '.'));
+      return;
+    }
+
+    const rows = toInsert.map(p => ({
+      fecha: p.fecha || null, sanatorio: p.sanatorio || null, zona: p.zona || null, paciente: p.paciente || null,
+      habitacion: p.habitacion || null, piso: p.piso || null, cama: p.cama || null, diagnostico: p.diagnostico || null,
+      estado: 'pendiente', original: p.original || null
+    }));
+    const { data, error } = await sb.from('interconsultas').insert(rows).select();
+    if(error){ flash('Error al guardar: ' + error.message, true); return; }
+    items = items.concat(data.map(mapRowToItem));
+    $('#input').value = '';
+    render();
+    flash(`Se agregaron ${data.length} interconsulta(s)` + (skipped ? `, se omitieron ${skipped} por duplicadas.` : '.'));
+  });
+
+  const manualIcOverlay = $('#manualIcOverlay');
+  function abrirManualIc(){
+    $('#manualIcForm').reset();
+    $('#manualIcMsg').textContent = '';
+    $('#manualIcFecha').value = new Date().toISOString().slice(0,10);
+    manualIcOverlay.style.display = 'flex';
+    setTimeout(() => $('#manualIcPaciente').focus(), 50);
+  }
+  function cerrarManualIc(){ manualIcOverlay.style.display = 'none'; }
+  $('#btnAddManual').addEventListener('click', abrirManualIc);
+  $('#btnCerrarManualIc').addEventListener('click', cerrarManualIc);
+  manualIcOverlay.addEventListener('click', (e) => { if(e.target === manualIcOverlay) cerrarManualIc(); });
+
+  $('#manualIcForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const paciente = $('#manualIcPaciente').value.trim();
+    const sanatorio = $('#manualIcSanatorio').value.trim();
+    const diagnostico = $('#manualIcDiagnostico').value.trim();
+    const fecha = $('#manualIcFecha').value;
+    const piso = $('#manualIcPiso').value.trim();
+    const cama = $('#manualIcCama').value.trim();
+    if(!paciente){ flashIn($('#manualIcMsg'), 'Completá el nombre y apellido.', true); return; }
+
+    if(sanatorio) await ensureSanatorioRef(sanatorio);
+    const row = {
+      paciente, sanatorio: sanatorio || null, diagnostico: diagnostico || null, fecha: fecha || null,
+      piso: piso || null, cama: cama || null, zona: lookupZonaForSanatorio(sanatorio) || null,
+      estado: 'pendiente'
+    };
+    const { data, error } = await sb.from('interconsultas').insert(row).select().single();
+    if(error){ flashIn($('#manualIcMsg'), 'Error al guardar: ' + error.message, true); return; }
+    items.unshift(mapRowToItem(data));
+    render();
+    cerrarManualIc();
+  });
+
+  $('#btnClear').addEventListener('click', async () => {
+    if(items.length === 0) return;
+    if(confirm('¿Borrar todas las interconsultas guardadas? Esta acción no se puede deshacer.')){
+      const { error } = await sb.from('interconsultas').delete().not('id', 'is', null);
+      if(error){ flash('Error al borrar: ' + error.message, true); return; }
+      items = [];
+      render();
+    }
+  });
+
+  $('#btnExport').addEventListener('click', async () => {
+    const filtered = getFiltered();
+    const rows = [['Fecha','Sanatorio','Zona','Paciente','Piso','Habitacion','Cama','Diagnostico','Estado','Original']];
+    filtered.forEach(it => rows.push([it.fecha, it.sanatorio, it.zona, it.paciente, it.piso, it.habitacion, it.cama, it.diagnostico, it.estado, it.original]));
+    const csv = rows.map(r => r.map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8;'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'interconsultas.csv';
+    a.click();
+
+    const idsResueltas = filtered.filter(it => it.estado === 'resuelta').map(it => it.id);
+    if(idsResueltas.length > 0){
+      const nowIso = new Date().toISOString();
+      const { error } = await sb.from('interconsultas').update({ exportado_at: nowIso }).in('id', idsResueltas);
+      if(!error) items.forEach(it => { if(idsResueltas.includes(it.id)) it.exportadoAt = nowIso; });
+    }
+  });
+
+  searchInput.addEventListener('input', render);
+  filterSanatorio.addEventListener('change', render);
+  filterZona.addEventListener('change', render);
+  filterEstado.addEventListener('change', render);
+  filterDesde.addEventListener('change', render);
+  filterHasta.addEventListener('change', render);
+
+  function fechaDateOnly(fecha){
+    const norm = normalizeDateForSort(fecha);
+    const m = norm.match(/^(\d{4}-\d{2}-\d{2})/);
+    return m ? m[1] : '';
+  }
+
+  function getFiltered(){
+    const q = searchInput.value.trim().toLowerCase();
+    const san = filterSanatorio.value;
+    const zon = filterZona.value;
+    const est = filterEstado.value;
+    const desde = filterDesde.value;
+    const hasta = filterHasta.value;
+    let list = items.filter(it => {
+      if(san && it.sanatorio !== san) return false;
+      if(zon && it.zona !== zon) return false;
+      if(est && it.estado !== est) return false;
+      if(desde || hasta){
+        const fd = fechaDateOnly(it.fecha);
+        if(!fd) return false;
+        if(desde && fd < desde) return false;
+        if(hasta && fd > hasta) return false;
+      }
+      if(q){
+        const hay = [it.paciente, it.sanatorio, it.diagnostico, it.piso, it.habitacion, it.cama, it.original].join(' ').toLowerCase();
+        if(!hay.includes(q)) return false;
+      }
+      return true;
+    });
+    if(sortKey === 'default'){
+      list.sort(defaultCompare);
+    } else {
+      list.sort((a,b) => {
+        let va = a[sortKey] || '', vb = b[sortKey] || '';
+        if(sortKey === 'fecha'){ va = normalizeDateForSort(va); vb = normalizeDateForSort(vb); }
+        else { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+        if(va < vb) return sortDir === 'asc' ? -1 : 1;
+        if(va > vb) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return list;
+  }
+
+  function allSanatorioNames(){
+    const fromItems = items.map(it => it.sanatorio);
+    const fromContacts = contacts.map(c => c.sanatorio);
+    const fromZonas = zonas.map(z => z.sanatorio);
+    const fromRef = sanatoriosRef.map(s => s.nombre);
+    const fromPacientes = pacientes.map(p => p.sanatorio);
+    return Array.from(new Set(fromItems.concat(fromContacts, fromZonas, fromRef, fromPacientes).filter(Boolean))).sort();
+  }
+
+  function updateSanatorioOptions(){
+    const current = filterSanatorio.value;
+    const set = allSanatorioNames();
+    filterSanatorio.innerHTML = '<option value="">Todos los sanatorios</option>' +
+      set.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+    if(set.includes(current)) filterSanatorio.value = current;
+    const dlHtml = set.map(s => `<option value="${escapeHtml(s)}"></option>`).join('');
+    $('#sanatoriosDatalist').innerHTML = dlHtml;
+    $('#sanatoriosDatalist3').innerHTML = dlHtml;
+
+    const currentAg = agFilterSanatorio.value;
+    agFilterSanatorio.innerHTML = '<option value="">Todos los sanatorios</option>' +
+      set.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+    if(set.includes(currentAg)) agFilterSanatorio.value = currentAg;
+
+    const currentZona = filterZona.value;
+    const zonaSet = Array.from(new Set(items.map(it => it.zona).concat(zonas.map(z => z.zona)).filter(Boolean))).sort();
+    filterZona.innerHTML = '<option value="">Todas las zonas</option>' +
+      zonaSet.map(z => `<option value="${escapeHtml(z)}">${escapeHtml(z)}</option>`).join('');
+    if(zonaSet.includes(currentZona)) filterZona.value = currentZona;
+  }
+
+  async function ensureSanatorioRef(nombre){
+    if(!nombre) return;
+    const exists = sanatoriosRef.some(s => normalize(s.nombre) === normalize(nombre));
+    if(exists) return;
+    const { data, error } = await sb.from('sanatorios').upsert({ nombre }, { onConflict: 'nombre' }).select().single();
+    if(error) return;
+    if(data){
+      sanatoriosRef.push(data);
+      if($('#inviteRol').value === 'residente') actualizarVisibilidadInviteSanatorios();
+      renderMedicos();
+    }
+  }
+
+  const CAPTURAS_BUCKET = 'interconsultas-capturas';
+  const CAPTURA_ESTADO_LABEL = { pendiente: '⏳ Pendiente', procesada: '✅ Procesada', error: '⚠️ Error' };
+
+  function renderCapturasPendientes(){
+    const list = $('#capturasPendientesList');
+    const visibles = capturasPendientes.filter(c => c.estado !== 'procesada');
+    list.innerHTML = visibles.length === 0
+      ? '<li style="color:var(--muted); justify-content:center">Sin capturas pendientes.</li>'
+      : visibles.map(c => {
+        const nombreArchivo = c.storage_path.split('/').pop();
+        const fecha = new Date(c.created_at).toLocaleString('es-AR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+        return `
+        <li data-id="${c.id}">
+          <span>${escapeHtml(nombreArchivo)}</span>
+          <span class="arrow">·</span>
+          <span class="sanat">${CAPTURA_ESTADO_LABEL[c.estado] || c.estado} · ${fecha}</span>
+          <span class="del" data-action="deleteCaptura" data-id="${c.id}" data-path="${escapeHtml(c.storage_path)}" title="Quitar">✕</span>
+        </li>
+      `;
+      }).join('');
+  }
+
+  $('#capturaFile').addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if(files.length === 0) return;
+    const msgEl = $('#capturaMsg');
+    msgEl.textContent = 'Subiendo...';
+    for(const file of files){
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+      const path = `${currentUser.id}/${Date.now()}_${safeName}`;
+      const { error: upErr } = await sb.storage.from(CAPTURAS_BUCKET).upload(path, file);
+      if(upErr){ flashIn(msgEl, 'Error: ' + upErr.message, true); continue; }
+      const { data, error } = await sb.from('interconsultas_capturas_pendientes')
+        .insert({ medico_id: currentUser.id, storage_path: path, estado: 'pendiente' })
+        .select().single();
+      if(error){ flashIn(msgEl, 'Error: ' + error.message, true); continue; }
+      capturasPendientes.unshift(data);
+    }
+    e.target.value = '';
+    renderCapturasPendientes();
+    flashIn(msgEl, 'Subida con éxito.');
+  });
+
+  $('#capturasPendientesList').addEventListener('click', async (e) => {
+    const del = e.target.closest('[data-action="deleteCaptura"]');
+    if(del){
+      if(!confirm('¿Quitar captura?')) return;
+      await sb.storage.from(CAPTURAS_BUCKET).remove([del.dataset.path]);
+      const { error } = await sb.from('interconsultas_capturas_pendientes').delete().eq('id', del.dataset.id);
+      if(!error){
+        capturasPendientes = capturasPendientes.filter(c => c.id !== del.dataset.id);
+        renderCapturasPendientes();
+      }
+    }
+  });
+
+  function renderPreciosIc(){
+    $('#valorIcList').innerHTML = preciosInterconsulta.length === 0
+      ? '<li style="color:var(--muted); justify-content:center">Sin valores cargados.</li>'
+      : preciosInterconsulta.slice().sort((a,b) => a.sanatorio.localeCompare(b.sanatorio)).map(p => `
+        <li data-id="${p.id}">
+          <span>${escapeHtml(p.sanatorio)}</span>
+          <span class="arrow">→</span>
+          <span class="sanat">$${Number(p.valor).toFixed(2)}</span>
+          <span class="del" data-action="deleteValorIc" data-id="${p.id}" title="Quitar">✕</span>
+        </li>
+      `).join('');
+  }
+
+  function lookupPrecioInterconsulta(sanatorio){
+    if(!sanatorio) return null;
+    const p = preciosInterconsulta.find(x => normalize(x.sanatorio) === normalize(sanatorio));
+    return p ? p.valor : null;
+  }
+
+  async function registrarInterconsultaFacturable(item, tipo, valor){
+    const row = {
+      medico_id: currentUser.id,
+      sanatorio: item.sanatorio || null,
+      paciente: item.paciente || null,
+      fecha: toISODate(new Date()),
+      tipo,
+      valor
+    };
+    const { data, error } = await sb.from('interconsultas_facturables').insert(row).select().single();
+    if(!error){
+      interconsultasFacturables.push(data);
+      renderIcFacturables();
+    }
+  }
+
+  $('#btnAddValorIc').addEventListener('click', async () => {
+    const sanatorio = $('#valorIcSanatorio').value.trim();
+    const valor = parseFloat($('#valorIcInput').value);
+    if(!sanatorio || !valor){ flash('Completá sanatorio y valor.'); return; }
+    const { data, error } = await sb.from('precios_interconsulta')
+      .upsert({ medico_id: currentUser.id, sanatorio, valor }, { onConflict: 'medico_id,sanatorio' })
+      .select().single();
+    if(error){ flash('Error al vincular: ' + error.message, true); return; }
+    preciosInterconsulta = preciosInterconsulta.filter(p => normalize(p.sanatorio) !== normalize(sanatorio));
+    preciosInterconsulta.push(data);
+    await ensureSanatorioRef(sanatorio);
+    $('#valorIcSanatorio').value = ''; $('#valorIcInput').value = '';
+    renderPreciosIc();
+  });
+
+  $('#valorIcList').addEventListener('click', async (e) => {
+    const del = e.target.closest('[data-action="deleteValorIc"]');
+    if(del){
+      const { error } = await sb.from('precios_interconsulta').delete().eq('id', del.dataset.id);
+      if(!error){
+        preciosInterconsulta = preciosInterconsulta.filter(p => p.id !== del.dataset.id);
+        renderPreciosIc();
+      }
+    }
+  });
+
+  function renderSanatoriosAdmin(){
+    const grid = $('#sanatoriosAdminGrid');
+    const nombres = sanatoriosRef.map(s => s.nombre).sort((a,b) => a.localeCompare(b));
+    grid.innerHTML = nombres.length === 0
+      ? '<div class="msg" style="text-align:center">Sin sanatorios cargados.</div>'
+      : nombres.map(nombre => {
+        const s = sanatoriosRef.find(x => normalize(x.nombre) === normalize(nombre));
+        const zonaRow = zonas.find(z => normalize(z.sanatorio) === normalize(nombre));
+        const contactosSanatorio = contacts.filter(c => normalize(c.sanatorio) === normalize(nombre));
+        const color = sanatorioColor(nombre) || '#64748b';
+        return `
+          <div class="internadosGroup">
+            <div class="internadosGroupHead" style="border-left:6px solid ${color}">
+              <span class="sanatorioDot" style="background:${color}"></span>
+              <span class="internadosGroupTitle">${escapeHtml(nombre)}</span>
+              <span class="del" data-action="deleteSanatorioAdmin" data-nombre="${escapeHtml(nombre)}" title="Borrar sanatorio" style="margin-left:auto">✕</span>
+            </div>
+            <div class="panel" style="margin-top:0">
+              <div class="fichaGrid">
+                <label>Dirección
+                  <input type="text" data-field="direccion" data-id="${s.id}" value="${escapeHtml(s.direccion || '')}" placeholder="Sin cargar">
+                </label>
+                <label>Zona de facturación
+                  <input type="text" data-field="zona" data-nombre="${escapeHtml(nombre)}" data-zona-id="${zonaRow ? zonaRow.id : ''}" value="${escapeHtml(zonaRow ? zonaRow.zona : '')}" placeholder="Sin cargar">
+                </label>
+              </div>
+              <h3 class="subhead" style="margin-top:14px">Contactos vinculados</h3>
+              <div class="contactForm">
+                <input type="text" class="nuevoContactoInput" data-nombre="${escapeHtml(nombre)}" placeholder="Nombre o número en WhatsApp">
+                <button type="button" class="secondary" data-action="addContactoAdmin" data-nombre="${escapeHtml(nombre)}">Vincular</button>
+              </div>
+              <ul class="contactList" style="margin-top:8px">
+                ${contactosSanatorio.length === 0
+                  ? '<li style="color:var(--muted); justify-content:center">Sin contactos vinculados.</li>'
+                  : contactosSanatorio.map(c => `
+                    <li data-id="${c.id}">
+                      <span>${escapeHtml(c.contacto)}</span>
+                      <span class="del" data-action="deleteContactoAdmin" data-id="${c.id}" title="Quitar">✕</span>
+                    </li>
+                  `).join('')}
+              </ul>
+            </div>
+          </div>
+        `;
+      }).join('');
+  }
+
+  $('#btnAddSanatorioAdmin').addEventListener('click', async () => {
+    const nombre = $('#nuevoSanatorioNombre').value.trim();
+    if(!nombre){ flash('Ingresá el nombre.', true); return; }
+    const { data, error } = await sb.from('sanatorios').upsert({ nombre }, { onConflict: 'nombre' }).select().single();
+    if(error){ flash('Error: ' + error.message, true); return; }
+    sanatoriosRef = sanatoriosRef.filter(s => normalize(s.nombre) !== normalize(nombre));
+    sanatoriosRef.push(data);
+    $('#nuevoSanatorioNombre').value = '';
+    renderSanatoriosAdmin();
+    render();
+  });
+
+  $('#sanatoriosAdminGrid').addEventListener('blur', async (e) => {
+    const field = e.target.dataset.field;
+    if(!field) return;
+    const value = e.target.value.trim();
+    if(field === 'direccion'){
+      const { error } = await sb.from('sanatorios').update({ direccion: value || null }).eq('id', e.target.dataset.id);
+      if(!error){
+        const s = sanatoriosRef.find(x => x.id === e.target.dataset.id);
+        if(s) s.direccion = value || null;
+      }
+    } else if(field === 'zona'){
+      const nombre = e.target.dataset.nombre;
+      const zonaId = e.target.dataset.zonaId;
+      if(!value){
+        if(zonaId){
+          await sb.from('zonas').delete().eq('id', zonaId);
+          zonas = zonas.filter(z => z.id !== zonaId);
+          renderSanatoriosAdmin();
+        }
+        return;
+      }
+      const { data, error } = await sb.from('zonas').upsert({ sanatorio: nombre, zona: value }, { onConflict: 'sanatorio' }).select().single();
+      if(!error){
+        zonas = zonas.filter(z => normalize(z.sanatorio) !== normalize(nombre));
+        zonas.push(data);
+        renderSanatoriosAdmin();
+      }
+    }
+  }, true);
+
+  $('#sanatoriosAdminGrid').addEventListener('click', async (e) => {
+    const addContacto = e.target.closest('[data-action="addContactoAdmin"]');
+    if(addContacto){
+      const nombre = addContacto.dataset.nombre;
+      const input = document.querySelector(`.nuevoContactoInput[data-nombre="${CSS.escape(nombre)}"]`);
+      const contacto = input.value.trim();
+      if(!contacto) return;
+      const { data, error } = await sb.from('contactos').insert({ contacto, sanatorio: nombre }).select().single();
+      if(!error){
+        contacts.push({ id: data.id, contacto: data.contacto, sanatorio: data.sanatorio });
+        input.value = '';
+        renderSanatoriosAdmin();
+      }
+      return;
+    }
+    const delContacto = e.target.closest('[data-action="deleteContactoAdmin"]');
+    if(delContacto){
+      await sb.from('contactos').delete().eq('id', delContacto.dataset.id);
+      contacts = contacts.filter(c => c.id !== delContacto.dataset.id);
+      renderSanatoriosAdmin();
+      return;
+    }
+    const delSanatorio = e.target.closest('[data-action="deleteSanatorioAdmin"]');
+    if(delSanatorio){
+      const nombre = delSanatorio.dataset.nombre;
+      if(!confirm(`¿Borrar "${nombre}"?`)) return;
+      const s = sanatoriosRef.find(x => normalize(x.nombre) === normalize(nombre));
+      if(s){
+        await sb.from('sanatorios').delete().eq('id', s.id);
+        sanatoriosRef = sanatoriosRef.filter(x => x.id !== s.id);
+      }
+      renderSanatoriosAdmin();
+      render();
+    }
+  });
+
+  function icCardHtml(it){
+    const color = sanatorioColor(it.sanatorio) || '#1E60C6';
+    const esPendiente = it.estado === 'pendiente';
+    
+    return `
+      <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-all relative flex flex-col justify-between" 
+           data-id="${it.id}" 
+           style="border-left: 5px solid ${color};">
+        
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-2.5">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold cursor-pointer transition-colors ${
+              esPendiente 
+                ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60' 
+                : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60'
+            }" data-id="${it.id}" data-toggle="estado">
+              <i data-lucide="${esPendiente ? 'clock' : 'check-circle-2'}" class="w-3.5 h-3.5"></i>
+              <span>${it.estado}</span>
+            </span>
+            
+            <button class="text-slate-400 hover:text-rose-500 p-1 rounded-md transition-colors" data-id="${it.id}" data-action="delete" title="Borrar">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <div class="font-bold text-base text-slate-900 dark:text-white leading-tight outline-none focus:bg-blue-50/50 rounded px-1 -mx-1" 
+               contenteditable="true" data-id="${it.id}" data-key="paciente">
+            ${escapeHtml(it.paciente || 'Sin nombre')}
+          </div>
+
+          <div class="flex items-center gap-1.5 text-xs font-semibold text-[#1E60C6] mt-1.5">
+            <i data-lucide="building-2" class="w-3.5 h-3.5 shrink-0"></i>
+            <span contenteditable="true" data-id="${it.id}" data-key="sanatorio">${escapeHtml(it.sanatorio || 'Sin sanatorio')}</span>
+          </div>
+
+          <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5 shrink-0"></i>
+            <span>Piso <b contenteditable="true" data-id="${it.id}" data-key="piso">${escapeHtml(it.piso || '-')}</b></span> · 
+            <span>Hab. <b contenteditable="true" data-id="${it.id}" data-key="habitacion">${escapeHtml(it.habitacion || '-')}</b></span> · 
+            <span>Cama <b contenteditable="true" data-id="${it.id}" data-key="cama">${escapeHtml(it.cama || '-')}</b></span>
+          </div>
+
+          <div class="bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 rounded-lg p-2.5 mt-3 text-xs text-slate-700 dark:text-slate-300 flex items-start gap-2">
+            <i data-lucide="activity" class="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0"></i>
+            <span class="outline-none focus:bg-white rounded w-full" contenteditable="true" data-id="${it.id}" data-key="diagnostico">
+              ${escapeHtml(it.diagnostico || 'Sin diagnóstico cargado')}
+            </span>
+          </div>
+
+          <div class="flex items-center justify-between text-[11px] text-slate-400 mt-2.5 px-0.5">
+            <span class="flex items-center gap-1" contenteditable="true" data-id="${it.id}" data-key="fecha">
+              <i data-lucide="calendar" class="w-3 h-3"></i> ${escapeHtml(it.fecha || 'Sin fecha')}
+            </span>
+            <span class="font-medium" contenteditable="true" data-id="${it.id}" data-key="zona">${escapeHtml(it.zona || '')}</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60">
+          <button class="flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold rounded-lg bg-blue-50 hover:bg-blue-100 text-[#1E60C6] dark:bg-blue-950/40 dark:text-blue-400 transition-colors" 
+                  data-action="programarCx" data-id="${it.id}">
+            <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
+            <span>Programar Cx</span>
+          </button>
+          <button class="flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors" 
+                  data-action="contestada" data-id="${it.id}">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+            <span>Contestada</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  function render(){
+    updateSanatorioOptions();
+    const list = getFiltered();
+    countEl.textContent = `${list.length} de ${items.length} interconsulta(s)`;
+    emptyState.style.display = items.length === 0 ? 'block' : 'none';
+
+    const groups = {};
+    list.forEach(it => {
+      const key = it.sanatorio || 'Sin sanatorio';
+      (groups[key] = groups[key] || []).push(it);
+    });
+    const nombres = Object.keys(groups).sort((a,b) => a.localeCompare(b));
+
+    icGrid.innerHTML = nombres.map(nombre => {
+      const color = sanatorioColor(nombre === 'Sin sanatorio' ? '' : nombre) || '#64748b';
+      return `
+        <div class="internadosGroup">
+          <div class="internadosGroupHead" style="border-left:6px solid ${color}">
+            <span class="sanatorioDot" style="background:${color}; width:12px; height:12px"></span>
+            <span class="internadosGroupTitle">${escapeHtml(nombre)}</span>
+            <span class="internadosGroupCount">${groups[nombre].length}</span>
+          </div>
+          <div class="internadosCards">${groups[nombre].map(icCardHtml).join('')}</div>
+        </div>
+      `;
+    }).join('');
+
+    syncBadge();
+    renderResumen();
+    if(window.lucide) lucide.createIcons();
+  }
+
+  icGrid.addEventListener('blur', async (e) => {
+    const el = e.target;
+    if(!el.dataset || !el.dataset.key) return;
+    const item = items.find(i => i.id === el.dataset.id);
+    if(!item) return;
+    const value = el.textContent.trim();
+    if((item[el.dataset.key] || '') === value) return;
+    item[el.dataset.key] = value;
+    const { error } = await sb.from('interconsultas').update({ [el.dataset.key]: value || null }).eq('id', item.id);
+    if(error) flash('Error al guardar: ' + error.message, true);
+    if(el.dataset.key === 'sanatorio'){
+      if(value) await ensureSanatorioRef(value);
+      render();
+    }
+  }, true);
+
+  icGrid.addEventListener('click', async (e) => {
+    const prog = e.target.closest('[data-action="programarCx"]');
+    if(prog){
+      await programarCxDesdeInterconsulta(prog.dataset.id);
+      return;
+    }
+    const contestada = e.target.closest('[data-action="contestada"]');
+    if(contestada){
+      if(!confirm('¿Marcar esta interconsulta como contestada?')) return;
+      const item = items.find(i => i.id === contestada.dataset.id);
+      const valorIc = item ? lookupPrecioInterconsulta(item.sanatorio) : null;
+      if(item && valorIc != null) await registrarInterconsultaFacturable(item, 'contestada', valorIc);
+      const { error } = await sb.from('interconsultas').delete().eq('id', contestada.dataset.id);
+      if(!error){
+        items = items.filter(i => i.id !== contestada.dataset.id);
+        render();
+      }
+      return;
+    }
+    const badge = e.target.closest('[data-toggle="estado"]');
+    if(badge){
+      const item = items.find(i => i.id === badge.dataset.id);
+      if(item){
+        const nuevoEstado = item.estado === 'pendiente' ? 'resuelta' : 'pendiente';
+        const nuevaFechaResuelta = nuevoEstado === 'resuelta' ? new Date().toISOString().slice(0,10) : null;
+        await sb.from('interconsultas').update({ estado: nuevoEstado, fecha_resuelta: nuevaFechaResuelta }).eq('id', item.id);
+        item.estado = nuevoEstado;
+        item.fechaResuelta = nuevaFechaResuelta || '';
+        render();
+      }
+      return;
+    }
+    const del = e.target.closest('[data-action="delete"]');
+    if(del){
+      if(!confirm('¿Borrar interconsulta?')) return;
+      await sb.from('interconsultas').delete().eq('id', del.dataset.id);
+      items = items.filter(i => i.id !== del.dataset.id);
+      render();
+    }
+  });
+
+  async function programarCxDesdeInterconsulta(icId){
+    const it = items.find(i => i.id === icId);
+    if(!it) return;
+    const nombreBuscado = (it.paciente || '').trim();
+    if(!nombreBuscado){ flash('Esta interconsulta no tiene paciente cargado.', true); return; }
+
+    const valorIc = lookupPrecioInterconsulta(it.sanatorio);
+    if(valorIc != null){
+      await registrarInterconsultaFacturable(it, 'programada', valorIc);
+      await sb.from('interconsultas').delete().eq('id', it.id);
+      items = items.filter(i => i.id !== it.id);
+      render();
+    }
+
+    let paciente = pacientes.find(p => normalize(p.nombre) === normalize(nombreBuscado));
+    if(!paciente){
+      const row = {
+        medico_id: efectivoMedicoId(),
+        nombre: nombreBuscado,
+        sanatorio: it.sanatorio || null,
+        diagnostico: it.diagnostico || null
+      };
+      const { data, error } = await sb.from('pacientes').insert(row).select().single();
+      if(error){ flash('Error al crear paciente: ' + error.message, true); return; }
+      paciente = data;
+      pacientes.push(paciente);
+      pacientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+      renderPacientes();
+    }
+
+    document.querySelector('.navtab[data-view="viewPacientes"]').click();
+    openPacienteDetail(paciente.id);
+  }
+
+  // ==================== PACIENTES ====================
+  const STORAGE_BUCKET = 'estudios-imagenes';
+  const ANTECEDENTES_LIST = [
+    ['hta','HTA'], ['dbt','Diabetes'], ['dlp','Dislipemia'], ['obesidad','Obesidad'],
+    ['tabaquismo','Tabaquismo actual'], ['ex_tabaquismo','Ex-tabaquismo'], ['epoc','EPOC'], ['asma','Asma'],
+    ['cardiopatia','Cardiopatía isquémica'], ['arritmia','Arritmia'], ['irc','Insuf. renal crónica'], ['hipotiroidismo','Hipotiroidismo'],
+    ['cancer_previo','Cáncer previo'], ['cirugia_toracica_previa','Cirugía torácica previa'], ['tvp_tep','TVP/TEP previo'], ['alergias','Alergias']
+  ];
+  const LAB_FIELDS = [
+    ['hto','HTO'], ['hb','HB'], ['leuco','LEUCO'], ['coagulograma','COAGULOGRAMA'],
+    ['urea','UREA'], ['creatinina','CREATININA'], ['na','NA'], ['k','K'], ['cl','CL'], ['otros','OTROS']
+  ];
+
+  const CONDICION_LABEL = { operado: 'Operado', programado: 'Programado', programar: 'Programar', pendiente: 'Pendiente' };
+
+  function isPreQxCompleto(p){
+    const pq = p.preqx || {};
+    const lab = pq.laboratorio || {};
+    const tieneLab = Object.values(lab).some(v => (v || '').toString().trim() !== '');
+    const tieneRcv = !!(pq.rcv || '').toString().trim();
+    return tieneLab && tieneRcv;
+  }
+
+  function diagnosticoEsNodulo(diagnostico){
+    const n = normalize(diagnostico || '');
+    return n.includes('nodulo') && n.includes('pulmon');
+  }
+
+  function calcularProbabilidadMayo(p){
+    const edad = parseFloat(p.edad) || 0;
+    const ant = p.antecedentes || {};
+    const tabaquismo = (ant.tabaquismo || ant.ex_tabaquismo) ? 1 : 0;
+    const cancerPrevio = ant.cancer_previo ? 1 : 0;
+    const nodulo = (p.preqx || {}).nodulo || {};
+    const diametro = parseFloat(nodulo.diametro_mm) || 0;
+    const espiculacion = nodulo.espiculacion ? 1 : 0;
+    const loboSuperior = nodulo.lobulo_superior ? 1 : 0;
+    const x = -6.8272 + 0.0391 * edad + 0.7917 * tabaquismo + 1.3388 * cancerPrevio +
+      0.1274 * diametro + 1.0407 * espiculacion + 0.7838 * loboSuperior;
+    return 1 / (1 + Math.exp(-x));
+  }
+
+  const HERDER_PET_COEF = { ninguna: 0, discreta: 2.322, moderada: 4.617, intensa: 4.771 };
+
+  function calcularProbabilidadHerder(probMayo, captacion){
+    const coefPet = HERDER_PET_COEF[captacion] || 0;
+    const x = -4.739 + 3.691 * probMayo + coefPet;
+    return 1 / (1 + Math.exp(-x));
+  }
+
+  function calcularProbabilidadBrock(p){
+    const edad = parseFloat(p.edad) || 0;
+    const femenino = p.sexo === 'femenino' ? 0.6011 : 0;
+    const nodulo = (p.preqx || {}).nodulo || {};
+    const familiar = nodulo.antecedente_familiar ? 0.2961 : 0;
+    const enfisema = nodulo.enfisema ? 0.2953 : 0;
+    const espiculacion = nodulo.espiculacion ? 0.7729 : 0;
+    const loboSuperior = nodulo.lobulo_superior ? 0.6581 : 0;
+    let tipoCoef = 0;
+    if(nodulo.tipo === 'subsolido') tipoCoef = 0.377;
+    else if(nodulo.tipo === 'no_solido') tipoCoef = -0.1276;
+    const diametroMm = parseFloat(nodulo.diametro_mm) || 0;
+    const numeroNodulos = parseFloat(nodulo.numero_nodulos) || 1;
+
+    const sizeTerm = Math.pow(diametroMm / 10, -0.5) - 1.58113883;
+    const x = 0.0287 * (edad - 62) + femenino + familiar + enfisema -
+      5.3854 * sizeTerm + tipoCoef + loboSuperior -
+      0.0824 * (numeroNodulos - 4) + espiculacion - 6.7892;
+    return 1 / (1 + Math.exp(-x));
+  }
+
+  function pintarPretest(pct, selNumero, selBar, selCategoria){
+    $(selNumero).textContent = pct + '%';
+    const fill = $(selBar);
+    fill.style.width = Math.min(100, pct) + '%';
+    let color, categoria;
+    if(pct < 5){ color = 'var(--done)'; categoria = 'Bajo riesgo (<5%)'; }
+    else if(pct <= 65){ color = 'var(--pending)'; categoria = 'Riesgo intermedio (5–65%)'; }
+    else { color = 'var(--danger)'; categoria = 'Alto riesgo (>65%)'; }
+    fill.style.background = color;
+    const catEl = $(selCategoria);
+    catEl.textContent = categoria;
+    catEl.style.color = color;
+  }
+
+  function recomputePretest(){
+    const p = currentPaciente();
+    const section = $('#pretestNoduloSection');
+    if(!section) return;
+    if(!p || !diagnosticoEsNodulo(p.diagnostico)){
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = 'block';
+
+    const nodulo = (p.preqx || {}).nodulo || {};
+    $('#pqNoduloDiametro').value = nodulo.diametro_mm || '';
+    $('#pqNoduloCantidad').value = nodulo.numero_nodulos || '';
+    $('#pqNoduloTipo').value = nodulo.tipo || 'solido';
+    $('#pqNoduloEspiculacion').checked = !!nodulo.espiculacion;
+    $('#pqNoduloLoboSuperior').checked = !!nodulo.lobulo_superior;
+    $('#pqNoduloEnfisema').checked = !!nodulo.enfisema;
+    $('#pqNoduloFamiliar').checked = !!nodulo.antecedente_familiar;
+
+    const diametroMm = parseFloat(nodulo.diametro_mm);
+    if(!diametroMm || diametroMm <= 0){
+      $('#pretestNumero').textContent = '—';
+      $('#pretestBarFill').style.width = '0%';
+      $('#pretestBarFill').style.background = 'var(--border)';
+      $('#pretestCategoria').textContent = 'Completá el diámetro para calcular.';
+      $('#pretestCategoria').style.color = '';
+      $('#pretestHerderBlock').style.display = 'none';
+      return;
+    }
+
+    const probBrock = calcularProbabilidadBrock(p);
+    const pctBrock = Math.round(probBrock * 1000) / 10;
+    pintarPretest(pctBrock, '#pretestNumero', '#pretestBarFill', '#pretestCategoria');
+
+    const petData = ((p.preqx || {}).imagenes || {}).pet || {};
+    const captacion = petData.captacion || '';
+    if(captacion){
+      const probMayo = calcularProbabilidadMayo(p);
+      const probHerder = calcularProbabilidadHerder(probMayo, captacion);
+      const pctHerder = Math.round(probHerder * 1000) / 10;
+      $('#pretestHerderBlock').style.display = 'block';
+      pintarPretest(pctHerder, '#pretestHerderNumero', '#pretestHerderBarFill', '#pretestHerderCategoria');
+    } else {
+      $('#pretestHerderBlock').style.display = 'none';
+    }
+  }
+
+  function pacienteCondicion(p){
+    if(p.operado) return 'operado';
+    if(p.fecha_qx) return 'programado';
+    if(p.materiales === 'en_quirofano') return 'programar';
+    if(p.materiales === 'no_requiere') return isPreQxCompleto(p) ? 'programar' : 'pendiente';
+    if(p.materiales === 'pendiente_autorizacion' || p.materiales === 'autorizados') return 'pendiente';
+    return '';
+  }
+
+  function condicionBadgeHtml(p){
+    const cond = pacienteCondicion(p);
+    if(!cond) return '<span class="msg" style="margin:0">Sin definir</span>';
+    return `<span class="badge cond-${cond}">${CONDICION_LABEL[cond]}</span>`;
+  }
+
+  function setMatSelectClass(el, value){
+    el.classList.remove('mat-no_requiere', 'mat-pendiente_autorizacion', 'mat-autorizados', 'mat-en_quirofano');
+    if(value) el.classList.add('mat-' + value);
+  }
+
+  function updateFechaQxLock(materiales){
+    const listo = materiales === 'en_quirofano' || materiales === 'no_requiere';
+    $('#pdFechaQx').disabled = !listo;
+    $('#pdHoraQx').disabled = !listo;
+    $('#fechaQxLockMsg').style.display = listo ? 'none' : 'block';
+  }
+
+  const pacListView = $('#pacListView');
+  const pacDetailView = $('#pacDetailView');
+  const pacTbody = $('#pacTbody');
+  const pacEmpty = $('#pacEmpty');
+  const pacCount = $('#pacCount');
+  const pacSearch = $('#pacSearch');
+  let currentPacienteId = null;
+
+  function getPath(obj, path){
+    return path.split('.').reduce((o,k) => (o && o[k] !== undefined) ? o[k] : undefined, obj);
+  }
+  function setPath(obj, path, value){
+    const keys = path.split('.');
+    let cur = obj;
+    for(let i = 0; i < keys.length - 1; i++){
+      if(typeof cur[keys[i]] !== 'object' || cur[keys[i]] === null) cur[keys[i]] = {};
+      cur = cur[keys[i]];
+    }
+    cur[keys[keys.length - 1]] = value;
+  }
+
+  function getFilteredPacientes(){
+    const q = pacSearch.value.trim().toLowerCase();
+    if(!q) return pacientes;
+    return pacientes.filter(p => [p.nombre, p.dni, p.telefono, p.sanatorio, p.diagnostico].join(' ').toLowerCase().includes(q));
+  }
+
+  function renderPacientes(){
+    const list = getFilteredPacientes();
+    pacCount.textContent = `${list.length} de ${pacientes.length} paciente(s)`;
+    pacEmpty.style.display = pacientes.length === 0 ? 'block' : 'none';
+    pacTbody.innerHTML = list.map(p => `
+      <tr class="pacRow" data-id="${p.id}" style="border-left:4px solid ${sanatorioColor(p.sanatorio) || 'transparent'}">
+        <td class="font-bold text-slate-800 dark:text-white">${escapeHtml(p.nombre)}</td>
+        <td>${sanatorioChip(p.sanatorio)}</td>
+        <td>${escapeHtml(p.edad)}</td>
+        <td>${escapeHtml(p.dni)}</td>
+        <td>${escapeHtml(p.diagnostico)}</td>
+        <td class="font-semibold text-blue-600">${escapeHtml(p.fecha_qx)}</td>
+        <td>${condicionBadgeHtml(p)}</td>
+        <td>${currentMedico.rol === 'residente' ? '' : `<span class="del" data-id="${p.id}" data-action="deletePaciente" title="Borrar">✕</span>`}</td>
+      </tr>
+    `).join('');
+    if(window.lucide) lucide.createIcons();
+  }
+
+  pacSearch.addEventListener('input', renderPacientes);
+
+  function efectivoMedicoId(){
+    return currentMedico.rol === 'residente' ? currentMedico.supervisor_id : currentUser.id;
+  }
+
+  $('#btnAddPaciente').addEventListener('click', async () => {
+    const nombre = $('#pacNombre').value.trim();
+    if(!nombre){ flashIn($('#pacMsg'), 'El nombre es obligatorio.', true); return; }
+    const sanatorio = $('#pacSanatorio').value.trim();
+    const row = {
+      medico_id: efectivoMedicoId(),
+      nombre,
+      sanatorio: sanatorio || null,
+      edad: $('#pacEdad').value ? parseInt($('#pacEdad').value, 10) : null,
+      dni: $('#pacDni').value.trim() || null,
+      os: $('#pacOs').value.trim() || null,
+      nro_afiliado: $('#pacNroAfiliado').value.trim() || null,
+      telefono: $('#pacTelefono').value.trim() || null,
+      diagnostico: $('#pacDiagnostico').value.trim() || null
+    };
+    const { data, error } = await sb.from('pacientes').insert(row).select().single();
+    if(error){ flashIn($('#pacMsg'), 'Error al guardar: ' + error.message, true); return; }
+    pacientes.push(data);
+    pacientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+    if(sanatorio) await ensureSanatorioRef(sanatorio);
+    ['pacNombre','pacSanatorio','pacEdad','pacDni','pacOs','pacNroAfiliado','pacTelefono','pacDiagnostico'].forEach(id => $('#'+id).value = '');
+    renderPacientes();
+    render();
+    renderCalendar();
+    openPacienteDetail(data.id);
+  });
+
+  pacTbody.addEventListener('click', async (e) => {
+    const del = e.target.closest('[data-action="deletePaciente"]');
+    if(del){
+      if(!confirm('¿Borrar paciente?')) return;
+      const toDelete = pacientes.find(p => p.id === del.dataset.id);
+      if(toDelete && toDelete.fecha_qx){
+        await sb.from('pacientes').update({ fecha_qx: null }).eq('id', del.dataset.id);
+        await syncCalendarEvent(del.dataset.id);
+      }
+      await sb.from('pacientes').delete().eq('id', del.dataset.id);
+      pacientes = pacientes.filter(p => p.id !== del.dataset.id);
+      renderPacientes();
+      renderCalendar();
+      return;
+    }
+    const row = e.target.closest('.pacRow');
+    if(row) openPacienteDetail(row.dataset.id);
+  });
+
+  function currentPaciente(){
+    return pacientes.find(p => p.id === currentPacienteId);
+  }
+
+  function openPacienteDetail(id){
+    currentPacienteId = id;
+    pacListView.style.display = 'none';
+    pacDetailView.style.display = 'block';
+    
+    // Abrir por defecto en Datos Generales
+    document.querySelectorAll('.ficha-tab').forEach((b, i) => b.classList.toggle('active', i === 0));
+    document.querySelectorAll('.ficha-tab-content').forEach((c, i) => c.classList.toggle('active', i === 0));
+
+    renderPacienteDetail();
+  }
+
+  function normalizePhoneAR(raw){
+    let d = (raw || '').replace(/\D/g, '');
+    if(!d) return '';
+    if(d.startsWith('00')) d = d.slice(2);
+    if(d.startsWith('54')){
+      d = d.slice(2);
+      if(d.startsWith('9')) d = d.slice(1);
+    }
+    if(d.startsWith('0')) d = d.slice(1);
+    return '549' + d;
+  }
+
+  function updateWhatsappFab(telefono){
+    const fab = $('#pdWhatsappFab');
+    const d = normalizePhoneAR(telefono);
+    if(d.length < 11){ fab.style.display = 'none'; return; }
+    const esAndroid = /Android/i.test(navigator.userAgent);
+    fab.href = esAndroid
+      ? `intent://send?phone=${d}#Intent;scheme=whatsapp;package=com.whatsapp.w4b;S.browser_fallback_url=${encodeURIComponent('https://wa.me/' + d)};end`
+      : 'https://wa.me/' + d;
+    fab.style.display = 'flex';
+  }
+
+  $('#btnPacBack').addEventListener('click', () => {
+    currentPacienteId = null;
+    pacDetailView.style.display = 'none';
+    pacListView.style.display = 'block';
+    renderPacientes();
+  });
+
+  function refreshCondicionBadge(){
+    const p = currentPaciente();
+    if(!p) return;
+    $('#pdCondicion').innerHTML = condicionBadgeHtml(p);
+  }
+
+  function renderPacienteDetail(){
+    const p = currentPaciente();
+    if(!p) return;
+
+    // Header rápido de la ficha
+    $('#pdHeaderNombre').textContent = p.nombre || 'Sin nombre';
+    $('#pdHeaderSanatorio').textContent = p.sanatorio || 'Sin sanatorio';
+    $('#pdHeaderEdad').textContent = p.edad ? p.edad + ' años' : 'Edad no cargada';
+    $('#pdHeaderOs').textContent = p.os || 'Particular / Sin OS';
+
+    refreshCondicionBadge();
+    $('#pdNombre').value = p.nombre || '';
+    $('#pdSanatorio').value = p.sanatorio || '';
+    $('#pdSanatorioDot').style.background = sanatorioColor(p.sanatorio) || 'transparent';
+    $('#pdEdad').value = p.edad || '';
+    $('#pdSexo').value = p.sexo || '';
+    $('#pdDni').value = p.dni || '';
+    $('#pdOs').value = p.os || '';
+    $('#pdNroAfiliado').value = p.nro_afiliado || '';
+    $('#pdTelefono').value = p.telefono || '';
+    updateWhatsappFab(p.telefono);
+    $('#pdDiagnostico').value = p.diagnostico || '';
+    $('#pdOperacion').value = p.operacion || '';
+    $('#pdFechaQx').value = p.fecha_qx || '';
+    $('#pdHoraQx').value = (p.hora_qx || '').slice(0,5);
+    $('#pdMateriales').value = p.materiales || '';
+    setMatSelectClass($('#pdMateriales'), p.materiales || '');
+    updateFechaQxLock(p.materiales || '');
+    $('#pdConsentimientoLink').value = p.consentimiento_link || '';
+    $('#pdConsentimientoEstado').value = p.consentimiento_estado || '';
+    $('#pdOperado').checked = !!p.operado;
+    renderHistorialCirugias(p);
+    $('#pdDatosClinicos').value = p.datos_clinicos || '';
+    $('#pdNotas').value = p.notas || '';
+    $('#pdCopagoMonto').value = p.copago_monto || '';
+    $('#pdCopagoEstado').value = p.copago_estado || '';
+    $('#pdProtocoloLink').value = p.protocolo_qx_link || '';
+    $('#pdAnatPatLink').value = p.anatomia_patologica_link || '';
+
+    // Render Antecedentes con checkboxes
+    const ant = p.antecedentes || {};
+    $('#pdAntecedentesGrid').innerHTML = ANTECEDENTES_LIST.map(([key,label]) => `
+      <label>
+        <input type="checkbox" data-ant="${key}" ${ant[key] ? 'checked' : ''}>
+        <span>${escapeHtml(label)}</span>
+      </label>
+    `).join('');
+    $('#pdAntecedentesOtros').value = ant.otros || '';
+
+    const pq = p.preqx || {};
+    const labValues = getPath(pq, 'laboratorio') || {};
+    $('#pqLaboratorioGrid').innerHTML = LAB_FIELDS.map(([key,label]) => `
+      <label>${escapeHtml(label)}<input type="text" data-pqx="laboratorio.${key}" value="${escapeHtml(typeof labValues === 'object' ? (labValues[key] || '') : '')}"></label>
+    `).join('');
+    $('#pqRcv').value = getPath(pq, 'rcv') || '';
+    $('#pqCvf').value = getPath(pq, 'funcional_respiratorio.espirometria.cvf') || '';
+    $('#pqVef1').value = getPath(pq, 'funcional_respiratorio.espirometria.vef1') || '';
+    $('#pqDlco').value = getPath(pq, 'funcional_respiratorio.dlco') || '';
+    $('#pqTcLink').value = getPath(pq, 'imagenes.tc.link') || '';
+    $('#pqTcUsuario').value = getPath(pq, 'imagenes.tc.usuario') || '';
+    $('#pqTcPassword').value = getPath(pq, 'imagenes.tc.password') || '';
+    $('#pqPetLink').value = getPath(pq, 'imagenes.pet.link') || '';
+    $('#pqPetUsuario').value = getPath(pq, 'imagenes.pet.usuario') || '';
+    $('#pqPetPassword').value = getPath(pq, 'imagenes.pet.password') || '';
+    $('#pqPetCaptacion').value = getPath(pq, 'imagenes.pet.captacion') || '';
+
+    renderFotos('tc');
+    renderFotos('pet');
+    recomputePretest();
+    if(window.lucide) lucide.createIcons();
+  }
+
+  async function ensurePacienteInternado(p){
+    const activa = internaciones.find(i => i.paciente_id === p.id && !i.fecha_alta);
+    if(activa) return activa;
+    const row = {
+      medico_id: efectivoMedicoId(),
+      paciente_id: p.id,
+      sanatorio: p.sanatorio || null,
+      fecha_ingreso: toISODate(new Date())
+    };
+    const { data, error } = await sb.from('internaciones').insert(row).select().single();
+    if(!error){
+      internaciones.push(data);
+      renderInternados();
+      render();
+    }
+    return data;
+  }
+
+  async function savePacienteField(key, value){
+    const p = currentPaciente();
+    if(!p) return;
+    p[key] = value;
+    await sb.from('pacientes').update({ [key]: value }).eq('id', p.id);
+    if(key === 'sanatorio'){
+      $('#pdSanatorioDot').style.background = sanatorioColor(value) || 'transparent';
+      if(value){ await ensureSanatorioRef(value); render(); }
+    }
+    if(['fecha_qx','hora_qx','sanatorio','nombre','operacion','materiales'].includes(key)) renderCalendar();
+    if(['fecha_qx','hora_qx','sanatorio','nombre','operacion'].includes(key)) syncCalendarEvent(p.id);
+    if(['fecha_qx','materiales'].includes(key)) refreshCondicionBadge();
+    if(['edad','diagnostico','sexo'].includes(key)) recomputePretest();
+    if(key === 'telefono') updateWhatsappFab(value);
+    if(key === 'fecha_qx' && value){
+      const yaInternado = internaciones.some(i => i.paciente_id === p.id && !i.fecha_alta);
+      if(!yaInternado) await ensurePacienteInternado(p);
+    }
+  }
+
+  async function savePreqx(){
+    const p = currentPaciente();
+    if(!p) return;
+    await sb.from('pacientes').update({ preqx: p.preqx || {} }).eq('id', p.id);
+    refreshCondicionBadge();
+    recomputePretest();
+  }
+
+  async function saveAntecedentes(){
+    const p = currentPaciente();
+    if(!p) return;
+    await sb.from('pacientes').update({ antecedentes: p.antecedentes || {} }).eq('id', p.id);
+    recomputePretest();
+  }
+
+  pacDetailView.addEventListener('blur', (e) => {
+    const el = e.target;
+    if(el.dataset.pk){
+      let value = el.value;
+      if(el.tagName === 'INPUT' && el.type === 'number') value = value ? parseInt(value, 10) : null;
+      else value = value.trim() || null;
+      savePacienteField(el.dataset.pk, value);
+    } else if(el.dataset.pqx){
+      const p = currentPaciente();
+      if(!p) return;
+      if(!p.preqx) p.preqx = {};
+      setPath(p.preqx, el.dataset.pqx, el.value.trim());
+      savePreqx();
+    } else if(el.id === 'pdAntecedentesOtros'){
+      const p = currentPaciente();
+      if(!p) return;
+      if(!p.antecedentes) p.antecedentes = {};
+      p.antecedentes.otros = el.value.trim();
+      saveAntecedentes();
+    }
+  }, true);
+
+  pacDetailView.addEventListener('change', (e) => {
+    const el = e.target;
+    if(el.tagName === 'SELECT' && el.dataset.pk){
+      const value = el.value || null;
+      savePacienteField(el.dataset.pk, value);
+      if(el.classList.contains('matSelect')){ setMatSelectClass(el, value || ''); updateFechaQxLock(value || ''); }
+      return;
+    }
+    if(el.dataset.pqx && (el.tagName === 'SELECT' || el.type === 'checkbox')){
+      const p = currentPaciente();
+      if(!p) return;
+      if(!p.preqx) p.preqx = {};
+      const value = el.type === 'checkbox' ? el.checked : el.value;
+      setPath(p.preqx, el.dataset.pqx, value);
+      savePreqx();
+    }
+  });
+
+  pacDetailView.addEventListener('click', (e) => {
+    const btn = e.target.closest('.linkOpenBtn');
+    if(!btn) return;
+    const input = $('#' + btn.dataset.target);
+    if(!input) return;
+    let url = input.value.trim();
+    if(!url) return;
+    if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    window.open(url, '_blank', 'noopener');
+  });
+
+  $('#pdOperado').addEventListener('change', async (e) => {
+    const p = currentPaciente();
+    if(!p) return;
+    const checked = e.target.checked;
+    const patch = { operado: checked };
+    if(checked) patch.fecha_qx = toISODate(new Date());
+    Object.assign(p, patch);
+    await sb.from('pacientes').update(patch).eq('id', p.id);
+    if(checked) $('#pdFechaQx').value = p.fecha_qx;
+    refreshCondicionBadge();
+    renderCalendar();
+    syncCalendarEvent(p.id);
+  });
+
+  function renderHistorialCirugias(p){
+    const el = $('#historialCirugias');
+    const hist = p.cirugias || [];
+    if(hist.length === 0){ el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <details style="margin-top:10px" class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+        <summary style="font-size:12px; color:var(--muted); cursor:pointer; font-weight:700">Historial de cirugías anteriores (${hist.length})</summary>
+        <div class="fichaGrid" style="margin-top:10px">
+          ${hist.slice().reverse().map(c => `
+            <label class="fieldFull">${escapeHtml(c.fecha_qx || 'Sin fecha')}${c.hora_qx ? ' · ' + escapeHtml(c.hora_qx.slice(0,5)) : ''}
+              <span style="font-size:13px; color:var(--text); font-weight:700">${escapeHtml(c.operacion || 'Sin descripción')}</span>
+            </label>
+          `).join('')}
+        </div>
+      </details>
+    `;
+  }
+
+  $('#btnReprogramarCx').addEventListener('click', () => {
+    document.querySelector('.ficha-tab[data-fichatab="tabFichaQuirofano"]').click();
+    const fecha = $('#pdFechaQx');
+    fecha.scrollIntoView({ behavior:'smooth', block:'center' });
+    fecha.focus();
+    if(typeof fecha.showPicker === 'function'){ try { fecha.showPicker(); } catch(_e){} }
+  });
+
+  $('#btnCancelarCx').addEventListener('click', async () => {
+    const p = currentPaciente();
+    if(!p) return;
+    if(!confirm('¿Cancelar cirugía?')) return;
+    const patch = { fecha_qx: null, hora_qx: null, materiales: null, operado: false };
+    Object.assign(p, patch);
+    await sb.from('pacientes').update(patch).eq('id', p.id);
+    renderPacienteDetail();
+    refreshCondicionBadge();
+    renderCalendar();
+    render();
+    syncCalendarEvent(p.id);
+  });
+
+  $('#btnAgregarCirugia').addEventListener('click', async () => {
+    const p = currentPaciente();
+    if(!p) return;
+    const entry = { operacion: p.operacion || null, fecha_qx: p.fecha_qx || null, hora_qx: p.hora_qx || null, materiales: p.materiales || null, operado: !!p.operado };
+    const patch = { cirugias: (p.cirugias || []).concat([entry]), operacion: null, fecha_qx: null, hora_qx: null, materiales: null, operado: false };
+    Object.assign(p, patch);
+    await sb.from('pacientes').update(patch).eq('id', p.id);
+    renderPacienteDetail();
+    refreshCondicionBadge();
+    renderCalendar();
+    render();
+    document.querySelector('.ficha-tab[data-fichatab="tabFichaQuirofano"]').click();
+  });
+
+  $('#pdAntecedentesGrid').addEventListener('change', (e) => {
+    const cb = e.target.closest('input[type="checkbox"][data-ant]');
+    if(!cb) return;
+    const p = currentPaciente();
+    if(!p) return;
+    if(!p.antecedentes) p.antecedentes = {};
+    p.antecedentes[cb.dataset.ant] = cb.checked;
+    saveAntecedentes();
+  });
+
+  async function renderFotos(tipo){
+    const p = currentPaciente();
+    const container = $('#pq' + (tipo === 'tc' ? 'Tc' : 'Pet') + 'Fotos');
+    const fotos = (p && getPath(p.preqx || {}, `imagenes.${tipo}.fotos`)) || [];
+    if(fotos.length === 0){ container.innerHTML = ''; return; }
+    const htmls = await Promise.all(fotos.map(async path => {
+      const { data } = await sb.storage.from(STORAGE_BUCKET).createSignedUrl(path, 3600);
+      const url = data ? data.signedUrl : '';
+      const delBtn = currentMedico.rol === 'residente' ? '' : `<span class="del" data-tipo="${tipo}" data-path="${escapeHtml(path)}" title="Borrar">✕</span>`;
+      return `<div class="fotoThumb"><img src="${url}" loading="lazy">${delBtn}</div>`;
+    }));
+    container.innerHTML = htmls.join('');
+  }
+
+  async function uploadFotos(tipo, files){
+    const p = currentPaciente();
+    if(!p) return;
+    const msgEl2 = $('#pq' + (tipo === 'tc' ? 'Tc' : 'Pet') + 'Msg');
+    if(!p.preqx) p.preqx = {};
+    const existing = getPath(p.preqx, `imagenes.${tipo}.fotos`) || [];
+    if(existing.length + files.length > 5){
+      flashIn(msgEl2, `Máximo 5 imágenes.`, true);
+      return;
+    }
+    msgEl2.textContent = 'Subiendo...';
+    const newPaths = existing.slice();
+    for(const file of Array.from(files)){
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+      const path = `${efectivoMedicoId()}/${p.id}/${tipo}/${Date.now()}_${safeName}`;
+      const { error } = await sb.storage.from(STORAGE_BUCKET).upload(path, file);
+      if(!error) newPaths.push(path);
+    }
+    setPath(p.preqx, `imagenes.${tipo}.fotos`, newPaths);
+    await savePreqx();
+    msgEl2.textContent = '';
+    renderFotos(tipo);
+  }
+
+  $('#pqTcFile').addEventListener('change', (e) => { if(e.target.files.length) uploadFotos('tc', e.target.files); e.target.value = ''; });
+  $('#pqPetFile').addEventListener('change', (e) => { if(e.target.files.length) uploadFotos('pet', e.target.files); e.target.value = ''; });
+
+  pacDetailView.addEventListener('click', async (e) => {
+    const del = e.target.closest('.fotoThumb .del');
+    if(!del) return;
+    const p = currentPaciente();
+    if(!p) return;
+    const tipo = del.dataset.tipo, path = del.dataset.path;
+    await sb.storage.from(STORAGE_BUCKET).remove([path]);
+    const remaining = (getPath(p.preqx || {}, `imagenes.${tipo}.fotos`) || []).filter(x => x !== path);
+    setPath(p.preqx, `imagenes.${tipo}.fotos`, remaining);
+    await savePreqx();
+    renderFotos(tipo);
+  });
+
+  // ==================== AGENDA ====================
+  const agFilterSanatorio = $('#agFilterSanatorio');
+  const calContainer = $('#calContainer');
+  const MATERIALES_LABEL = { no_requiere: 'No requiere', pendiente_autorizacion: 'Pendiente de autorización', autorizados: 'Autorizados', en_quirofano: 'En quirófano' };
+  const DOW_LABELS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const MONTH_LABELS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  let calView = 'month';
+  let calDate = new Date();
+
+  function toISODate(d){
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function startOfWeek(d){
+    const x = new Date(d);
+    const day = (x.getDay() + 6) % 7;
+    x.setDate(x.getDate() - day);
+    x.setHours(0,0,0,0);
+    return x;
+  }
+  function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+  function addMonths(d, n){ const x = new Date(d); x.setMonth(x.getMonth()+n); return x; }
+  function sameDate(a,b){ return toISODate(a) === toISODate(b); }
+
+  function getPacientesByFecha(){
+    const map = {};
+    const filterSan = agFilterSanatorio.value;
+    pacientes.forEach(p => {
+      if(!p.fecha_qx) return;
+      if(filterSan && p.sanatorio !== filterSan) return;
+      (map[p.fecha_qx] = map[p.fecha_qx] || []).push(p);
+    });
+    return map;
+  }
+
+  function calLabelText(){
+    if(calView === 'day') return calDate.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    if(calView === 'week'){
+      const s = startOfWeek(calDate), e = addDays(s,6);
+      return `${s.getDate()} ${MONTH_LABELS[s.getMonth()].slice(0,3)} – ${e.getDate()} ${MONTH_LABELS[e.getMonth()].slice(0,3)} ${e.getFullYear()}`;
+    }
+    return MONTH_LABELS[calDate.getMonth()] + ' ' + calDate.getFullYear();
+  }
+
+  function eventChipHtml(p){
+    const color = sanatorioColor(p.sanatorio) || '#64748b';
+    const hora = p.hora_qx ? p.hora_qx.slice(0,5) + ' ' : '';
+    const label = hora + p.nombre + (p.operacion ? ' — ' + p.operacion : '') + (p.sanatorio ? ' (' + p.sanatorio + ')' : '');
+    return `<div class="calEventChip" data-id="${p.id}" style="background:${color}" title="${escapeHtml(label)}">${escapeHtml(hora + p.nombre)}</div>`;
+  }
+
+  function weekEventCardHtml(p){
+    const color = sanatorioColor(p.sanatorio) || '#64748b';
+    const hora = p.hora_qx ? p.hora_qx.slice(0,5) : '';
+    return `<div class="calWeekEvent" data-id="${p.id}" style="border-left:3px solid ${color}">
+      <div class="calWeekEventName">${hora ? escapeHtml(hora) + ' · ' : ''}${escapeHtml(p.nombre)}</div>
+      ${p.operacion ? `<div class="calWeekEventMeta">${escapeHtml(p.operacion)}</div>` : ''}
+      ${p.sanatorio ? `<div class="calWeekEventMeta">${sanatorioChip(p.sanatorio)}</div>` : ''}
+    </div>`;
+  }
+
+  function renderMonthHtml(map){
+    const year = calDate.getFullYear(), month = calDate.getMonth();
+    const gridStart = startOfWeek(new Date(year, month, 1));
+    const today = new Date();
+    let html = `<div class="calMonthGrid calMonthHead">` + DOW_LABELS.map(d => `<div class="calDowLabel">${d}</div>`).join('') + `</div><div class="calMonthGrid">`;
+    for(let i = 0; i < 42; i++){
+      const d = addDays(gridStart, i);
+      const iso = toISODate(d);
+      const inMonth = d.getMonth() === month;
+      const isToday = sameDate(d, today);
+      const events = map[iso] || [];
+      html += `<div class="calDayCell ${inMonth?'':'otherMonth'}">
+        <div class="calDayNum ${isToday?'today':''}"><span class="${isToday?'today':''}">${d.getDate()}</span></div>
+        ${events.slice(0,3).map(eventChipHtml).join('')}
+        ${events.length > 3 ? `<div class="calMoreLabel">+${events.length-3} más</div>` : ''}
+      </div>`;
+    }
+    html += `</div>`;
+    return html;
+  }
+
+  function renderWeekHtml(map){
+    const start = startOfWeek(calDate);
+    const today = new Date();
+    let html = `<div class="calWeekGrid">`;
+    for(let i = 0; i < 7; i++){
+      const d = addDays(start, i);
+      const iso = toISODate(d);
+      const events = map[iso] || [];
+      const isToday = sameDate(d, today);
+      html += `<div class="calWeekDay ${isToday?'today':''}">
+        <div class="calWeekDayHead">${DOW_LABELS[i]} ${d.getDate()}</div>
+        ${events.length === 0 ? '<div class="calEmptyDay">—</div>' : events.map(weekEventCardHtml).join('')}
+      </div>`;
+    }
+    html += `</div>`;
+    return html;
+  }
+
+  function renderDayHtml(map){
+    const iso = toISODate(calDate);
+    const events = map[iso] || [];
+    if(events.length === 0) return `<div class="empty">No hay pacientes programados este día.</div>`;
+    return `<div class="calDayList">` + events.map(p => `
+      <div class="calDayItem" data-id="${p.id}" style="border-left:4px solid ${sanatorioColor(p.sanatorio)||'#64748b'}">
+        <div class="calDayItemName">${p.hora_qx ? escapeHtml(p.hora_qx.slice(0,5)) + ' · ' : ''}${escapeHtml(p.nombre)}</div>
+        <div class="calDayItemMeta">${sanatorioChip(p.sanatorio)}${p.operacion ? ' · ' + escapeHtml(p.operacion) : ''}</div>
+        ${p.materiales ? `<span class="badge mat-${p.materiales}" style="margin-top:6px; display:inline-block">${MATERIALES_LABEL[p.materiales]}</span>` : ''}
+      </div>
+    `).join('') + `</div>`;
+  }
+
+  function renderCalendar(){
+    $('#calLabel').textContent = calLabelText();
+    document.querySelectorAll('.calViewBtn').forEach(b => b.classList.toggle('active', b.dataset.calview === calView));
+    const map = getPacientesByFecha();
+    if(calView === 'month') calContainer.innerHTML = renderMonthHtml(map);
+    else if(calView === 'week') calContainer.innerHTML = renderWeekHtml(map);
+    else calContainer.innerHTML = renderDayHtml(map);
+    renderInternados();
+  }
+
+  function openPacienteFromAgenda(id){
+    document.querySelector('.navtab[data-view="viewPacientes"]').click();
+    openPacienteDetail(id);
+  }
+
+  document.querySelectorAll('.calViewBtn').forEach(b => {
+    b.addEventListener('click', () => { calView = b.dataset.calview; renderCalendar(); });
+  });
+  $('#calPrev').addEventListener('click', () => {
+    calDate = calView === 'month' ? addMonths(calDate, -1) : addDays(calDate, calView === 'week' ? -7 : -1);
+    renderCalendar();
+  });
+  $('#calNext').addEventListener('click', () => {
+    calDate = calView === 'month' ? addMonths(calDate, 1) : addDays(calDate, calView === 'week' ? 7 : 1);
+    renderCalendar();
+  });
+  $('#calToday').addEventListener('click', () => { calDate = new Date(); renderCalendar(); });
+  agFilterSanatorio.addEventListener('change', renderCalendar);
+
+  calContainer.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-id]');
+    if(el) openPacienteFromAgenda(el.dataset.id);
+  });
+
+  $('#btnFabAdd').addEventListener('click', () => {
+    document.querySelector('.navtab[data-view="viewPacientes"]').click();
+    pacDetailView.style.display = 'none';
+    pacListView.style.display = 'block';
+    $('#pacNombre').focus();
+  });
+
+  // ==================== INTERNADOS ====================
+  let internaciones = [];
+  let currentInternacionId = null;
+  const intFilterSanatorio = $('#intFilterSanatorio');
+  const intFilterSector = $('#intFilterSector');
+  const internadosGrid = $('#internadosGrid');
+  const intEmpty = $('#intEmpty');
+  const intCount = $('#intCount');
+
+  function diasInternado(fechaIngreso){
+    const ms = new Date(toISODate(new Date())) - new Date(fechaIngreso);
+    return Math.max(0, Math.round(ms / 86400000));
+  }
+
+  function activeInternaciones(){
+    return internaciones.filter(i => !i.fecha_alta);
+  }
+
+  function pacienteNombreFor(pacienteId){
+    const p = pacientes.find(x => x.id === pacienteId);
+    return p ? p.nombre : '';
+  }
+  function pacienteOsFor(pacienteId){
+    const p = pacientes.find(x => x.id === pacienteId);
+    return p ? p.os : '';
+  }
+
+  function getFilteredInternaciones(){
+    const san = intFilterSanatorio.value;
+    const sector = intFilterSector.value;
+    return activeInternaciones().filter(i => {
+      if(san && i.sanatorio !== san) return false;
+      if(sector && i.sector !== sector) return false;
+      return true;
+    });
+  }
+
+  function updateInternadosFilters(){
+    const active = activeInternaciones();
+    const sanSet = Array.from(new Set(
+      active.map(i => i.sanatorio).filter(Boolean)
+    )).sort();
+    const currentSan = intFilterSanatorio.value;
+    intFilterSanatorio.innerHTML = '<option value="">Todos los sanatorios</option>' +
+      sanSet.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+    if(sanSet.includes(currentSan)) intFilterSanatorio.value = currentSan;
+
+    const sectorSet = Array.from(new Set(active.map(i => i.sector).filter(Boolean))).sort();
+    const currentSector = intFilterSector.value;
+    intFilterSector.innerHTML = '<option value="">Todos los sectores</option>' +
+      sectorSet.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+    if(sectorSet.includes(currentSector)) intFilterSector.value = currentSector;
+    $('#sectoresDatalist').innerHTML = sectorSet.map(s => `<option value="${escapeHtml(s)}"></option>`).join('');
+    $('#pacientesDatalistInt').innerHTML = pacientes.map(p => `<option value="${escapeHtml(p.nombre)}"></option>`).join('');
+  }
+
+  function internadoCardHtml(i, color){
+    const nombre = pacienteNombreFor(i.paciente_id);
+    const os = pacienteOsFor(i.paciente_id);
+    return `<div class="internadoCard" data-id="${i.id}" style="border-left:5px solid ${color}">
+      <div class="habCama">${escapeHtml(i.habitacion)}${i.cama ? ' · Cama ' + escapeHtml(i.cama) : ''}</div>
+      <div class="nombre">${escapeHtml(nombre)}</div>
+      <div class="meta">${i.sector ? escapeHtml(i.sector) : ''}</div>
+      ${os ? `<div class="meta">${escapeHtml(os)}</div>` : ''}
+      <div class="dias">${diasInternado(i.fecha_ingreso)} día(s) internado</div>
+    </div>`;
+  }
+
+  function renderInternados(){
+    updateInternadosFilters();
+    const list = getFilteredInternaciones();
+    intCount.textContent = `${list.length} internado(s)`;
+    intEmpty.style.display = list.length === 0 ? 'block' : 'none';
+
+    const groups = {};
+    list.forEach(i => {
+      const key = i.sanatorio || 'Sin sanatorio';
+      (groups[key] = groups[key] || { internados: [] }).internados.push(i);
+    });
+    const sanatorioNames = Object.keys(groups).sort((a,b) => a.localeCompare(b));
+
+    internadosGrid.innerHTML = sanatorioNames.map(nombre => {
+      const g = groups[nombre];
+      const pacientesGrupo = g.internados.slice().sort((a,b) => {
+        const sa = a.sector || '', sb = b.sector || '';
+        if(sa !== sb) return sa.localeCompare(sb);
+        const ha = a.habitacion || '', hb = b.habitacion || '';
+        if(ha !== hb) return ha.localeCompare(hb);
+        return camaNumeric(a) - camaNumeric(b);
+      });
+      const color = sanatorioColor(nombre === 'Sin sanatorio' ? '' : nombre) || '#64748b';
+      return `
+        <div class="internadosGroup">
+          <div class="internadosGroupHead" style="border-left:6px solid ${color}">
+            <span class="sanatorioDot" style="background:${color}; width:12px; height:12px"></span>
+            <span class="internadosGroupTitle">${escapeHtml(nombre)}</span>
+            <span class="internadosGroupCount">${pacientesGrupo.length}</span>
+          </div>
+          ${pacientesGrupo.length ? `
+            <div class="resumenSubhead">Internados (${pacientesGrupo.length})</div>
+            <div class="internadosCards">${pacientesGrupo.map(i => internadoCardHtml(i, color)).join('')}</div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+    renderResumen();
+  }
+
+  intFilterSanatorio.addEventListener('change', renderInternados);
+  intFilterSector.addEventListener('change', renderInternados);
+
+  $('#btnAddInternacion').addEventListener('click', async () => {
+    const nombrePaciente = $('#intPaciente').value.trim();
+    if(!nombrePaciente){ flashIn($('#intMsg'), 'Ingresá el nombre.', true); return; }
+    const sanatorio = $('#intSanatorio').value.trim();
+    const sector = $('#intSector').value.trim();
+    const habitacion = $('#intHabitacion').value.trim();
+    const cama = $('#intCama').value.trim();
+    const fechaIngreso = $('#intFechaIngreso').value || toISODate(new Date());
+
+    let paciente = pacientes.find(p => normalize(p.nombre) === normalize(nombrePaciente));
+    if(!paciente){
+      const { data, error } = await sb.from('pacientes')
+        .insert({ medico_id: efectivoMedicoId(), nombre: nombrePaciente, sanatorio: sanatorio || null })
+        .select().single();
+      if(error){ flashIn($('#intMsg'), 'Error al crear paciente: ' + error.message, true); return; }
+      paciente = data;
+      pacientes.push(paciente);
+      pacientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+      renderPacientes();
+    }
+
+    const row = {
+      medico_id: efectivoMedicoId(),
+      paciente_id: paciente.id,
+      sanatorio: sanatorio || null,
+      sector: sector || null,
+      habitacion: habitacion || null,
+      cama: cama || null,
+      fecha_ingreso: fechaIngreso
+    };
+    const { data, error } = await sb.from('internaciones').insert(row).select().single();
+    if(!error){
+      internaciones.push(data);
+      if(sanatorio) await ensureSanatorioRef(sanatorio);
+      ['intPaciente','intSanatorio','intSector','intHabitacion','intCama'].forEach(id => $('#'+id).value = '');
+      $('#intFechaIngreso').value = toISODate(new Date());
+      renderInternados();
+      render();
+    }
+  });
+
+  function currentInternacion(){
+    return internaciones.find(i => i.id === currentInternacionId);
+  }
+
+  internadosGrid.addEventListener('click', (e) => {
+    const card = e.target.closest('.internadoCard');
+    if(card) openEvolucion(card.dataset.id);
+  });
+
+  function renderEvolucionList(){
+    const i = currentInternacion();
+    if(!i) return;
+    const entries = (i.evoluciones || []).slice().sort((a,b) => b.fecha.localeCompare(a.fecha));
+    $('#evolucionList').innerHTML = entries.length === 0
+      ? '<div class="msg" style="margin:0">Sin evoluciones cargadas.</div>'
+      : entries.map(e => `
+        <div class="evolucionItem">
+          <div class="fecha">${new Date(e.fecha).toLocaleString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})}</div>
+          <div class="texto">${escapeHtml(e.texto)}</div>
+        </div>
+      `).join('');
+  }
+
+  function openEvolucion(id){
+    currentInternacionId = id;
+    const i = currentInternacion();
+    if(!i) return;
+    $('#evolucionTitulo').textContent = pacienteNombreFor(i.paciente_id);
+    $('#evolucionSub').textContent = i.sanatorio || '';
+    $('#evolSector').value = i.sector || '';
+    $('#evolHabitacion').value = i.habitacion || '';
+    $('#evolCama').value = i.cama || '';
+    $('#evolucionLocMsg').textContent = '';
+    renderEvolucionList();
+    $('#evolucionInput').value = '';
+    $('#evolucionOverlay').style.display = 'flex';
+  }
+
+  async function saveInternacionField(key, value){
+    const i = currentInternacion();
+    if(!i) return;
+    const newValue = value || null;
+    if(i[key] === newValue) return;
+    i[key] = newValue;
+    await sb.from('internaciones').update({ [key]: newValue }).eq('id', i.id);
+    renderInternados();
+  }
+  $('#evolSector').addEventListener('blur', () => saveInternacionField('sector', $('#evolSector').value.trim()));
+  $('#evolHabitacion').addEventListener('blur', () => saveInternacionField('habitacion', $('#evolHabitacion').value.trim()));
+  $('#evolCama').addEventListener('blur', () => saveInternacionField('cama', $('#evolCama').value.trim()));
+
+  $('#btnCerrarEvolucion').addEventListener('click', () => {
+    $('#evolucionOverlay').style.display = 'none';
+    currentInternacionId = null;
+  });
+
+  $('#btnAddEvolucion').addEventListener('click', async () => {
+    const i = currentInternacion();
+    if(!i) return;
+    const texto = $('#evolucionInput').value.trim();
+    if(!texto) return;
+    const entry = { fecha: new Date().toISOString(), texto };
+    const nuevas = (i.evoluciones || []).concat([entry]);
+    await sb.from('internaciones').update({ evoluciones: nuevas }).eq('id', i.id);
+    i.evoluciones = nuevas;
+    $('#evolucionInput').value = '';
+    renderEvolucionList();
+  });
+
+  $('#btnDarDeAlta').addEventListener('click', async () => {
+    const i = currentInternacion();
+    if(!i) return;
+    if(!confirm('¿Dar de alta a este paciente?')) return;
+    const hoy = toISODate(new Date());
+    await sb.from('internaciones').update({ fecha_alta: hoy }).eq('id', i.id);
+    i.fecha_alta = hoy;
+    $('#evolucionOverlay').style.display = 'none';
+    currentInternacionId = null;
+    renderInternados();
+  });
+
+  // ==================== RESUMEN ====================
+  const resumenContainer = $('#resumenContainer');
+  const resumenCount = $('#resumenCount');
+  const resumenEmpty = $('#resumenEmpty');
+
+  function resumenCirugiaCardHtml(p, color){
+    const meta = [p.edad ? p.edad + ' años' : '', p.os || ''].filter(Boolean).join(' · ');
+    const fechaLine = p.fecha_qx ? escapeHtml(p.fecha_qx) + (p.hora_qx ? ' · ' + escapeHtml(p.hora_qx.slice(0,5)) : '') : '';
+    return `<div class="internadoCard" data-paciente-id="${p.id}" style="border-left:5px solid ${color}">
+      <div class="nombre">${escapeHtml(p.nombre)}</div>
+      ${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ''}
+      ${p.operacion ? `<div class="meta">${escapeHtml(p.operacion)}</div>` : ''}
+      ${p.diagnostico ? `<div class="meta">${escapeHtml(p.diagnostico)}</div>` : ''}
+      <div style="margin-top:6px">${condicionBadgeHtml(p)}</div>
+      ${fechaLine ? `<div class="dias">${fechaLine}</div>` : ''}
+    </div>`;
+  }
+
+  function resumenInterconsultaCardHtml(it, color){
+    return `<div class="internadoCard" data-ic-id="${it.id}" style="border-left:5px solid ${color}">
+      <div class="habCama">${escapeHtml(it.habitacion)}${it.cama ? ' · Cama ' + escapeHtml(it.cama) : ''}</div>
+      <div class="nombre">${escapeHtml(it.paciente)}</div>
+      ${it.diagnostico ? `<div class="meta">${escapeHtml(it.diagnostico)}</div>` : ''}
+      <div class="dias">${escapeHtml(it.fecha)}</div>
+    </div>`;
+  }
+
+  function renderResumen(){
+    const cirugias = pacientes.filter(p => pacienteCondicion(p) === 'programado');
+    const internadosActivos = activeInternaciones();
+    const interconsultasPend = items.filter(it => it.estado === 'pendiente');
+
+    $('#kpiCirugias').textContent = cirugias.length;
+    $('#kpiInternados').textContent = internadosActivos.length;
+    $('#kpiInterconsultas').textContent = interconsultasPend.length;
+
+    const sanatoriosSet = new Set();
+    cirugias.forEach(p => p.sanatorio && sanatoriosSet.add(p.sanatorio));
+    internadosActivos.forEach(i => i.sanatorio && sanatoriosSet.add(i.sanatorio));
+    interconsultasPend.forEach(it => it.sanatorio && sanatoriosSet.add(it.sanatorio));
+
+    const total = cirugias.length + internadosActivos.length + interconsultasPend.length;
+    resumenCount.textContent = `${total} elemento(s)`;
+    resumenEmpty.style.display = total === 0 ? 'block' : 'none';
+
+    const nombres = Array.from(sanatoriosSet).sort((a,b) => a.localeCompare(b));
+
+    resumenContainer.innerHTML = nombres.map(nombre => {
+      const color = sanatorioColor(nombre) || '#64748b';
+      const cGroup = cirugias.filter(p => p.sanatorio === nombre)
+        .sort((a,b) => (a.fecha_qx || '').localeCompare(b.fecha_qx || ''));
+      const iGroup = internadosActivos.filter(i => i.sanatorio === nombre)
+        .sort((a,b) => {
+          const sa = a.sector || '', sb = b.sector || '';
+          if(sa !== sb) return sa.localeCompare(sb);
+          const ha = a.habitacion || '', hb = b.habitacion || '';
+          if(ha !== hb) return ha.localeCompare(hb);
+          return camaNumeric(a) - camaNumeric(b);
+        });
+      const icGroup = interconsultasPend.filter(it => it.sanatorio === nombre);
+
+      return `
+        <div class="internadosGroup">
+          <div class="internadosGroupHead" style="border-left:6px solid ${color}">
+            <span class="sanatorioDot" style="background:${color}; width:12px; height:12px"></span>
+            <span class="internadosGroupTitle">${escapeHtml(nombre)}</span>
+            <span class="internadosGroupCount">${cGroup.length + iGroup.length + icGroup.length}</span>
+          </div>
+          ${cGroup.length ? `
+            <div class="resumenSubhead">Cirugías programadas (${cGroup.length})</div>
+            <div class="internadosCards">${cGroup.map(p => resumenCirugiaCardHtml(p, color)).join('')}</div>
+          ` : ''}
+          ${iGroup.length ? `
+            <div class="resumenSubhead">Internados (${iGroup.length})</div>
+            <div class="internadosCards">${iGroup.map(i => internadoCardHtml(i, color)).join('')}</div>
+          ` : ''}
+          ${icGroup.length ? `
+            <div class="resumenSubhead">Interconsultas (${icGroup.length})</div>
+            <div class="internadosCards">${icGroup.map(it => resumenInterconsultaCardHtml(it, color)).join('')}</div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  resumenContainer.addEventListener('click', (e) => {
+    const cirugiaCard = e.target.closest('[data-paciente-id]');
+    if(cirugiaCard){ openPacienteFromAgenda(cirugiaCard.dataset.pacienteId); return; }
+    const icCard = e.target.closest('[data-ic-id]');
+    if(icCard){ document.querySelector('.navtab[data-view="viewInterconsultas"]').click(); return; }
+    const internadoCard = e.target.closest('.internadoCard[data-id]');
+    if(internadoCard){ openEvolucion(internadoCard.dataset.id); return; }
+  });
+
+  // ==================== CONSULTORIO ====================
+  let consultas = [];
+  let preciosConsulta = [];
+  const consultasGrid = $('#consultasGrid');
+  const consEmpty = $('#consEmpty');
+  const consCount = $('#consCount');
+  const consFilterSanatorio = $('#consFilterSanatorio');
+  const consFilterOs = $('#consFilterOs');
+  const consFilterDesde = $('#consFilterDesde');
+  const consFilterHasta = $('#consFilterHasta');
+
+  function getFilteredConsultas(){
+    const san = consFilterSanatorio.value;
+    const os = consFilterOs.value;
+    const desde = consFilterDesde.value;
+    const hasta = consFilterHasta.value;
+    return consultas.filter(c => {
+      if(san && c.sanatorio !== san) return false;
+      if(os && c.os !== os) return false;
+      if(desde && c.fecha < desde) return false;
+      if(hasta && c.fecha > hasta) return false;
+      return true;
+    });
+  }
+
+  function updateConsultorioFilters(){
+    const sanSet = Array.from(new Set(
+      consultas.map(c => c.sanatorio).concat(preciosConsulta.map(p => p.sanatorio)).filter(Boolean)
+    )).sort();
+    const currentSan = consFilterSanatorio.value;
+    consFilterSanatorio.innerHTML = '<option value="">Todos los sanatorios</option>' +
+      sanSet.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+    if(sanSet.includes(currentSan)) consFilterSanatorio.value = currentSan;
+  }
+
+  function consultaRowHtml(c){
+    const OS_OPTS = ['PAMI','OSDE','Swiss Medical','Medife','Samisalud','IOMA','Particular'];
+    return `<tr data-id="${c.id}">
+      <td>${escapeHtml(c.fecha)}</td>
+      <td contenteditable="true" data-id="${c.id}" data-key="paciente">${escapeHtml(c.paciente)}</td>
+      <td>
+        <select class="consOsSelect" data-id="${c.id}">
+          <option value="" ${!c.os ? 'selected' : ''}>Sin definir</option>
+          ${OS_OPTS.map(os => `<option value="${os}" ${c.os === os ? 'selected' : ''}>${os}</option>`).join('')}
+        </select>
+      </td>
+      <td contenteditable="true" data-id="${c.id}" data-key="valor">${c.valor != null ? escapeHtml(c.valor) : ''}</td>
+      <td><span class="del" data-id="${c.id}" data-action="deleteConsulta" title="Borrar">✕</span></td>
+    </tr>`;
+  }
+
+  function renderConsultas(){
+    updateConsultorioFilters();
+    const list = getFilteredConsultas();
+    const total = list.reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
+    consCount.textContent = `${list.length} consulta(s) · total $${total.toFixed(2)}`;
+    consEmpty.style.display = consultas.length === 0 ? 'block' : 'none';
+
+    const groups = {};
+    list.forEach(c => {
+      const key = c.sanatorio || 'Sin sanatorio';
+      (groups[key] = groups[key] || []).push(c);
+    });
+    const nombres = Object.keys(groups).sort((a,b) => a.localeCompare(b));
+
+    consultasGrid.innerHTML = nombres.map(nombre => {
+      const rows = groups[nombre].slice().sort((a,b) => (a.fecha||'').localeCompare(b.fecha||''));
+      const subtotal = rows.reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
+      const color = sanatorioColor(nombre === 'Sin sanatorio' ? '' : nombre) || '#64748b';
+      return `
+        <div class="internadosGroup">
+          <div class="internadosGroupHead" style="border-left:6px solid ${color}">
+            <span class="sanatorioDot" style="background:${color}; width:12px; height:12px"></span>
+            <span class="internadosGroupTitle">${escapeHtml(nombre)}</span>
+            <span class="internadosGroupCount">${rows.length}</span>
+          </div>
+          <div class="panel" style="padding:0; overflow-x:auto">
+            <table>
+              <thead><tr><th>Fecha</th><th>Paciente</th><th>OS</th><th>Valor</th><th></th></tr></thead>
+              <tbody>${rows.map(consultaRowHtml).join('')}</tbody>
+            </table>
+          </div>
+          <div class="msg" style="text-align:right; margin-top:4px; font-weight:700">Subtotal: $${subtotal.toFixed(2)}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  consFilterSanatorio.addEventListener('change', renderConsultas);
+  consFilterOs.addEventListener('change', renderConsultas);
+  consFilterDesde.addEventListener('change', renderConsultas);
+  consFilterHasta.addEventListener('change', renderConsultas);
+
+  function lookupPrecioConsulta(sanatorio, os){
+    const unico = preciosConsulta.find(x => normalize(x.sanatorio) === normalize(sanatorio) && x.os === 'unico');
+    if(unico) return unico.valor;
+    if(!os) return null;
+    const p = preciosConsulta.find(x => normalize(x.sanatorio) === normalize(sanatorio) && x.os === os);
+    return p ? p.valor : null;
+  }
+
+  function maybeAutofillValor(){
+    const sanatorio = $('#consSanatorio').value.trim();
+    const os = $('#consOs').value;
+    if(!sanatorio || $('#consValor').value) return;
+    const precio = lookupPrecioConsulta(sanatorio, os);
+    if(precio != null) $('#consValor').value = precio;
+  }
+  $('#consSanatorio').addEventListener('blur', maybeAutofillValor);
+  $('#consOs').addEventListener('change', maybeAutofillValor);
+
+  $('#btnAddConsulta').addEventListener('click', async () => {
+    const fecha = $('#consFecha').value || toISODate(new Date());
+    const sanatorio = $('#consSanatorio').value.trim();
+    const paciente = $('#consPaciente').value.trim();
+    const os = $('#consOs').value;
+    const valorRaw = $('#consValor').value;
+    if(!paciente){ flashIn($('#consMsg'), 'Ingresá el nombre del paciente.', true); return; }
+    const row = {
+      medico_id: currentUser.id,
+      fecha,
+      sanatorio: sanatorio || null,
+      paciente,
+      os: os || null,
+      valor: valorRaw ? parseFloat(valorRaw) : null
+    };
+    const { data, error } = await sb.from('consultas').insert(row).select().single();
+    if(!error){
+      consultas.push(data);
+      if(sanatorio) await ensureSanatorioRef(sanatorio);
+      $('#consSanatorio').value = ''; $('#consPaciente').value = ''; $('#consOs').value = ''; $('#consValor').value = '';
+      $('#consFecha').value = toISODate(new Date());
+      renderConsultas();
+      render();
+    }
+  });
+
+  consultasGrid.addEventListener('blur', async (e) => {
+    const el = e.target;
+    if(el.tagName !== 'TD' || !el.dataset.key) return;
+    const c = consultas.find(x => x.id === el.dataset.id);
+    if(!c) return;
+    const value = el.textContent.trim();
+    const newValue = el.dataset.key === 'valor' ? (value ? parseFloat(value) : null) : (value || null);
+    if((c[el.dataset.key] || null) === newValue) return;
+    c[el.dataset.key] = newValue;
+    await sb.from('consultas').update({ [el.dataset.key]: newValue }).eq('id', c.id);
+    renderConsultas();
+  }, true);
+
+  consultasGrid.addEventListener('change', async (e) => {
+    const sel = e.target.closest('.consOsSelect');
+    if(!sel) return;
+    const c = consultas.find(x => x.id === sel.dataset.id);
+    if(!c) return;
+    const value = sel.value || null;
+    c.os = value;
+    await sb.from('consultas').update({ os: value }).eq('id', c.id);
+  });
+
+  consultasGrid.addEventListener('click', async (e) => {
+    const del = e.target.closest('[data-action="deleteConsulta"]');
+    if(del){
+      if(!confirm('¿Borrar consulta?')) return;
+      await sb.from('consultas').delete().eq('id', del.dataset.id);
+      consultas = consultas.filter(c => c.id !== del.dataset.id);
+      renderConsultas();
+    }
+  });
+
+  $('#btnExportConsultas').addEventListener('click', () => {
+    const filtered = getFilteredConsultas();
+    const rows = [['Fecha','Sanatorio','Paciente','OS','Valor']];
+    filtered.forEach(c => rows.push([c.fecha, c.sanatorio, c.paciente, c.os, c.valor]));
+    const csv = rows.map(r => r.map(v => '"' + String(v || '').replace(/"/g,'""') + '"').join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'consultorio.csv';
+    a.click();
+  });
+
+  const icFacturablesGrid = $('#icFacturablesGrid');
+
+  function icFacturableRowHtml(c){
+    const tipoLabel = c.tipo === 'programada' ? 'Programada (Qx)' : 'Contestada';
+    return `<tr data-id="${c.id}">
+      <td>${escapeHtml(c.fecha)}</td>
+      <td>${escapeHtml(c.paciente || '')}</td>
+      <td>${tipoLabel}</td>
+      <td>${c.valor != null ? escapeHtml(c.valor) : ''}</td>
+      <td><span class="del" data-id="${c.id}" data-action="deleteIcFacturable" title="Borrar">✕</span></td>
+    </tr>`;
+  }
+
+  function renderIcFacturables(){
+    const list = interconsultasFacturables;
+    const total = list.reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
+    $('#icFactCount').textContent = `${list.length} registro(s) · total $${total.toFixed(2)}`;
+    $('#icFacturablesEmpty').style.display = list.length === 0 ? 'block' : 'none';
+
+    const groups = {};
+    list.forEach(c => {
+      const key = c.sanatorio || 'Sin sanatorio';
+      (groups[key] = groups[key] || []).push(c);
+    });
+    const nombres = Object.keys(groups).sort((a,b) => a.localeCompare(b));
+
+    icFacturablesGrid.innerHTML = nombres.map(nombre => {
+      const rows = groups[nombre].slice().sort((a,b) => (a.fecha||'').localeCompare(b.fecha||''));
+      const subtotal = rows.reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
+      const color = sanatorioColor(nombre === 'Sin sanatorio' ? '' : nombre) || '#64748b';
+      return `
+        <div class="internadosGroup">
+          <div class="internadosGroupHead" style="border-left:6px solid ${color}">
+            <span class="sanatorioDot" style="background:${color}; width:12px; height:12px"></span>
+            <span class="internadosGroupTitle">${escapeHtml(nombre)}</span>
+            <span class="internadosGroupCount">${rows.length}</span>
+          </div>
+          <div class="panel" style="padding:0; overflow-x:auto">
+            <table>
+              <thead><tr><th>Fecha</th><th>Paciente</th><th>Tipo</th><th>Valor</th><th></th></tr></thead>
+              <tbody>${rows.map(icFacturableRowHtml).join('')}</tbody>
+            </table>
+          </div>
+          <div class="msg" style="text-align:right; margin-top:4px; font-weight:700">Subtotal: $${subtotal.toFixed(2)}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  icFacturablesGrid.addEventListener('click', async (e) => {
+    const del = e.target.closest('[data-action="deleteIcFacturable"]');
+    if(del){
+      if(!confirm('¿Borrar registro?')) return;
+      await sb.from('interconsultas_facturables').delete().eq('id', del.dataset.id);
+      interconsultasFacturables = interconsultasFacturables.filter(c => c.id !== del.dataset.id);
+      renderIcFacturables();
+    }
+  });
+
+  $('#btnExportIcFacturables').addEventListener('click', () => {
+    const rows = [['Fecha','Sanatorio','Paciente','Tipo','Valor']];
+    interconsultasFacturables.forEach(c => rows.push([c.fecha, c.sanatorio, c.paciente, c.tipo === 'programada' ? 'Programada (Qx)' : 'Contestada', c.valor]));
+    const csv = rows.map(r => r.map(v => '"' + String(v || '').replace(/"/g,'""') + '"').join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'interconsultas_facturables.csv';
+    a.click();
+  });
+
+  function renderPreciosConsulta(){
+    $('#preciosList').innerHTML = preciosConsulta.length === 0
+      ? '<li style="color:var(--muted); justify-content:center">Sin precios cargados.</li>'
+      : preciosConsulta.slice().sort((a,b) => (a.sanatorio+a.os).localeCompare(b.sanatorio+b.os)).map(p => `
+        <li data-id="${p.id}">
+          <span>${escapeHtml(p.sanatorio)}</span>
+          <span class="arrow">→</span>
+          <span class="sanat">${p.os === 'unico' ? 'Todas las OS' : escapeHtml(p.os)}: $${Number(p.valor).toFixed(2)}</span>
+          <span class="del" data-action="deletePrecio" data-id="${p.id}" title="Quitar">✕</span>
+        </li>
+      `).join('');
+  }
+
+  $('#btnAddPrecio').addEventListener('click', async () => {
+    const sanatorio = $('#precioSanatorio').value.trim();
+    const os = $('#precioOs').value;
+    const valor = parseFloat($('#precioValor').value);
+    if(!sanatorio || !os || !valor){ flashIn($('#consMsg'), 'Completá datos.', true); return; }
+    const { data, error } = await sb.from('precios_consulta')
+      .upsert({ medico_id: currentUser.id, sanatorio, os, valor }, { onConflict: 'medico_id,sanatorio,os' })
+      .select().single();
+    if(!error){
+      preciosConsulta = preciosConsulta.filter(p => !(normalize(p.sanatorio) === normalize(sanatorio) && p.os === os));
+      preciosConsulta.push(data);
+      if(sanatorio) await ensureSanatorioRef(sanatorio);
+      $('#precioSanatorio').value = ''; $('#precioOs').value = ''; $('#precioValor').value = '';
+      renderPreciosConsulta();
+      render();
+    }
+  });
+
+  $('#preciosList').addEventListener('click', async (e) => {
+    const del = e.target.closest('[data-action="deletePrecio"]');
+    if(del){
+      await sb.from('precios_consulta').delete().eq('id', del.dataset.id);
+      preciosConsulta = preciosConsulta.filter(p => p.id !== del.dataset.id);
+      renderPreciosConsulta();
+    }
+  });
+})();
+</script>
+</body>
+</html>
