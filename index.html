@@ -492,6 +492,10 @@
         <div class="kpiLabel">Pendientes</div>
       </div>
     </div>
+    <div class="panel" id="resenasPendientesPanel" style="margin-bottom:16px; display:none">
+      <h2 style="margin:0 0 12px 0; font-size:14px"><i data-lucide="star"></i> Pedidos de reseña pendientes</h2>
+      <div id="resenasPendientesList"></div>
+    </div>
     <div class="panel" id="resumenSemanaPanel" style="margin-bottom:16px">
       <h2 style="margin:0 0 12px 0; font-size:14px">Esta semana</h2>
       <div id="resumenSemanaGrid"></div>
@@ -1838,6 +1842,7 @@ if('serviceWorker' in navigator){
     if(error){ flash('Error al guardar el link: ' + error.message, true); return; }
     currentMedico.google_review_link = value || null;
     updateReviewFab(currentPaciente());
+    renderResenasPendientes();
     flash('Link de reseñas guardado.');
   }, true);
 
@@ -3118,10 +3123,19 @@ if('serviceWorker' in navigator){
   // manual: arma el texto y abre WhatsApp, no envía nada solo). De un solo
   // uso por paciente: una vez enviado, pacientes.review_solicitado_at queda
   // seteado y el botón pasa a un estado "ya enviado" (gris, sin acción).
+  // reviewLinkElegible() y reviewMensaje() se comparten entre el FAB de la
+  // ficha y el panel de "pedidos pendientes" de Resumen para no repetir el
+  // texto del mensaje en dos lugares.
+  function reviewLinkElegible(){
+    return currentMedico && currentMedico.es_admin && currentMedico.google_review_link;
+  }
+  function reviewMensaje(p, link){
+    return `¡Hola ${p.nombre || ''}! Fue un gusto haber podido atenderte. Si tenés un minuto, me ayudaría muchísimo que dejes tu reseña en Google acá: ${link} — con tu puntuación y, en pocas líneas, cómo te sentiste con la atención. Comentarios como el tuyo son los que más ayudan a que otros pacientes me encuentren y se animen a consultarme. ¡Muchas gracias!`;
+  }
   function updateReviewFab(p){
     const fab = $('#pdReviewFab');
     if(!fab) return;
-    const link = currentMedico && currentMedico.es_admin && currentMedico.google_review_link;
+    const link = reviewLinkElegible();
     const d = p ? normalizePhoneAR(p.telefono) : '';
     const elegible = !!link && d.length >= 11;
     fab.classList.toggle('eligible', elegible);
@@ -3135,8 +3149,7 @@ if('serviceWorker' in navigator){
         fab.classList.remove('sent');
         fab.innerHTML = '<i data-lucide="star"></i>';
         fab.title = 'Pedir reseña por WhatsApp';
-        const texto = `¡Hola ${p.nombre || ''}! Fue un gusto haber podido atenderte. Si tenés un minuto, me ayudaría muchísimo que dejes tu reseña en Google acá: ${link} — con tu puntuación y, en pocas líneas, cómo te sentiste con la atención. Comentarios como el tuyo son los que más ayudan a que otros pacientes me encuentren y se animen a consultarme. ¡Muchas gracias!`;
-        fab.href = whatsappHref(d, texto);
+        fab.href = whatsappHref(d, reviewMensaje(p, link));
       }
     }
     updateFabGroupVisibility();
@@ -3146,9 +3159,49 @@ if('serviceWorker' in navigator){
     const now = new Date().toISOString();
     p.review_solicitado_at = now;
     updateReviewFab(p);
+    renderResenasPendientes();
     const { error } = await sb.from('pacientes').update({ review_solicitado_at: now }).eq('id', p.id);
-    if(error){ p.review_solicitado_at = null; updateReviewFab(p); flash('Error al guardar: ' + error.message, true); }
+    if(error){ p.review_solicitado_at = null; updateReviewFab(p); renderResenasPendientes(); flash('Error al guardar: ' + error.message, true); }
   }
+
+  // Panel de Resumen: pacientes ya operados, con teléfono válido, a los que
+  // todavía no se les pidió reseña — ataca que el pedido dependa 100% de
+  // acordarse. Cada fila permite mandarlo ahí mismo, sin ir a la ficha.
+  function renderResenasPendientes(){
+    const panel = $('#resenasPendientesPanel');
+    if(!panel) return;
+    const link = reviewLinkElegible();
+    const pendientes = !link ? [] : pacientes
+      .filter(p => p.operado && !p.review_solicitado_at && normalizePhoneAR(p.telefono).length >= 11)
+      .sort((a, b) => (b.fecha_qx || '').localeCompare(a.fecha_qx || ''));
+    if(pendientes.length === 0){ panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    $('#resenasPendientesList').innerHTML = pendientes.map(p => `
+      <div class="row" style="justify-content:space-between; align-items:center; margin-top:0; padding:8px 0; border-bottom:1px solid var(--border)">
+        <div data-paciente-id="${p.id}" style="cursor:pointer">
+          <div style="font-weight:600">${escapeHtml(p.nombre)}</div>
+          <div class="meta" style="font-size:12px">${escapeHtml(p.sanatorio || '')}</div>
+        </div>
+        <button type="button" class="secondary" data-action="pedirResenaPanel" data-id="${p.id}" style="font-size:12px; padding:6px 10px; white-space:nowrap"><i data-lucide="star"></i> Pedir reseña</button>
+      </div>
+    `).join('');
+  }
+
+  async function pedirResenaDesdePanel(pacienteId){
+    const p = pacientes.find(x => x.id === pacienteId);
+    const link = reviewLinkElegible();
+    const d = p ? normalizePhoneAR(p.telefono) : '';
+    if(!p || !link || d.length < 11) return;
+    window.open(whatsappHref(d, reviewMensaje(p, link)), '_blank');
+    await marcarReviewSolicitada(p);
+  }
+
+  $('#resenasPendientesList').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-action="pedirResenaPanel"]');
+    if(btn){ await pedirResenaDesdePanel(btn.dataset.id); return; }
+    const nombre = e.target.closest('[data-paciente-id]');
+    if(nombre){ openPacienteFromAgenda(nombre.dataset.pacienteId); return; }
+  });
 
   $('#pdReviewFab').addEventListener('click', (e) => {
     const p = currentPaciente();
@@ -4176,6 +4229,7 @@ if('serviceWorker' in navigator){
 
   function renderResumen(){
     renderResumenSemana();
+    renderResenasPendientes();
     const cirugias = pacientes.filter(p => pacienteCondicion(p) === 'programado');
     const internadosActivos = activeInternaciones();
     const interconsultasPend = items.filter(it => it.estado === 'pendiente');
