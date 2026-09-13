@@ -3171,6 +3171,9 @@ if('serviceWorker' in navigator){
   // es una métrica de actividad, no de resultado: la app no puede saber si
   // el paciente efectivamente dejó la reseña en Google, eso no es visible
   // por paciente desde ningún lado.
+  const RESENAS_PENDIENTES_LIMITE = 10;
+  let resenasPendientesExpandido = false;
+
   function renderResenasPendientes(){
     const panel = $('#resenasPendientesPanel');
     if(!panel) return;
@@ -3183,12 +3186,17 @@ if('serviceWorker' in navigator){
     const esteMes = solicitadas.filter(p => (p.review_solicitado_at || '').slice(0, 7) === mesActual).length;
     const statsHtml = `<div class="meta" style="margin-bottom:12px">${esteMes} pedida${esteMes === 1 ? '' : 's'} este mes · ${solicitadas.length} en total</div>`;
 
-    const pendientes = pacientes
+    const pendientesTotal = pacientes
       .filter(p => p.operado && !p.review_solicitado_at && normalizePhoneAR(p.telefono).length >= 11)
       .sort((a, b) => (b.fecha_qx || '').localeCompare(a.fecha_qx || ''));
-    const listaHtml = pendientes.length === 0
-      ? '<div class="msg" style="margin:0">¡Estás al día! No hay pedidos de reseña pendientes.</div>'
-      : pendientes.map(p => `
+    const pendientes = resenasPendientesExpandido ? pendientesTotal : pendientesTotal.slice(0, RESENAS_PENDIENTES_LIMITE);
+    const restantes = pendientesTotal.length - pendientes.length;
+
+    let listaHtml;
+    if(pendientesTotal.length === 0){
+      listaHtml = '<div class="msg" style="margin:0">¡Estás al día! No hay pedidos de reseña pendientes.</div>';
+    } else {
+      listaHtml = pendientes.map(p => `
       <div class="row" style="justify-content:space-between; align-items:center; margin-top:0; padding:8px 0; border-bottom:1px solid var(--border)">
         <div data-paciente-id="${p.id}" style="cursor:pointer">
           <div style="font-weight:600">${escapeHtml(p.nombre)}</div>
@@ -3197,6 +3205,12 @@ if('serviceWorker' in navigator){
         <button type="button" class="secondary" data-action="pedirResenaPanel" data-id="${p.id}" style="font-size:12px; padding:6px 10px; white-space:nowrap"><i data-lucide="star"></i> Pedir reseña</button>
       </div>
     `).join('');
+      if(restantes > 0){
+        listaHtml += `<button type="button" class="secondary" data-action="verMasResenas" style="width:100%; margin-top:8px; font-size:12px">Ver ${restantes} más</button>`;
+      } else if(resenasPendientesExpandido && pendientesTotal.length > RESENAS_PENDIENTES_LIMITE){
+        listaHtml += `<button type="button" class="secondary" data-action="verMenosResenas" style="width:100%; margin-top:8px; font-size:12px">Ver menos</button>`;
+      }
+    }
 
     $('#resenasPendientesList').innerHTML = statsHtml + listaHtml;
   }
@@ -3213,6 +3227,8 @@ if('serviceWorker' in navigator){
   $('#resenasPendientesList').addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-action="pedirResenaPanel"]');
     if(btn){ await pedirResenaDesdePanel(btn.dataset.id); return; }
+    if(e.target.closest('[data-action="verMasResenas"]')){ resenasPendientesExpandido = true; renderResenasPendientes(); return; }
+    if(e.target.closest('[data-action="verMenosResenas"]')){ resenasPendientesExpandido = false; renderResenasPendientes(); return; }
     const nombre = e.target.closest('[data-paciente-id]');
     if(nombre){ openPacienteFromAgenda(nombre.dataset.pacienteId); return; }
   });
