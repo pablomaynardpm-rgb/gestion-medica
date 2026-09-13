@@ -3167,16 +3167,28 @@ if('serviceWorker' in navigator){
   // Panel de Resumen: pacientes ya operados, con teléfono válido, a los que
   // todavía no se les pidió reseña — ataca que el pedido dependa 100% de
   // acordarse. Cada fila permite mandarlo ahí mismo, sin ir a la ficha.
+  // También muestra un contador de cuántas se pidieron (este mes / total) —
+  // es una métrica de actividad, no de resultado: la app no puede saber si
+  // el paciente efectivamente dejó la reseña en Google, eso no es visible
+  // por paciente desde ningún lado.
   function renderResenasPendientes(){
     const panel = $('#resenasPendientesPanel');
     if(!panel) return;
     const link = reviewLinkElegible();
-    const pendientes = !link ? [] : pacientes
+    if(!link){ panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+
+    const solicitadas = pacientes.filter(p => p.review_solicitado_at);
+    const mesActual = toISODate(new Date()).slice(0, 7);
+    const esteMes = solicitadas.filter(p => (p.review_solicitado_at || '').slice(0, 7) === mesActual).length;
+    const statsHtml = `<div class="meta" style="margin-bottom:12px">${esteMes} pedida${esteMes === 1 ? '' : 's'} este mes · ${solicitadas.length} en total</div>`;
+
+    const pendientes = pacientes
       .filter(p => p.operado && !p.review_solicitado_at && normalizePhoneAR(p.telefono).length >= 11)
       .sort((a, b) => (b.fecha_qx || '').localeCompare(a.fecha_qx || ''));
-    if(pendientes.length === 0){ panel.style.display = 'none'; return; }
-    panel.style.display = 'block';
-    $('#resenasPendientesList').innerHTML = pendientes.map(p => `
+    const listaHtml = pendientes.length === 0
+      ? '<div class="msg" style="margin:0">¡Estás al día! No hay pedidos de reseña pendientes.</div>'
+      : pendientes.map(p => `
       <div class="row" style="justify-content:space-between; align-items:center; margin-top:0; padding:8px 0; border-bottom:1px solid var(--border)">
         <div data-paciente-id="${p.id}" style="cursor:pointer">
           <div style="font-weight:600">${escapeHtml(p.nombre)}</div>
@@ -3185,6 +3197,8 @@ if('serviceWorker' in navigator){
         <button type="button" class="secondary" data-action="pedirResenaPanel" data-id="${p.id}" style="font-size:12px; padding:6px 10px; white-space:nowrap"><i data-lucide="star"></i> Pedir reseña</button>
       </div>
     `).join('');
+
+    $('#resenasPendientesList').innerHTML = statsHtml + listaHtml;
   }
 
   async function pedirResenaDesdePanel(pacienteId){
