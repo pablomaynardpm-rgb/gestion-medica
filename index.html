@@ -363,8 +363,11 @@
   .internadoCard.nivel-dorado:hover{box-shadow:0 0 0 2px #D4AF37, 0 6px 16px rgba(0,0,0,0.14)}
   .internadoCard.nivel-platinum{box-shadow:0 0 0 2px #9CA3AF, 0 2px 8px rgba(0,0,0,0.08); background:linear-gradient(135deg, rgba(156,163,175,0.10), var(--panel) 60%)}
   .internadoCard.nivel-platinum:hover{box-shadow:0 0 0 2px #9CA3AF, 0 6px 16px rgba(0,0,0,0.14)}
+  .internadoCard.nivel-black{box-shadow:0 0 0 2px #18181B, 0 2px 8px rgba(0,0,0,0.08); background:linear-gradient(135deg, rgba(24,24,27,0.10), var(--panel) 60%)}
+  .internadoCard.nivel-black:hover{box-shadow:0 0 0 2px #18181B, 0 6px 16px rgba(0,0,0,0.14)}
   .badge.nivel-badge-dorado{background:rgba(212,175,55,0.18); color:#9A7B0A; font-weight:800; text-transform:uppercase; letter-spacing:.03em}
   .badge.nivel-badge-platinum{background:rgba(156,163,175,0.22); color:#54595F; font-weight:800; text-transform:uppercase; letter-spacing:.03em}
+  .badge.nivel-badge-black{background:#18181B; color:#fff; font-weight:800; text-transform:uppercase; letter-spacing:.03em}
   .modalOverlay{
     position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100;
     display:flex; align-items:center; justify-content:center; padding:20px;
@@ -739,20 +742,30 @@
             </label>
           </div>
           <div class="fieldFull" style="margin-top:10px">
-            <div style="font-size:13px; color:var(--text); margin-bottom:6px">Componentes del programa (con terceros)</div>
-            <div style="display:flex; flex-wrap:wrap; gap:14px">
-              <label style="display:flex; align-items:center; gap:6px; font-weight:normal; font-size:13px; cursor:pointer">
-                <input type="checkbox" data-pk="incluye_anatomia_patologica" id="pdIncluyeAnatomia"> Anatomía patológica
-              </label>
-              <label style="display:flex; align-items:center; gap:6px; font-weight:normal; font-size:13px; cursor:pointer">
-                <input type="checkbox" data-pk="incluye_kinesiologia" id="pdIncluyeKinesio"> Kinesiología
-              </label>
-              <label style="display:flex; align-items:center; gap:6px; font-weight:normal; font-size:13px; cursor:pointer">
-                <input type="checkbox" data-pk="incluye_neumonologia_preqx" id="pdIncluyeNeumo"> Neumonología (preQx)
-              </label>
-              <label style="display:flex; align-items:center; gap:6px; font-weight:normal; font-size:13px; cursor:pointer">
-                <input type="checkbox" data-pk="incluye_cardiologia_preqx" id="pdIncluyeCardio"> Cardiología (preQx)
-              </label>
+            <label>¿Acepta el programa?
+              <select id="pdAceptaPrograma" data-pk="acepta_programa">
+                <option value="">Sin definir</option>
+                <option value="no">No acepta</option>
+                <option value="solo_cirugia">Solo cirugía (copago)</option>
+                <option value="si">Sí</option>
+              </select>
+            </label>
+            <div id="pdComponentesProgramaWrap" style="margin-top:10px; display:none">
+              <div style="font-size:13px; color:var(--text); margin-bottom:6px">Componentes del programa (con terceros)</div>
+              <div style="display:flex; flex-wrap:wrap; gap:14px">
+                <label style="display:flex; align-items:center; gap:6px; font-weight:normal; font-size:13px; cursor:pointer">
+                  <input type="checkbox" data-pk="incluye_anatomia_patologica" id="pdIncluyeAnatomia"> Anatomía patológica
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; font-weight:normal; font-size:13px; cursor:pointer">
+                  <input type="checkbox" data-pk="incluye_kinesiologia" id="pdIncluyeKinesio"> Kinesiología
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; font-weight:normal; font-size:13px; cursor:pointer">
+                  <input type="checkbox" data-pk="incluye_neumonologia_preqx" id="pdIncluyeNeumo"> Neumonología (preQx)
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; font-weight:normal; font-size:13px; cursor:pointer">
+                  <input type="checkbox" data-pk="incluye_cardiologia_preqx" id="pdIncluyeCardio"> Cardiología (preQx)
+                </label>
+              </div>
             </div>
             <div class="meta" id="pdNivelProgramaInfo" style="margin-top:6px"></div>
           </div>
@@ -2735,17 +2748,22 @@ if('serviceWorker' in navigator){
     return `<span class="badge cond-${cond}">${CONDICION_LABEL[cond]}</span>`;
   }
 
-  // Nivel del programa según qué componentes (que dependen de terceros)
-  // incluye este paciente — solo aplica una vez que está en el programa
-  // (tipo_consentimiento cargado). "Dorado" = los 4 incluidos, "Platinum" =
-  // le falta alguno. Deliberadamente NO se usan las palabras "premium"/"VIP"
-  // en ningún texto visible, tal como pidió Pablo.
+  // Nivel del programa — independiente de tipo_consentimiento (que hace
+  // falta para CUALQUIER cirugía, tome o no el programa). Lo dispara
+  // acepta_programa: "no" o sin definir = sin nivel (tarjeta en blanco,
+  // como "no acepta"); "solo_cirugia" = Platinum (el copago de hoy, sin
+  // programa); "si" = se calcula según los 4 componentes que dependen de
+  // terceros — Black si están los 4, Dorado si falta alguno. Como las
+  // tarjetas de crédito (Platinum < Dorado < Black). Deliberadamente NO se
+  // usan las palabras "premium"/"VIP" en ningún texto visible.
   const NIVEL_PROGRAMA_COMPONENTES = ['incluye_anatomia_patologica', 'incluye_kinesiologia', 'incluye_neumonologia_preqx', 'incluye_cardiologia_preqx'];
   function pacienteNivelPrograma(p){
-    if(!p || !p.tipo_consentimiento) return '';
-    return NIVEL_PROGRAMA_COMPONENTES.every(k => p[k]) ? 'dorado' : 'platinum';
+    if(!p) return '';
+    if(p.acepta_programa === 'solo_cirugia') return 'platinum';
+    if(p.acepta_programa === 'si') return NIVEL_PROGRAMA_COMPONENTES.every(k => p[k]) ? 'black' : 'dorado';
+    return '';
   }
-  const NIVEL_PROGRAMA_LABEL = { dorado: 'Dorado', platinum: 'Platinum' };
+  const NIVEL_PROGRAMA_LABEL = { platinum: 'Platinum', dorado: 'Dorado', black: 'Black' };
   function nivelProgramaCardClass(p){
     const nivel = pacienteNivelPrograma(p);
     return nivel ? ` nivel-${nivel}` : '';
@@ -2759,6 +2777,8 @@ if('serviceWorker' in navigator){
     if(!el) return;
     const nivel = pacienteNivelPrograma(p);
     el.textContent = nivel ? `Nivel del programa: ${NIVEL_PROGRAMA_LABEL[nivel]}` : '';
+    const wrap = $('#pdComponentesProgramaWrap');
+    if(wrap) wrap.style.display = (p && p.acepta_programa === 'si') ? 'block' : 'none';
   }
 
   function setMatSelectClass(el, value){
@@ -3358,6 +3378,7 @@ if('serviceWorker' in navigator){
     $('#pdConsentimientoLink').value = p.consentimiento_link || '';
     $('#pdConsentimientoEstado').value = p.consentimiento_estado || '';
     $('#pdTipoConsentimiento').value = p.tipo_consentimiento || '';
+    $('#pdAceptaPrograma').value = p.acepta_programa || '';
     $('#pdIncluyeAnatomia').checked = !!p.incluye_anatomia_patologica;
     $('#pdIncluyeKinesio').checked = !!p.incluye_kinesiologia;
     $('#pdIncluyeNeumo').checked = !!p.incluye_neumonologia_preqx;
@@ -3437,7 +3458,7 @@ if('serviceWorker' in navigator){
     if(key === 'telefono' || key === 'nombre'){ updateReviewFab(p); updateContactoFab(p); }
     if(['telefono','nombre','sanatorio','tipo_consentimiento'].includes(key)) updateGuiaFab(p);
     if(key === 'operacion') await autoSuggestTipoConsentimiento(p);
-    if(['tipo_consentimiento','incluye_anatomia_patologica','incluye_kinesiologia','incluye_neumonologia_preqx','incluye_cardiologia_preqx'].includes(key)){
+    if(['acepta_programa','incluye_anatomia_patologica','incluye_kinesiologia','incluye_neumonologia_preqx','incluye_cardiologia_preqx'].includes(key)){
       renderNivelProgramaInfo(p);
       renderPacientes();
       renderInternados();
