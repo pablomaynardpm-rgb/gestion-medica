@@ -21,6 +21,7 @@
   })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
 <!-- Tailwind CSS: usado SOLO para modernizar el encabezado.
      corePlugins.preflight=false apaga el reset global de Tailwind a propósito
@@ -308,6 +309,9 @@
   a.fab.reviewFab.sent:hover{background:#9CA3AF}
   a.fab.contactoFab{background:#1E60C6; color:#fff; text-decoration:none}
   a.fab.contactoFab:hover{background:#174a9c}
+  .fab.guiaFab{background:#0E4B78; color:#fff}
+  .fab.guiaFab:hover{background:#0a3a5e}
+  .fab.guiaFab[disabled]{opacity:0.6; cursor:wait}
   .resumenKpis{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:12px; margin-bottom:20px}
   .kpiCard{border-radius:12px; padding:14px 16px; color:#fff; box-shadow:0 4px 14px rgba(0,0,0,0.18)}
   .kpiCard .kpiIcon{font-size:20px}
@@ -711,6 +715,15 @@
                 <option value="firmado">Firmado</option>
               </select>
             </label>
+            <label>Tipo de consentimiento (guía premium)
+              <select data-pk="tipo_consentimiento" id="pdTipoConsentimiento">
+                <option value="">Sin definir</option>
+                <option value="reseccion-pulmonar">Resección pulmonar</option>
+                <option value="mediastinoscopia">Mediastinoscopia</option>
+                <option value="vats-pleural">VATS pleural / biopsia / decorticación / pleurodesis</option>
+                <option value="decorticacion-trauma">Decorticación / fracturas costales (trauma)</option>
+              </select>
+            </label>
           </div>
           <div class="msg" id="fechaQxLockMsg" style="margin-top:8px">Definí Materiales en "En quirófano" o "No requiere" para poder programar la fecha.</div>
           <label style="display:flex; align-items:center; gap:8px; margin-top:14px; font-size:13px; font-weight:normal; cursor:pointer">
@@ -847,6 +860,7 @@
         <a id="pdContactoFab" class="fab fabSub contactoFab" href="#" target="_blank" rel="noopener" title="Enviar mi ficha de contacto por WhatsApp"><i data-lucide="contact"></i></a>
         <a id="pdReviewFab" class="fab fabSub reviewFab" href="#" target="_blank" rel="noopener" title="Pedir reseña por WhatsApp"><i data-lucide="star"></i></a>
         <a id="pdWhatsappFab" class="fab fabSub whatsappFab" href="#" target="_blank" rel="noopener" title="Abrir WhatsApp"><i data-lucide="message-circle"></i></a>
+        <button type="button" id="pdGuiaFab" class="fab fabSub guiaFab" title="Enviar guía premium por WhatsApp"><i data-lucide="file-text"></i></button>
         <button type="button" id="pdFabToggle" class="fab fabToggle" title="Contactar al paciente"><i data-lucide="message-circle"></i></button>
       </div>
     </div>
@@ -2921,6 +2935,185 @@ if('serviceWorker' in navigator){
     updateFabGroupVisibility();
   }
 
+  // ---- Guía premium por WhatsApp (guía + consentimiento informado fusionados) ----
+  // No hay una lista fija de sanatorios en la base (es una tabla que Pablo va
+  // completando a mano), así que la institución cargada en "Sanatorio" se matchea
+  // contra las carpetas de guia-premium/consentimientos/ por palabra clave.
+  const CONSENTIMIENTO_INSTITUCIONES = [
+    { carpeta: 'Sanatorio_Urquiza', claves: ['urquiza'] },
+    { carpeta: 'Sanatorio_Solano', claves: ['solano'] },
+    { carpeta: 'Nuevo_Sanatorio_Berazategui', claves: ['berazategui'] },
+    { carpeta: 'Hospital_Lucio_Melendez', claves: ['melendez'] },
+    { carpeta: 'Clinica_Calchaqui', claves: ['calchaqui'] },
+    { carpeta: 'Clinica_Privada_Ranelagh', claves: ['ranelagh'] },
+    { carpeta: 'Policlinico_UOM_Avellaneda', claves: ['uom', 'policlinico uom'] },
+    { carpeta: 'AG_Consultorios', claves: ['ag consultorio', 'consultorios ag'] }
+  ];
+  function matchInstitucionConsentimiento(sanatorioNombre){
+    const n = normalize(sanatorioNombre);
+    if(!n) return null;
+    const hit = CONSENTIMIENTO_INSTITUCIONES.find(inst => inst.claves.some(k => n.includes(k)));
+    return hit ? hit.carpeta : null;
+  }
+
+  const TIPO_CONSENTIMIENTO_ARCHIVO = {
+    'reseccion-pulmonar': 'reseccion-pulmonar.pdf',
+    'mediastinoscopia': 'mediastinoscopia.pdf',
+    'vats-pleural': 'vats-pleural.pdf',
+    'decorticacion-trauma': 'decorticacion-trauma.pdf'
+  };
+
+  // Sugerencia automática de tipo de consentimiento a partir del texto libre de
+  // "Operación a realizar" — solo sugiere (nunca pisa un valor ya cargado a mano).
+  function suggestTipoConsentimiento(operacionTexto){
+    const n = normalize(operacionTexto);
+    if(!n) return null;
+    if(/trauma|fractura costal|fracturas costales/.test(n)) return 'decorticacion-trauma';
+    if(/mediastinoscopia/.test(n)) return 'mediastinoscopia';
+    if(/lobectomia|segmentectomia|neumonectomia|bullectomia|\bbulla\b|nodulo|resecc/.test(n)) return 'reseccion-pulmonar';
+    if(/pleural|decorticacion|pleurodesis|empiema|derrame/.test(n)) return 'vats-pleural';
+    return null;
+  }
+
+  async function autoSuggestTipoConsentimiento(p){
+    if(p.tipo_consentimiento) return;
+    const sugerido = suggestTipoConsentimiento(p.operacion);
+    if(!sugerido) return;
+    const sel = $('#pdTipoConsentimiento');
+    if(sel) sel.value = sugerido;
+    await savePacienteField('tipo_consentimiento', sugerido);
+  }
+
+  function updateGuiaFab(p){
+    const fab = $('#pdGuiaFab');
+    if(!fab) return;
+    const d = p ? normalizePhoneAR(p.telefono) : '';
+    const institucion = p ? matchInstitucionConsentimiento(p.sanatorio) : null;
+    const elegible = d.length >= 11 && !!(p && p.tipo_consentimiento) && !!institucion;
+    fab.classList.toggle('eligible', elegible);
+    fab.title = elegible
+      ? 'Enviar guía premium por WhatsApp'
+      : 'Para habilitar: cargá teléfono, sanatorio (que coincida con una carpeta de consentimientos) y tipo de consentimiento';
+    updateFabGroupVisibility();
+  }
+
+  // Arma un único PDF (portada con los datos del paciente + guía del paciente +
+  // anexo de consentimiento informado correspondiente a la cirugía/institución),
+  // lo descarga, y abre WhatsApp con el texto listo — wa.me no permite adjuntar
+  // archivos automáticamente, así que el último paso (adjuntar el PDF ya
+  // descargado) queda manual.
+  async function generarYEnviarGuia(p){
+    const d = normalizePhoneAR(p.telefono);
+    const institucion = matchInstitucionConsentimiento(p.sanatorio);
+    const archivoConsentimiento = p.tipo_consentimiento ? TIPO_CONSENTIMIENTO_ARCHIVO[p.tipo_consentimiento] : null;
+    if(d.length < 11 || !institucion || !archivoConsentimiento){
+      flashIn($('#pacMsg'), 'Faltan datos para armar la guía: verificá teléfono, sanatorio y tipo de consentimiento.', true);
+      return;
+    }
+    const fab = $('#pdGuiaFab');
+    fab.disabled = true;
+    fab.innerHTML = '<i data-lucide="loader"></i>';
+    if(window.lucide) lucide.createIcons();
+    try {
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const [baseBytes, consentBytes, logoBytes] = await Promise.all([
+        fetch('/guia-premium/base.pdf').then(r => r.arrayBuffer()),
+        fetch(`/guia-premium/consentimientos/${institucion}/${archivoConsentimiento}`).then(r => r.arrayBuffer()),
+        fetch('/guia-premium/logo.png').then(r => r.arrayBuffer())
+      ]);
+
+      const out = await PDFDocument.create();
+      const logoImg = await out.embedPng(logoBytes);
+      const fontTitulo = await out.embedFont(StandardFonts.HelveticaBold);
+      const fontBody = await out.embedFont(StandardFonts.Helvetica);
+      const navy = rgb(0x0E/255, 0x4B/255, 0x78/255);
+      const gray = rgb(0x50/255, 0x56/255, 0x5E/255);
+      const bg = rgb(0xF7/255, 0xF9/255, 0xFB/255);
+      const softBlue = rgb(0xCE/255, 0xDE/255, 0xEE/255);
+
+      const W = 595.28, H = 841.89; // A4 en puntos
+      const cover = out.addPage([W, H]);
+      cover.drawRectangle({ x: 0, y: 0, width: W, height: H, color: bg });
+      const logoDim = logoImg.scale(46 / logoImg.width);
+      cover.drawImage(logoImg, { x: 56, y: H - 56 - logoDim.height, width: logoDim.width, height: logoDim.height });
+      cover.drawText('DR. PABLO MAYNARD', { x: 56 + logoDim.width + 12, y: H - 56 - 16, size: 14, font: fontTitulo, color: navy });
+      cover.drawText('Cirujano Torácico', { x: 56 + logoDim.width + 12, y: H - 56 - 32, size: 10, font: fontBody, color: gray });
+      cover.drawLine({ start: { x: 56, y: H - 110 }, end: { x: W - 56, y: H - 110 }, thickness: 1, color: softBlue });
+
+      cover.drawText('Guía del paciente', { x: 56, y: H - 170, size: 26, font: fontTitulo, color: navy });
+      cover.drawText(`Hola ${p.nombre || ''}`, { x: 56, y: H - 205, size: 16, font: fontTitulo, color: navy });
+
+      const wrapText = (text, font, size, maxW) => {
+        const words = String(text).split(' ');
+        const lines = [];
+        let line = '';
+        for(const w of words){
+          const test = line ? line + ' ' + w : w;
+          if(font.widthOfTextAtSize(test, size) > maxW && line){ lines.push(line); line = w; }
+          else line = test;
+        }
+        if(line) lines.push(line);
+        return lines;
+      };
+      const intro = 'Te armé esta guía para que tengas todo el proceso de tu cirugía ordenado en un solo lugar, junto con el consentimiento informado correspondiente. Cualquier duda, quedo a disposición.';
+      let y = H - 235;
+      for(const line of wrapText(intro, fontBody, 12, W - 112)){
+        cover.drawText(line, { x: 56, y, size: 12, font: fontBody, color: gray });
+        y -= 16;
+      }
+
+      const datos = [
+        ['Cirugía', p.operacion || '-'],
+        ['Institución', p.sanatorio || '-'],
+        ['Fecha', p.fecha_qx ? new Date(p.fecha_qx + 'T00:00:00').toLocaleDateString('es-AR') : 'A confirmar']
+      ];
+      y -= 20;
+      for(const [label, val] of datos){
+        cover.drawText(label.toUpperCase(), { x: 56, y, size: 9, font: fontTitulo, color: navy });
+        y -= 15;
+        cover.drawText(String(val), { x: 56, y, size: 12, font: fontBody, color: gray });
+        y -= 24;
+      }
+
+      const baseDoc = await PDFDocument.load(baseBytes);
+      const basePages = await out.copyPages(baseDoc, baseDoc.getPageIndices());
+      basePages.forEach(pg => out.addPage(pg));
+
+      const consentDoc = await PDFDocument.load(consentBytes);
+      const consentPages = await out.copyPages(consentDoc, consentDoc.getPageIndices());
+      consentPages.forEach(pg => out.addPage(pg));
+
+      const finalBytes = await out.save();
+      const blob = new Blob([finalBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const nombreArchivo = `Guia-${(p.nombre || 'paciente').replace(/\s+/g, '_')}.pdf`;
+      const aDesc = document.createElement('a');
+      aDesc.href = url;
+      aDesc.download = nombreArchivo;
+      document.body.appendChild(aDesc);
+      aDesc.click();
+      aDesc.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+
+      const texto = `¡Hola ${p.nombre || ''}! Te comparto la guía con todo lo que necesitás saber para tu cirugía y el consentimiento informado correspondiente. Cualquier duda, escribime por acá.`;
+      window.open(whatsappHref(d, texto), '_blank');
+      flashIn($('#pacMsg'), `Se descargó "${nombreArchivo}" — adjuntala en el chat de WhatsApp que se acaba de abrir.`);
+    } catch(err){
+      flashIn($('#pacMsg'), 'Error al armar la guía: ' + err.message, true);
+    } finally {
+      fab.disabled = false;
+      fab.innerHTML = '<i data-lucide="file-text"></i>';
+      if(window.lucide) lucide.createIcons();
+    }
+  }
+
+  $('#pdGuiaFab').addEventListener('click', () => {
+    const p = currentPaciente();
+    if(!p) return;
+    cerrarFabGroup();
+    generarYEnviarGuia(p);
+  });
+
   // Mensaje pseudoautomático de invitación a dejar reseña en Google (click
   // manual: arma el texto y abre WhatsApp, no envía nada solo). De un solo
   // uso por paciente: una vez enviado, pacientes.review_solicitado_at queda
@@ -2993,6 +3186,7 @@ if('serviceWorker' in navigator){
     updateWhatsappFab(p.telefono);
     updateReviewFab(p);
     updateContactoFab(p);
+    updateGuiaFab(p);
     $('#pdDiagnostico').value = p.diagnostico || '';
     $('#pdOperacion').value = p.operacion || '';
     $('#pdFechaQx').value = p.fecha_qx || '';
@@ -3002,6 +3196,7 @@ if('serviceWorker' in navigator){
     updateFechaQxLock(p.materiales || '');
     $('#pdConsentimientoLink').value = p.consentimiento_link || '';
     $('#pdConsentimientoEstado').value = p.consentimiento_estado || '';
+    $('#pdTipoConsentimiento').value = p.tipo_consentimiento || '';
     $('#pdOperado').checked = !!p.operado;
     renderHistorialCirugias(p);
     $('#pdDatosClinicos').value = p.datos_clinicos || '';
@@ -3074,6 +3269,8 @@ if('serviceWorker' in navigator){
     if(['edad','diagnostico','sexo'].includes(key)) recomputePretest();
     if(key === 'telefono') updateWhatsappFab(value);
     if(key === 'telefono' || key === 'nombre'){ updateReviewFab(p); updateContactoFab(p); }
+    if(['telefono','nombre','sanatorio','tipo_consentimiento'].includes(key)) updateGuiaFab(p);
+    if(key === 'operacion') await autoSuggestTipoConsentimiento(p);
     if(key === 'fecha_qx' && value && !error){
       const yaInternado = internaciones.some(i => i.paciente_id === p.id && !i.fecha_alta);
       if(!yaInternado){
