@@ -727,6 +727,7 @@
                 <option value="vats-pleural">VATS pleural / biopsia / decorticación / pleurodesis</option>
                 <option value="decorticacion-trauma">Decorticación / fracturas costales (trauma)</option>
               </select>
+              <div class="meta" id="pdGuiaEnviadaInfo" style="margin-top:4px"></div>
             </label>
           </div>
           <div class="msg" id="fechaQxLockMsg" style="margin-top:8px">Definí Materiales en "En quirófano" o "No requiere" para poder programar la fecha.</div>
@@ -2996,10 +2997,33 @@ if('serviceWorker' in navigator){
     const institucion = p ? matchInstitucionConsentimiento(p.sanatorio) : null;
     const elegible = d.length >= 11 && !!(p && p.tipo_consentimiento) && !!institucion;
     fab.classList.toggle('eligible', elegible);
-    fab.title = elegible
-      ? 'Enviar guía premium por WhatsApp'
-      : 'Para habilitar: cargá teléfono, sanatorio (que coincida con una carpeta de consentimientos) y tipo de consentimiento';
+    if(elegible && p.guia_enviada_at){
+      fab.title = 'Ya se envió la guía el ' + new Date(p.guia_enviada_at).toLocaleDateString('es-AR') + ' — tocá para volver a enviar';
+    } else {
+      fab.title = elegible
+        ? 'Enviar guía premium por WhatsApp'
+        : 'Para habilitar: cargá teléfono, sanatorio (que coincida con una carpeta de consentimientos) y tipo de consentimiento';
+    }
     updateFabGroupVisibility();
+    renderGuiaEnviadaInfo(p);
+  }
+
+  // La guía (a diferencia del pedido de reseña) NO es de un solo uso — se
+  // puede reenviar si hace falta, esto solo deja registro de la última vez.
+  async function marcarGuiaEnviada(p){
+    const now = new Date().toISOString();
+    p.guia_enviada_at = now;
+    updateGuiaFab(p);
+    const { error } = await sb.from('pacientes').update({ guia_enviada_at: now }).eq('id', p.id);
+    if(error) flash('No se pudo guardar el registro de envío de la guía: ' + error.message, true);
+  }
+
+  function renderGuiaEnviadaInfo(p){
+    const el = $('#pdGuiaEnviadaInfo');
+    if(!el) return;
+    el.textContent = p && p.guia_enviada_at
+      ? 'Última guía enviada: ' + new Date(p.guia_enviada_at).toLocaleDateString('es-AR')
+      : '';
   }
 
   // Arma un único PDF (portada con los datos del paciente + guía del paciente +
@@ -3103,6 +3127,7 @@ if('serviceWorker' in navigator){
       const texto = `¡Hola ${p.nombre || ''}! Te comparto la guía con todo lo que necesitás saber para tu cirugía y el consentimiento informado correspondiente. Cualquier duda, escribime por acá.`;
       window.open(whatsappHref(d, texto), '_blank');
       flashIn($('#pacMsg'), `Se descargó "${nombreArchivo}" — adjuntala en el chat de WhatsApp que se acaba de abrir.`);
+      await marcarGuiaEnviada(p);
     } catch(err){
       flashIn($('#pacMsg'), 'Error al armar la guía: ' + err.message, true);
     } finally {

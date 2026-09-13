@@ -1,3 +1,4 @@
 .env
 .claude/
 videos-cirugia/
+.tmp_*.json
