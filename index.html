@@ -1648,6 +1648,12 @@ if('serviceWorker' in navigator){
     $('#userchip').innerHTML = `<b>${escapeHtml(currentMedico.nombre)}</b>${currentMedico.especialidad ? ' · ' + escapeHtml(currentMedico.especialidad) : ''}${currentMedico.rol === 'residente' ? ' · Residente' : ''}`;
     const panelSanatoriosAdmin = $('#panelSanatoriosAdmin');
     if(panelSanatoriosAdmin) panelSanatoriosAdmin.style.display = currentMedico.es_admin ? '' : 'none';
+    // La pestaña "Contacto" de la ficha (WhatsApp/reseña/mi contacto/guía) es
+    // específica de Pablo (su link de reseñas, su guía, su número de WhatsApp
+    // Business) — no tiene sentido para el resto del equipo, así que solo el
+    // admin la ve.
+    const fichaTabContactoBtn = document.querySelector('.fichaTab[data-fichatab="fichaTabContacto"]');
+    if(fichaTabContactoBtn) fichaTabContactoBtn.style.display = currentMedico.es_admin ? '' : 'none';
     aplicarRestriccionesRol();
     await loadAll();
     await checkGoogleCalendarStatus();
