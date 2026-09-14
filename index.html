@@ -303,7 +303,8 @@
     box-shadow:0 4px 14px rgba(0,0,0,0.3); padding:0; touch-action:manipulation;
   }
   .fabGroup .fabSub{display:none}
-  .fabGroup.open .fabSub.eligible{display:flex}
+  .fabGroup.open .fabSub{display:flex}
+  .fabGroup.open .fabSub:not(.eligible){opacity:.35}
   .fabToggle{background:#1E60C6; color:#fff}
   .fabToggle:hover{background:#174a9c}
   a.fab.whatsappFab{background:#25D366; color:#fff; text-decoration:none}
@@ -2986,9 +2987,7 @@ if('serviceWorker' in navigator){
   function updateFabGroupVisibility(){
     const group = $('#pdFabGroup');
     if(!group) return;
-    const hayAlguno = Array.from(group.querySelectorAll('.fabSub')).some(f => f.classList.contains('eligible'));
-    group.style.display = hayAlguno ? 'flex' : 'none';
-    if(!hayAlguno) cerrarFabGroup();
+    group.style.display = 'flex';
   }
 
   function cerrarFabGroup(){
@@ -3005,7 +3004,10 @@ if('serviceWorker' in navigator){
     $('#pdFabToggle').innerHTML = abrir ? '<i data-lucide="x"></i>' : '<i data-lucide="message-circle"></i>';
   });
   $('#pdFabGroup').addEventListener('click', (e) => {
-    if(e.target.closest('.fabSub')) cerrarFabGroup();
+    const sub = e.target.closest('.fabSub');
+    if(!sub) return;
+    if(!sub.classList.contains('eligible')){ e.preventDefault(); return; }
+    cerrarFabGroup();
   });
   document.addEventListener('click', (e) => {
     if(!e.target.closest('#pdFabGroup')) cerrarFabGroup();
@@ -3016,7 +3018,8 @@ if('serviceWorker' in navigator){
     const d = normalizePhoneAR(telefono);
     const elegible = d.length >= 11;
     fab.classList.toggle('eligible', elegible);
-    if(elegible) fab.href = whatsappHref(d, '');
+    if(elegible){ fab.href = whatsappHref(d, ''); fab.title = 'Abrir WhatsApp'; }
+    else fab.title = 'Para habilitar: cargá el teléfono del paciente';
     updateFabGroupVisibility();
   }
 
@@ -3033,6 +3036,9 @@ if('serviceWorker' in navigator){
     if(elegible){
       const texto = `¡Hola ${p.nombre || ''}! Te paso mi ficha de contacto para que la guardes en tu celular: ${CONTACTO_LINK}`;
       fab.href = whatsappHref(d, texto);
+      fab.title = 'Enviar mi ficha de contacto por WhatsApp';
+    } else {
+      fab.title = 'Para habilitar: cargá el teléfono del paciente';
     }
     updateFabGroupVisibility();
   }
@@ -3407,6 +3413,8 @@ if('serviceWorker' in navigator){
         fab.title = 'Pedir reseña por WhatsApp';
         fab.href = whatsappHref(d, reviewMensaje(p, link));
       }
+    } else {
+      fab.title = link ? 'Para habilitar: cargá el teléfono del paciente' : 'Para habilitar: configurá el link de reseñas de Google (solo admin)';
     }
     updateFabGroupVisibility();
   }
