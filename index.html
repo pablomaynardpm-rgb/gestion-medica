@@ -286,38 +286,23 @@
   .badge.cond-programar{background:rgba(245,158,11,0.15); color:var(--pending)}
   .badge.cond-programado{background:rgba(37,99,235,0.15); color:var(--accent)}
   .badge.cond-operado{background:rgba(22,163,74,0.15); color:var(--done)}
-  /* bottom/right con margen extra + safe-area: en varios celulares Android el
-     borde inferior-derecho de la pantalla está tomado por gestos del sistema
-     (volver atrás deslizando desde el borde, o el gesto de "inicio" desde
-     abajo) que le pueden robar el toque a un botón demasiado pegado al
-     borde antes de que llegue a la página. touch-action:manipulation saca
-     el delay de 300ms y evita que el navegador dude entre tap/gesto. */
-  .fabGroup{
-    position:fixed; z-index:50; display:flex; flex-direction:column; align-items:center; gap:12px;
-    bottom:calc(32px + env(safe-area-inset-bottom, 0px));
-    right:calc(32px + env(safe-area-inset-right, 0px));
+  /* Botones de contacto: se sacó el FAB flotante/colapsable (Pablo reportó
+     que era poco confiable — a veces no respondía al toque) a favor de
+     botones fijos y siempre visibles en la pestaña "Contacto" de la ficha. */
+  .btnContacto{
+    display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+    padding:14px 16px; border-radius:10px; border:1px solid var(--border);
+    background:var(--panel); color:var(--text); font-size:14px; font-weight:600;
+    cursor:pointer; text-decoration:none; transition:background .15s, box-shadow .15s;
+    box-shadow:0 1px 4px rgba(0,0,0,0.06); font-family:inherit;
   }
-  .fab{
-    width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
-    font-size:28px; line-height:1; display:flex; align-items:center; justify-content:center;
-    box-shadow:0 4px 14px rgba(0,0,0,0.3); padding:0; touch-action:manipulation;
-  }
-  .fabGroup .fabSub{display:none}
-  .fabGroup.open .fabSub{display:flex}
-  .fabGroup.open .fabSub:not(.eligible){opacity:.35}
-  .fabToggle{background:#1E60C6; color:#fff}
-  .fabToggle:hover{background:#174a9c}
-  a.fab.whatsappFab{background:#25D366; color:#fff; text-decoration:none}
-  a.fab.whatsappFab:hover{background:#1fb457}
-  a.fab.reviewFab{background:#F5A623; color:#fff; text-decoration:none}
-  a.fab.reviewFab:hover{background:#d68f10}
-  a.fab.reviewFab.sent{background:#9CA3AF; cursor:default; font-size:22px}
-  a.fab.reviewFab.sent:hover{background:#9CA3AF}
-  a.fab.contactoFab{background:#1E60C6; color:#fff; text-decoration:none}
-  a.fab.contactoFab:hover{background:#174a9c}
-  .fab.guiaFab{background:#0E4B78; color:#fff}
-  .fab.guiaFab:hover{background:#0a3a5e}
-  .fab.guiaFab[disabled]{opacity:0.6; cursor:wait}
+  .btnContacto:hover{background:var(--bg); box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+  .btnContacto svg.lucide{width:22px; height:22px; flex-shrink:0; color:var(--accent)}
+  .btnContacto .btnContactoHint{font-size:12px; color:var(--muted); font-weight:normal; margin-top:2px}
+  .btnContacto.disabled{opacity:.5; cursor:not-allowed; pointer-events:none}
+  .btnContacto.sent{opacity:.7; cursor:default; pointer-events:none}
+  .btnContacto.sent svg.lucide{color:var(--done)}
+  .btnContacto:disabled{opacity:.6; cursor:wait; pointer-events:none}
   .resumenKpis{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:12px; margin-bottom:20px}
   .kpiCard{border-radius:12px; padding:14px 16px; color:#fff; box-shadow:0 4px 14px rgba(0,0,0,0.18)}
   .kpiCard .kpiIcon{font-size:20px}
@@ -647,6 +632,7 @@
 
       <div class="fichaTabs">
         <button type="button" class="fichaTab active" data-fichatab="fichaTabGenerales">Datos generales</button>
+        <button type="button" class="fichaTab" data-fichatab="fichaTabContacto">Contacto</button>
         <button type="button" class="fichaTab" data-fichatab="fichaTabAntecedentes">Antecedentes</button>
         <button type="button" class="fichaTab" data-fichatab="fichaTabQuirofano">Quirófano</button>
         <button type="button" class="fichaTab" data-fichatab="fichaTabPreqx">PreQx</button>
@@ -694,6 +680,30 @@
         <div class="panel">
           <h2>Datos clínicos</h2>
           <textarea data-pk="datos_clinicos" id="pdDatosClinicos" placeholder="Datos médicos breves..."></textarea>
+        </div>
+      </div>
+
+      <div class="fichaTabContent" id="fichaTabContacto">
+        <div class="panel">
+          <h2 style="margin:0 0 16px 0">Contactar al paciente</h2>
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <a id="pdWhatsappFab" class="btnContacto" href="#" target="_blank" rel="noopener">
+              <i data-lucide="message-circle"></i>
+              <div><div>Abrir WhatsApp</div><div class="btnContactoHint"></div></div>
+            </a>
+            <a id="pdReviewFab" class="btnContacto" href="#" target="_blank" rel="noopener">
+              <i data-lucide="star"></i>
+              <div><div>Pedir reseña por WhatsApp</div><div class="btnContactoHint"></div></div>
+            </a>
+            <a id="pdContactoFab" class="btnContacto" href="#" target="_blank" rel="noopener">
+              <i data-lucide="contact"></i>
+              <div><div>Enviar mi ficha de contacto</div><div class="btnContactoHint"></div></div>
+            </a>
+            <button type="button" id="pdGuiaFab" class="btnContacto">
+              <i data-lucide="file-text"></i>
+              <div><div>Enviar guía premium por WhatsApp</div><div class="btnContactoHint"></div></div>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -907,13 +917,6 @@
         </div>
       </div>
 
-      <div class="fabGroup" id="pdFabGroup" style="display:none">
-        <a id="pdContactoFab" class="fab fabSub contactoFab" href="#" target="_blank" rel="noopener" title="Enviar mi ficha de contacto por WhatsApp"><i data-lucide="contact"></i></a>
-        <a id="pdReviewFab" class="fab fabSub reviewFab" href="#" target="_blank" rel="noopener" title="Pedir reseña por WhatsApp"><i data-lucide="star"></i></a>
-        <a id="pdWhatsappFab" class="fab fabSub whatsappFab" href="#" target="_blank" rel="noopener" title="Abrir WhatsApp"><i data-lucide="message-circle"></i></a>
-        <button type="button" id="pdGuiaFab" class="fab fabSub guiaFab" title="Enviar guía premium por WhatsApp"><i data-lucide="file-text"></i></button>
-        <button type="button" id="pdFabToggle" class="fab fabToggle" title="Contactar al paciente"><i data-lucide="message-circle"></i></button>
-      </div>
     </div>
   </div>
   <datalist id="sanatoriosDatalist3"></datalist>
@@ -2992,50 +2995,22 @@ if('serviceWorker' in navigator){
     return base;
   }
 
-  // Los 3 botones de contacto de la ficha (WhatsApp / reseña / mi contacto)
-  // viven juntos en #pdFabGroup, colapsados detrás de un único botón toggle
-  // (#pdFabToggle) — cada uno se marca "eligible" cuando corresponde
-  // mostrarlo, y el grupo entero se oculta si ninguno aplica.
-  function updateFabGroupVisibility(){
-    const group = $('#pdFabGroup');
-    if(!group) return;
-    group.style.display = 'flex';
+  // Helper compartido: marca un botón de #fichaTabContacto como habilitado o
+  // no, y le escribe el motivo en su .btnContactoHint (en vez de solo bajar
+  // la opacidad como hacía el FAB viejo — así se entiende por qué no anda).
+  function setBtnContactoEstado(fab, elegible, motivoSiNo){
+    if(!fab) return;
+    fab.classList.toggle('disabled', !elegible);
+    const hint = fab.querySelector('.btnContactoHint');
+    if(hint) hint.textContent = elegible ? '' : motivoSiNo;
   }
-
-  function cerrarFabGroup(){
-    const group = $('#pdFabGroup');
-    if(!group) return;
-    group.classList.remove('open');
-    $('#pdFabToggle').innerHTML = '<i data-lucide="message-circle"></i>';
-    if(window.lucide) lucide.createIcons();
-  }
-
-  $('#pdFabToggle').addEventListener('click', (e) => {
-    e.stopPropagation();
-    const group = $('#pdFabGroup');
-    const abrir = !group.classList.contains('open');
-    group.classList.toggle('open', abrir);
-    $('#pdFabToggle').innerHTML = abrir ? '<i data-lucide="x"></i>' : '<i data-lucide="message-circle"></i>';
-    if(window.lucide) lucide.createIcons();
-  });
-  $('#pdFabGroup').addEventListener('click', (e) => {
-    const sub = e.target.closest('.fabSub');
-    if(!sub) return;
-    if(!sub.classList.contains('eligible')){ e.preventDefault(); return; }
-    cerrarFabGroup();
-  });
-  document.addEventListener('click', (e) => {
-    if(!e.target.closest('#pdFabGroup')) cerrarFabGroup();
-  });
 
   function updateWhatsappFab(telefono){
     const fab = $('#pdWhatsappFab');
     const d = normalizePhoneAR(telefono);
     const elegible = d.length >= 11;
-    fab.classList.toggle('eligible', elegible);
-    if(elegible){ fab.href = whatsappHref(d, ''); fab.title = 'Abrir WhatsApp'; }
-    else fab.title = 'Para habilitar: cargá el teléfono del paciente';
-    updateFabGroupVisibility();
+    setBtnContactoEstado(fab, elegible, 'Cargá el teléfono del paciente para habilitarlo');
+    if(elegible) fab.href = whatsappHref(d, '');
   }
 
   // Manda por WhatsApp el link a la página de contacto de Pablo (pablomaynard.com.ar/contacto),
@@ -3047,15 +3022,11 @@ if('serviceWorker' in navigator){
     if(!fab) return;
     const d = p ? normalizePhoneAR(p.telefono) : '';
     const elegible = d.length >= 11;
-    fab.classList.toggle('eligible', elegible);
+    setBtnContactoEstado(fab, elegible, 'Cargá el teléfono del paciente para habilitarlo');
     if(elegible){
       const texto = `¡Hola ${p.nombre || ''}! Te paso mi ficha de contacto para que la guardes en tu celular: ${CONTACTO_LINK}`;
       fab.href = whatsappHref(d, texto);
-      fab.title = 'Enviar mi ficha de contacto por WhatsApp';
-    } else {
-      fab.title = 'Para habilitar: cargá el teléfono del paciente';
     }
-    updateFabGroupVisibility();
   }
 
   // ---- Guía premium por WhatsApp (guía + consentimiento informado fusionados) ----
@@ -3113,15 +3084,10 @@ if('serviceWorker' in navigator){
     const d = p ? normalizePhoneAR(p.telefono) : '';
     const institucion = p ? matchInstitucionConsentimiento(p.sanatorio) : null;
     const elegible = d.length >= 11 && !!(p && p.tipo_consentimiento) && !!institucion;
-    fab.classList.toggle('eligible', elegible);
+    setBtnContactoEstado(fab, elegible, 'Cargá teléfono, sanatorio (que coincida con una carpeta de consentimientos) y tipo de consentimiento');
     if(elegible && p.guia_enviada_at){
-      fab.title = 'Ya se envió la guía el ' + new Date(p.guia_enviada_at).toLocaleDateString('es-AR') + ' — tocá para volver a enviar';
-    } else {
-      fab.title = elegible
-        ? 'Enviar guía premium por WhatsApp'
-        : 'Para habilitar: cargá teléfono, sanatorio (que coincida con una carpeta de consentimientos) y tipo de consentimiento';
+      fab.querySelector('.btnContactoHint').textContent = 'Ya se envió el ' + new Date(p.guia_enviada_at).toLocaleDateString('es-AR') + ' — tocá para volver a enviar';
     }
-    updateFabGroupVisibility();
     renderGuiaEnviadaInfo(p);
   }
 
@@ -3157,8 +3123,13 @@ if('serviceWorker' in navigator){
       return;
     }
     const fab = $('#pdGuiaFab');
+    const fabIcon = fab.querySelector('svg.lucide, i[data-lucide]');
+    const fabLabel = fab.querySelector('div > div:first-child');
+    const textoOriginal = fabLabel ? fabLabel.textContent : '';
     fab.disabled = true;
-    fab.innerHTML = '<i data-lucide="loader"></i>';
+    fab.classList.add('disabled');
+    if(fabIcon) fabIcon.outerHTML = '<i data-lucide="loader"></i>';
+    if(fabLabel) fabLabel.textContent = 'Armando la guía...';
     if(window.lucide) lucide.createIcons();
     try {
       const { PDFDocument, StandardFonts, rgb } = PDFLib;
@@ -3309,15 +3280,19 @@ if('serviceWorker' in navigator){
       flashIn($('#pacMsg'), 'Error al armar la guía: ' + err.message, true);
     } finally {
       fab.disabled = false;
-      fab.innerHTML = '<i data-lucide="file-text"></i>';
+      fab.classList.remove('disabled');
+      const loaderIcon = fab.querySelector('svg.lucide, i[data-lucide]');
+      if(loaderIcon) loaderIcon.outerHTML = '<i data-lucide="file-text"></i>';
+      const label = fab.querySelector('div > div:first-child');
+      if(label) label.textContent = textoOriginal || 'Enviar guía premium por WhatsApp';
       if(window.lucide) lucide.createIcons();
+      updateGuiaFab(p);
     }
   }
 
   $('#pdGuiaFab').addEventListener('click', () => {
     const p = currentPaciente();
     if(!p) return;
-    cerrarFabGroup();
     generarYEnviarGuia(p);
   });
 
@@ -3415,23 +3390,20 @@ if('serviceWorker' in navigator){
     const link = reviewLinkElegible();
     const d = p ? normalizePhoneAR(p.telefono) : '';
     const elegible = !!link && d.length >= 11;
-    fab.classList.toggle('eligible', elegible);
+    const label = fab.querySelector('div > div:first-child');
+    setBtnContactoEstado(fab, elegible, link ? 'Cargá el teléfono del paciente para habilitarlo' : 'Configurá el link de reseñas de Google (solo admin)');
+    fab.classList.remove('sent');
     if(elegible){
       if(p.review_solicitado_at){
         fab.classList.add('sent');
-        fab.innerHTML = '<i data-lucide="check"></i>';
-        fab.title = 'Ya le pediste una reseña el ' + new Date(p.review_solicitado_at).toLocaleDateString('es-AR');
+        if(label) label.textContent = 'Reseña ya solicitada';
+        fab.querySelector('.btnContactoHint').textContent = 'Se la pediste el ' + new Date(p.review_solicitado_at).toLocaleDateString('es-AR');
         fab.removeAttribute('href');
       } else {
-        fab.classList.remove('sent');
-        fab.innerHTML = '<i data-lucide="star"></i>';
-        fab.title = 'Pedir reseña por WhatsApp';
+        if(label) label.textContent = 'Pedir reseña por WhatsApp';
         fab.href = whatsappHref(d, reviewMensaje(p, link));
       }
-    } else {
-      fab.title = link ? 'Para habilitar: cargá el teléfono del paciente' : 'Para habilitar: configurá el link de reseñas de Google (solo admin)';
     }
-    updateFabGroupVisibility();
   }
 
   async function marcarReviewSolicitada(p){
