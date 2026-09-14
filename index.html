@@ -3208,6 +3208,66 @@ if('serviceWorker' in navigator){
       const consentPages = await out.copyPages(consentDoc, consentDoc.getPageIndices());
       consentPages.forEach(pg => out.addPage(pg));
 
+      // ---- Resumen de contratación (a modo de recibo, sin montos) — misma
+      // redacción que el Artifact "Plan Quirúrgico" standalone, armada acá a
+      // partir de lo que ya está tildado en la ficha del paciente.
+      const resumen = out.addPage([W, H]);
+      resumen.drawRectangle({ x: 0, y: 0, width: W, height: H, color: bg });
+      const wmScale = 300 / logoImg.width;
+      const wmDim = { width: 300, height: logoImg.height * wmScale };
+      resumen.drawImage(logoImg, {
+        x: (W - wmDim.width) / 2, y: (H - wmDim.height) / 2 - 40,
+        width: wmDim.width, height: wmDim.height, opacity: 0.06
+      });
+      resumen.drawRectangle({ x: 0, y: H - 90, width: W, height: 90, color: navy });
+      resumen.drawText('Resumen de tu plan', { x: 56, y: H - 52, size: 20, font: fontTitulo, color: rgb(1, 1, 1) });
+      resumen.drawText(new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }), { x: 56, y: H - 72, size: 10, font: fontBody, color: rgb(1, 1, 1) });
+
+      const itemsResumen = ['Cirugía (VATS uniportal)'];
+      if(p.incluye_anatomia_patologica) itemsResumen.push('Anatomía patológica');
+      if(p.incluye_kinesiologia) itemsResumen.push('Kinesiología post-operatoria');
+      if(p.incluye_neumonologia_preqx) itemsResumen.push('Evaluación preQx de Neumonología');
+      if(p.incluye_cardiologia_preqx) itemsResumen.push('Evaluación preQx de Cardiología');
+
+      let yR = H - 125;
+      for(const it of itemsResumen){
+        resumen.drawText('✓  ' + it, { x: 56, y: yR, size: 12, font: fontBody, color: navy });
+        yR -= 20;
+      }
+      yR -= 14;
+
+      const seccionesResumen = [
+        ['Cómo se va a operar', 'Tu cirugía se realiza por VATS uniportal: un único acceso de pocos centímetros entre las costillas, sin separar ni fracturar ninguna. Es el abordaje mínimamente invasivo que uso de forma habitual porque, en la mayoría de los casos, se traduce en menos dolor postoperatorio, una movilización más temprana y una recuperación más rápida que la cirugía abierta convencional.']
+      ];
+      if(p.incluye_anatomia_patologica){
+        seccionesResumen.push(['Estudio de la pieza quirúrgica', 'Incluye el estudio anatomopatológico básico de lo que se extraiga durante la cirugía, lo que acelera la entrega del resultado. Si ese estudio sugiere la necesidad de inmunohistoquímica (IHQ) para caracterizar mejor el tejido, esa técnica se cotiza aparte.']);
+      }
+      if(p.incluye_kinesiologia){
+        seccionesResumen.push(['Kinesiología post-operatoria', 'Incluye kinesiología como parte de tu recuperación post-operatoria, para ayudarte a recuperar la movilidad más rápido y de forma más segura.']);
+      }
+      if(p.incluye_neumonologia_preqx || p.incluye_cardiologia_preqx){
+        const n = p.incluye_neumonologia_preqx, c = p.incluye_cardiologia_preqx;
+        const txt = (n && c)
+          ? 'Tenés turno prioritario para las evaluaciones preoperatorias de neumonología y cardiología, para no demorar la programación de tu cirugía.'
+          : n
+            ? 'Tenés turno prioritario para la evaluación preoperatoria de neumonología, para no demorar la programación de tu cirugía.'
+            : 'Tenés turno prioritario para la evaluación preoperatoria de cardiología, para no demorar la programación de tu cirugía.';
+        seccionesResumen.push(['Evaluación preoperatoria con turno prioritario', txt]);
+      }
+
+      for(const [titulo, texto] of seccionesResumen){
+        resumen.drawText(titulo, { x: 56, y: yR, size: 13, font: fontTitulo, color: navy });
+        yR -= 18;
+        for(const line of wrapText(texto, fontBody, 11, W - 112)){
+          resumen.drawText(line, { x: 56, y: yR, size: 11, font: fontBody, color: gray });
+          yR -= 16;
+        }
+        yR -= 16;
+      }
+
+      resumen.drawLine({ start: { x: 56, y: 76 }, end: { x: W - 56, y: 76 }, thickness: 1, color: softBlue });
+      resumen.drawText('Este resumen es informativo y detalla lo contratado — no reemplaza el consentimiento informado.', { x: 56, y: 56, size: 9, font: fontBody, color: gray });
+
       const finalBytes = await out.save();
       const blob = new Blob([finalBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
