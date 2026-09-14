@@ -3023,16 +3023,36 @@ if('serviceWorker' in navigator){
   // que ya tiene su propio botón "Guardar en mis contactos" (genera el vCard con foto ahí mismo) —
   // se reusa esa página en vez de duplicar el vCard acá, así queda una sola fuente de verdad.
   const CONTACTO_LINK = 'https://pablomaynard.com.ar/contacto';
+  // De un solo uso por paciente, igual que el pedido de reseña — evita
+  // mandarle la ficha de contacto dos veces sin querer.
   function updateContactoFab(p){
     const fab = $('#pdContactoFab');
     if(!fab) return;
     const d = p ? normalizePhoneAR(p.telefono) : '';
     const elegible = d.length >= 11;
+    const label = fab.querySelector('div > div:first-child');
     setBtnContactoEstado(fab, elegible, 'Cargá el teléfono del paciente para habilitarlo');
+    fab.classList.remove('sent');
     if(elegible){
-      const texto = `¡Hola ${p.nombre || ''}! Te paso mi ficha de contacto para que la guardes en tu celular: ${CONTACTO_LINK}`;
-      fab.href = whatsappHref(d, texto);
+      if(p.contacto_enviado_at){
+        fab.classList.add('sent');
+        if(label) label.textContent = 'Contacto ya enviado';
+        fab.querySelector('.btnContactoHint').textContent = 'Se lo mandaste el ' + new Date(p.contacto_enviado_at).toLocaleDateString('es-AR');
+        fab.removeAttribute('href');
+      } else {
+        if(label) label.textContent = 'Enviar mi ficha de contacto';
+        const texto = `¡Hola ${p.nombre || ''}! Te paso mi ficha de contacto para que la guardes en tu celular: ${CONTACTO_LINK}`;
+        fab.href = whatsappHref(d, texto);
+      }
     }
+  }
+
+  async function marcarContactoEnviado(p){
+    const now = new Date().toISOString();
+    p.contacto_enviado_at = now;
+    updateContactoFab(p);
+    const { error } = await sb.from('pacientes').update({ contacto_enviado_at: now }).eq('id', p.id);
+    if(error){ p.contacto_enviado_at = null; updateContactoFab(p); flash('Error al guardar: ' + error.message, true); }
   }
 
   // ---- Guía premium por WhatsApp (guía + consentimiento informado fusionados) ----
@@ -3494,6 +3514,11 @@ if('serviceWorker' in navigator){
     const p = currentPaciente();
     if(!p || p.review_solicitado_at){ e.preventDefault(); return; }
     setTimeout(() => marcarReviewSolicitada(p), 0);
+  });
+  $('#pdContactoFab').addEventListener('click', (e) => {
+    const p = currentPaciente();
+    if(!p || p.contacto_enviado_at){ e.preventDefault(); return; }
+    setTimeout(() => marcarContactoEnviado(p), 0);
   });
 
   $('#btnPacBack').addEventListener('click', () => {
