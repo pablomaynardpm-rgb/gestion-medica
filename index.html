@@ -2995,13 +2995,16 @@ if('serviceWorker' in navigator){
     if(!group) return;
     group.classList.remove('open');
     $('#pdFabToggle').innerHTML = '<i data-lucide="message-circle"></i>';
+    if(window.lucide) lucide.createIcons();
   }
 
-  $('#pdFabToggle').addEventListener('click', () => {
+  $('#pdFabToggle').addEventListener('click', (e) => {
+    e.stopPropagation();
     const group = $('#pdFabGroup');
     const abrir = !group.classList.contains('open');
     group.classList.toggle('open', abrir);
     $('#pdFabToggle').innerHTML = abrir ? '<i data-lucide="x"></i>' : '<i data-lucide="message-circle"></i>';
+    if(window.lucide) lucide.createIcons();
   });
   $('#pdFabGroup').addEventListener('click', (e) => {
     const sub = e.target.closest('.fabSub');
