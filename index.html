@@ -2974,10 +2974,22 @@ if('serviceWorker' in navigator){
 
   function whatsappHref(d, texto){
     const esAndroid = /Android/i.test(navigator.userAgent);
+    const esMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const base = texto ? `https://wa.me/${d}?text=${encodeURIComponent(texto)}` : `https://wa.me/${d}`;
-    if(!esAndroid) return base;
-    const params = `phone=${d}` + (texto ? `&text=${encodeURIComponent(texto)}` : '');
-    return `intent://send?${params}#Intent;scheme=whatsapp;package=com.whatsapp.w4b;S.browser_fallback_url=${encodeURIComponent(base)};end`;
+    if(esAndroid){
+      const params = `phone=${d}` + (texto ? `&text=${encodeURIComponent(texto)}` : '');
+      return `intent://send?${params}#Intent;scheme=whatsapp;package=com.whatsapp.w4b;S.browser_fallback_url=${encodeURIComponent(base)};end`;
+    }
+    // En computadora (no es celular): usar el esquema whatsapp:// directo en
+    // vez de wa.me — wa.me tiende a mandar a WhatsApp Web en el navegador,
+    // mientras que whatsapp:// lo agarra la app de escritorio instalada
+    // (WhatsApp o WhatsApp Business) si Windows la tiene como la app
+    // predeterminada para ese protocolo.
+    if(!esMobile){
+      const params = `phone=${d}` + (texto ? `&text=${encodeURIComponent(texto)}` : '');
+      return `whatsapp://send?${params}`;
+    }
+    return base;
   }
 
   // Los 3 botones de contacto de la ficha (WhatsApp / reseña / mi contacto)
