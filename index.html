@@ -208,7 +208,12 @@
   .navtab:hover{background:transparent; color:var(--text)}
   .navtab.active{color:var(--accent); border-bottom-color:var(--accent)}
   .view{display:none}
-  .fichaTabs{display:flex; gap:4px; margin:0 0 16px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; overflow-x:auto}
+  .fichaSticky{position:sticky; top:var(--appHeaderH,64px); z-index:30; background:var(--bg); margin:0 0 16px 0; padding-top:4px}
+  .fichaResumen{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; padding:6px 2px 8px 2px; min-width:0}
+  .fichaResumen .fichaResumenNombre{font-size:16px; font-weight:700; color:var(--text)}
+  .fichaResumen .fichaResumenDx{font-size:13px; color:var(--muted)}
+  .fichaResumen .fichaResumenDx:not(:empty)::before{content:'· '}
+  .fichaTabs{display:flex; gap:4px; margin:0; border-bottom:1px solid var(--border); flex-wrap:wrap; overflow-x:auto}
   .fichaTab{
     background:transparent; color:var(--muted); border:none; border-bottom:2px solid transparent;
     border-radius:0; padding:9px 12px; font-size:12px; font-weight:600; white-space:nowrap;
@@ -630,6 +635,8 @@
         <span id="pdCondicion"></span>
       </div>
 
+      <div class="fichaSticky">
+      <div class="fichaResumen"><span class="fichaResumenNombre" id="pdResumenNombre"></span><span class="fichaResumenDx" id="pdResumenDx"></span></div>
       <div class="fichaTabs">
         <button type="button" class="fichaTab active" data-fichatab="fichaTabGenerales">Datos generales</button>
         <button type="button" class="fichaTab" data-fichatab="fichaTabContacto">Contacto</button>
@@ -638,6 +645,7 @@
         <button type="button" class="fichaTab" data-fichatab="fichaTabPreqx">PreQx</button>
         <button type="button" class="fichaTab" data-fichatab="fichaTabImagenes">Imágenes</button>
         <button type="button" class="fichaTab" data-fichatab="fichaTabProtocolo">Protocolo y anatomía</button>
+      </div>
       </div>
 
       <div class="fichaTabContent active" id="fichaTabGenerales">
@@ -3528,6 +3536,19 @@ if('serviceWorker' in navigator){
     renderPacientes();
   });
 
+  function refreshFichaResumen(){
+    const p = currentPaciente();
+    if(!p) return;
+    $('#pdResumenNombre').textContent = p.nombre || 'Sin nombre';
+    $('#pdResumenDx').textContent = p.diagnostico || '';
+  }
+
+  function syncAppHeaderHeight(){
+    const h = document.querySelector('header');
+    if(h) document.documentElement.style.setProperty('--appHeaderH', h.offsetHeight + 'px');
+  }
+  window.addEventListener('resize', syncAppHeaderHeight);
+
   function refreshCondicionBadge(){
     const p = currentPaciente();
     if(!p) return;
@@ -3539,6 +3560,8 @@ if('serviceWorker' in navigator){
     if(!p) return;
 
     refreshCondicionBadge();
+    syncAppHeaderHeight();
+    refreshFichaResumen();
     $('#pdNombre').value = p.nombre || '';
     $('#pdSanatorio').value = p.sanatorio || '';
     $('#pdSanatorioDot').style.background = sanatorioColor(p.sanatorio) || 'transparent';
@@ -3638,6 +3661,7 @@ if('serviceWorker' in navigator){
     if(['fecha_qx','hora_qx','sanatorio','nombre','operacion'].includes(key)) syncCalendarEvent(p.id);
     if(['fecha_qx','materiales'].includes(key)) refreshCondicionBadge();
     if(['edad','diagnostico','sexo'].includes(key)) recomputePretest();
+    if(key === 'nombre' || key === 'diagnostico') refreshFichaResumen();
     if(key === 'telefono') updateWhatsappFab(value);
     if(key === 'telefono' || key === 'nombre'){ updateReviewFab(p); updateContactoFab(p); }
     if(['telefono','nombre','sanatorio','tipo_consentimiento'].includes(key)) updateGuiaFab(p);
