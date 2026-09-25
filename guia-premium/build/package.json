@@ -1,0 +1,12 @@
+{
+  "name": "guia-base-pdf",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Regenerates guia-premium/base.pdf from the text in build-base-pdf.js",
+  "scripts": {
+    "build": "node build-base-pdf.js"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}
