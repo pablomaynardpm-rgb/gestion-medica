@@ -24,6 +24,10 @@ const lightGray = rgb(0x8A / 255, 0x92 / 255, 0x9B / 255);
 const softBlue = rgb(0xCE / 255, 0xDE / 255, 0xEE / 255);
 const softBlueBg = rgb(0xEA / 255, 0xF1 / 255, 0xF8 / 255);
 const white = rgb(1, 1, 1);
+// Igual paleta de alerta que ya usamos en otras herramientas (hiperhidrosis,
+// Plan Quirúrgico) para lo que hay que leer con más atención.
+const alertRed = rgb(0xB2 / 255, 0x3A / 255, 0x3A / 255);
+const alertBg = rgb(0xFB / 255, 0xEC / 255, 0xEC / 255);
 
 async function main() {
   const logoBytes = fs.readFileSync(LOGO_PATH);
@@ -71,24 +75,25 @@ async function main() {
   }
 
   function heading(text) {
-    checkSpace(40);
-    y -= 8;
-    page.drawText(text, { x: MARGIN, y, size: 16, font: bold, color: navy });
-    y -= 6;
+    checkSpace(46);
+    y -= 16;
+    page.drawText(text, { x: MARGIN, y, size: 17, font: bold, color: navy });
+    y -= 7;
     page.drawLine({ start: { x: MARGIN, y }, end: { x: W - MARGIN, y }, thickness: 1, color: softBlue });
-    y -= 20;
+    y -= 24;
   }
 
   function subheading(text) {
-    checkSpace(26);
+    checkSpace(30);
+    y -= 4;
     page.drawText(text, { x: MARGIN, y, size: 12.5, font: bold, color: navy });
-    y -= 18;
+    y -= 20;
   }
 
   function paragraph(text, opts) {
     opts = opts || {};
     const size = opts.size || 11;
-    const lineH = opts.lineH || 15;
+    const lineH = opts.lineH || 16;
     const font = opts.bold ? bold : body;
     const color = opts.color || gray;
     const lines = wrapText(text, font, size, CONTENT_W);
@@ -97,11 +102,11 @@ async function main() {
       page.drawText(line, { x: MARGIN, y, size, font, color });
       y -= lineH;
     });
-    y -= (opts.gapAfter != null ? opts.gapAfter : 10);
+    y -= (opts.gapAfter != null ? opts.gapAfter : 14);
   }
 
   function bulletList(items) {
-    const size = 11, lineH = 15, indent = 14;
+    const size = 11, lineH = 16, indent = 14;
     items.forEach((item) => {
       const lines = wrapText(item, body, size, CONTENT_W - indent);
       checkSpace(lineH);
@@ -111,8 +116,37 @@ async function main() {
         page.drawText(line, { x: MARGIN + indent, y, size, font: body, color: gray });
         y -= lineH;
       });
+      y -= 4;
     });
     y -= 8;
+  }
+
+  // Recuadro destacado en rojo, para lo que hay que leer con más atención
+  // (señales de alarma) — mismo tratamiento de color que ya usamos para
+  // "importante" en otras herramientas.
+  function alertBox(title, items) {
+    const pad = 16, size = 11, lineH = 16, indent = 14;
+    const innerW = CONTENT_W - pad * 2 - indent;
+    const wrapped = items.map((it) => wrapText(it, body, size, innerW));
+    const titleH = 24;
+    const itemsH = wrapped.reduce((sum, lines) => sum + lines.length * lineH + 5, 0);
+    const boxH = pad * 2 + titleH + itemsH;
+    checkSpace(boxH + 16);
+    const top = y;
+    page.drawRectangle({ x: MARGIN, y: top - boxH, width: CONTENT_W, height: boxH, color: alertBg, borderColor: alertRed, borderWidth: 0.75 });
+    page.drawRectangle({ x: MARGIN, y: top - boxH, width: 5, height: boxH, color: alertRed });
+    let ly = top - pad - 11;
+    page.drawText(title, { x: MARGIN + pad, y: ly, size: 12.5, font: bold, color: alertRed });
+    ly -= titleH;
+    wrapped.forEach((lines) => {
+      page.drawText('•', { x: MARGIN + pad, y: ly, size, font: body, color: alertRed });
+      lines.forEach((line) => {
+        page.drawText(line, { x: MARGIN + pad + indent, y: ly, size, font: body, color: alertRed });
+        ly -= lineH;
+      });
+      ly -= 5;
+    });
+    y = top - boxH - 16;
   }
 
   function table(rows, colWidths) {
@@ -140,38 +174,31 @@ async function main() {
       });
       y = rowTop - thisRowH;
     });
-    y -= 14;
+    y -= 18;
   }
 
   function stepBlock(num, title, text) {
-    const size = 11, lineH = 15, indent = 34;
-    const lines = wrapText(text, body, size, CONTENT_W - indent);
-    const blockH = 20 + lines.length * lineH + 10;
-    checkSpace(blockH);
+    const size = 11, lineH = 16, indent = 34, pad = 14;
+    const lines = wrapText(text, body, size, CONTENT_W - indent - 10);
+    const blockH = pad * 2 + 20 + lines.length * lineH;
+    checkSpace(blockH + 14);
     const top = y;
     page.drawRectangle({ x: MARGIN, y: top - blockH, width: CONTENT_W, height: blockH, color: softBlueBg });
-    page.drawText(String(num), { x: MARGIN + 10, y: top - 22, size: 13, font: bold, color: navy });
-    page.drawText(title, { x: MARGIN + indent, y: top - 20, size: 12, font: bold, color: navy });
-    let ly = top - 36;
+    page.drawText(String(num), { x: MARGIN + 12, y: top - pad - 10, size: 13, font: bold, color: navy });
+    page.drawText(title, { x: MARGIN + indent, y: top - pad - 8, size: 12, font: bold, color: navy });
+    let ly = top - pad - 26;
     lines.forEach((line) => {
       page.drawText(line, { x: MARGIN + indent, y: ly, size, font: body, color: gray });
       ly -= lineH;
     });
-    y = top - blockH - 10;
+    y = top - blockH - 14;
   }
 
   // ---- contenido ----
+  // "Antes de arrancar" (bienvenida + firma) ahora vive en la portada
+  // dinámica (index.html), personalizada con el nombre y la cirugía del
+  // paciente — no tiene sentido duplicarla acá en genérico.
   newPage();
-
-  heading('Antes de arrancar');
-  paragraph('Armé esta guía para vos, para que tengas todo el proceso de tu cirugía ordenado en un solo lugar: qué vas a necesitar antes, qué va a pasar el día de la cirugía, qué vas a sentir al despertar, y cómo sigue todo una vez que estés en tu casa.');
-  paragraph('Sé que una cirugía genera nervios, incluso cuando el riesgo es bajo — es así para casi todos mis pacientes, y es totalmente normal. Prefiero que tengas esto por escrito desde ahora, en vez de que te vayas enterando de cada paso sobre la marcha.');
-  paragraph('Leela con calma, andá completando los espacios en blanco a medida que avanzás, y anotá cualquier duda que te surja en la última sección. Las repasamos juntos en la próxima consulta, o me escribís directo — para eso estoy.');
-  y -= 2;
-  paragraph('Pablo', { bold: true, gapAfter: 2, color: navy });
-  paragraph('Dr. Pablo Maynard — Cirujano Torácico — M.N. 121828 / M.P. 232938', { size: 9.5, gapAfter: 2, color: lightGray });
-  paragraph('cirugia.torax.maynard@gmail.com', { size: 9.5, gapAfter: 2, color: lightGray });
-  paragraph('pablomaynard.com.ar · @dr.maynard.pablo', { size: 9.5, gapAfter: 22, color: lightGray });
 
   heading('Cronograma del proceso');
   paragraph('Cinco etapas, de principio a fin. Cada una la vas a encontrar detallada más adelante en esta guía.', { gapAfter: 14 });
@@ -216,8 +243,7 @@ async function main() {
     'Mantené la herida limpia y seca; no te pongas cremas ni apósitos que no te haya indicado'
   ]);
 
-  subheading('Señales de alarma — consultá de inmediato');
-  bulletList([
+  alertBox('Señales de alarma — consultá de inmediato', [
     'Fiebre mayor a 38°C',
     'Dificultad para respirar o sensación de falta de aire',
     'Dolor torácico intenso que no cede con la analgesia indicada',

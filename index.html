@@ -3179,8 +3179,10 @@ if('serviceWorker' in navigator){
       const fontBody = await out.embedFont(StandardFonts.Helvetica);
       const navy = rgb(0x0E/255, 0x4B/255, 0x78/255);
       const gray = rgb(0x50/255, 0x56/255, 0x5E/255);
+      const lightGray = rgb(0x8A/255, 0x92/255, 0x9B/255);
       const bg = rgb(0xF7/255, 0xF9/255, 0xFB/255);
       const softBlue = rgb(0xCE/255, 0xDE/255, 0xEE/255);
+      const softBlueBg = rgb(0xEA/255, 0xF1/255, 0xF8/255);
 
       const W = 595.28, H = 841.89; // A4 en puntos
       const cover = out.addPage([W, H]);
@@ -3191,8 +3193,8 @@ if('serviceWorker' in navigator){
       cover.drawText('Cirujano Torácico', { x: 56 + logoDim.width + 12, y: H - 56 - 32, size: 10, font: fontBody, color: gray });
       cover.drawLine({ start: { x: 56, y: H - 110 }, end: { x: W - 56, y: H - 110 }, thickness: 1, color: softBlue });
 
-      cover.drawText('Guía del paciente', { x: 56, y: H - 170, size: 26, font: fontTitulo, color: navy });
-      cover.drawText(`Hola ${p.nombre || ''}`, { x: 56, y: H - 205, size: 16, font: fontTitulo, color: navy });
+      cover.drawText('Guía del paciente quirúrgico', { x: 56, y: H - 168, size: 23, font: fontTitulo, color: navy });
+      cover.drawText(`Hola ${p.nombre || ''}`, { x: 56, y: H - 200, size: 17, font: fontTitulo, color: navy });
 
       const wrapText = (text, font, size, maxW) => {
         const words = String(text).split(' ');
@@ -3206,25 +3208,47 @@ if('serviceWorker' in navigator){
         if(line) lines.push(line);
         return lines;
       };
-      const intro = 'Te armé esta guía para que tengas todo el proceso de tu cirugía ordenado en un solo lugar, junto con el consentimiento informado correspondiente. Cualquier duda, quedo a disposición.';
-      let y = H - 235;
-      for(const line of wrapText(intro, fontBody, 12, W - 112)){
-        cover.drawText(line, { x: 56, y, size: 12, font: fontBody, color: gray });
-        y -= 16;
-      }
+      const drawParagraph = (text, startY, opts) => {
+        opts = opts || {};
+        const size = opts.size || 12, lineH = opts.lineH || 16;
+        let yy = startY;
+        for(const line of wrapText(text, opts.font || fontBody, size, W - 112)){
+          cover.drawText(line, { x: 56, y: yy, size, font: opts.font || fontBody, color: opts.color || gray });
+          yy -= lineH;
+        }
+        return yy;
+      };
+
+      const operacionTexto = p.operacion || 'cirugía';
+      let y = H - 230;
+      y = drawParagraph(`Armé esta guía para que tengas todo el proceso de tu ${operacionTexto} ordenado en un solo lugar: qué vas a necesitar antes, qué va a pasar el día de la cirugía, qué vas a sentir al despertar, y cómo sigue todo una vez que estés en tu casa — junto con el consentimiento informado correspondiente.`, y);
+      y -= 8;
+      y = drawParagraph('Sé que genera nervios, incluso cuando el riesgo es bajo — es así para casi todos mis pacientes, y es totalmente normal. Leela con calma y anotá cualquier duda que te surja; la charlamos en la próxima consulta, o me escribís directo, para eso estoy.', y);
+      y -= 16;
+
+      y = drawParagraph('Pablo', y, { font: fontTitulo, size: 13, color: navy, lineH: 15 });
+      y -= 3;
+      y = drawParagraph('Dr. Pablo Maynard — Cirujano Torácico — M.N. 121828 / M.P. 232938', y, { size: 9.5, color: lightGray, lineH: 12 });
+      y = drawParagraph('cirugia.torax.maynard@gmail.com  ·  pablomaynard.com.ar  ·  @dr.maynard.pablo', y, { size: 9.5, color: lightGray, lineH: 12 });
+      y -= 22;
 
       const datos = [
-        ['Cirugía', p.operacion || '-'],
-        ['Institución', p.sanatorio || '-'],
-        ['Fecha', p.fecha_qx ? new Date(p.fecha_qx + 'T00:00:00').toLocaleDateString('es-AR') : 'A confirmar']
+        ['CIRUGÍA', p.operacion || '-'],
+        ['INSTITUCIÓN', p.sanatorio || '-'],
+        ['FECHA', p.fecha_qx ? new Date(p.fecha_qx + 'T00:00:00').toLocaleDateString('es-AR') : 'A confirmar']
       ];
-      y -= 20;
+      const datosPad = 16, datosRowH = 38;
+      const datosBoxH = datosPad * 2 + datos.length * datosRowH;
+      const datosTop = y;
+      cover.drawRectangle({ x: 56, y: datosTop - datosBoxH, width: W - 112, height: datosBoxH, color: softBlueBg, borderColor: softBlue, borderWidth: 0.75 });
+      let ry = datosTop - datosPad - 10;
       for(const [label, val] of datos){
-        cover.drawText(label.toUpperCase(), { x: 56, y, size: 9, font: fontTitulo, color: navy });
-        y -= 15;
-        cover.drawText(String(val), { x: 56, y, size: 12, font: fontBody, color: gray });
-        y -= 24;
+        cover.drawText(label, { x: 56 + datosPad, y: ry, size: 9, font: fontTitulo, color: navy });
+        ry -= 15;
+        cover.drawText(String(val), { x: 56 + datosPad, y: ry, size: 12, font: fontBody, color: gray });
+        ry -= 23;
       }
+      y = datosTop - datosBoxH;
 
       const baseDoc = await PDFDocument.load(baseBytes);
       const basePages = await out.copyPages(baseDoc, baseDoc.getPageIndices());
