@@ -353,17 +353,10 @@
   .internadoCard .nombre{font-weight:700; font-size:14px; margin-top:2px}
   .internadoCard .meta{font-size:12px; color:var(--muted); margin-top:6px}
   .internadoCard .dias{font-size:11px; color:var(--accent); font-weight:600; margin-top:8px}
-  /* Nivel del programa: un marco + insignia en la tarjeta, sin tocar el
-     border-left (que ya codifica sanatorio/condición) — se suman, no compiten. */
-  .internadoCard.nivel-dorado{box-shadow:0 0 0 2px #D4AF37, 0 2px 8px rgba(0,0,0,0.08); background:linear-gradient(135deg, rgba(212,175,55,0.10), var(--panel) 60%)}
-  .internadoCard.nivel-dorado:hover{box-shadow:0 0 0 2px #D4AF37, 0 6px 16px rgba(0,0,0,0.14)}
-  .internadoCard.nivel-platinum{box-shadow:0 0 0 2px #9CA3AF, 0 2px 8px rgba(0,0,0,0.08); background:linear-gradient(135deg, rgba(156,163,175,0.10), var(--panel) 60%)}
-  .internadoCard.nivel-platinum:hover{box-shadow:0 0 0 2px #9CA3AF, 0 6px 16px rgba(0,0,0,0.14)}
-  .internadoCard.nivel-black{box-shadow:0 0 0 2px #18181B, 0 2px 8px rgba(0,0,0,0.08); background:linear-gradient(135deg, rgba(24,24,27,0.10), var(--panel) 60%)}
-  .internadoCard.nivel-black:hover{box-shadow:0 0 0 2px #18181B, 0 6px 16px rgba(0,0,0,0.14)}
-  .badge.nivel-badge-dorado{background:rgba(212,175,55,0.18); color:#9A7B0A; font-weight:800; text-transform:uppercase; letter-spacing:.03em}
-  .badge.nivel-badge-platinum{background:rgba(156,163,175,0.22); color:#54595F; font-weight:800; text-transform:uppercase; letter-spacing:.03em}
-  .badge.nivel-badge-black{background:#18181B; color:#fff; font-weight:800; text-transform:uppercase; letter-spacing:.03em}
+  /* Indicador de "tiene extras contratados": un marco en la tarjeta, sin tocar
+     el border-left (que ya codifica sanatorio/condición) — se suman, no compiten. */
+  .internadoCard.tiene-extras{box-shadow:0 0 0 2px #D4AF37, 0 2px 8px rgba(0,0,0,0.08); background:linear-gradient(135deg, rgba(212,175,55,0.10), var(--panel) 60%)}
+  .internadoCard.tiene-extras:hover{box-shadow:0 0 0 2px #D4AF37, 0 6px 16px rgba(0,0,0,0.14)}
   .modalOverlay{
     position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100;
     display:flex; align-items:center; justify-content:center; padding:20px;
@@ -1195,13 +1188,12 @@
   <div class="view" id="viewCalculadora">
     <div class="panel">
       <h2><i data-lucide="calculator"></i> Calculadora de guía</h2>
-      <div class="msg" style="margin-top:0; margin-bottom:12px">Tildá lo que incluye la cirugía de este paciente — el total y la categoría se calculan solos, para mostrarle la pantalla sin tener que decir el monto en voz alta.</div>
+      <div class="msg" style="margin-top:0; margin-bottom:12px">Tildá lo que incluye la cirugía de este paciente — el total se calcula solo, para mostrarle la pantalla sin tener que decir el monto en voz alta.</div>
       <div class="calcTotalBox">
         <div>
           <div class="calcTotalLabel">Total</div>
           <div class="calcTotalValor" id="calcTotalValor">$0</div>
         </div>
-        <div id="calcCategoriaBadge"></div>
       </div>
       <ul class="contactList calcServiciosList" id="calcServiciosList" style="max-height:none"></ul>
       <div class="msg" style="margin-bottom:0">Los precios se guardan en este navegador — la próxima vez ya los vas a encontrar cargados.</div>
@@ -2789,35 +2781,21 @@ if('serviceWorker' in navigator){
     return `<span class="badge cond-${cond}">${CONDICION_LABEL[cond]}</span>`;
   }
 
-  // Nivel del programa — independiente de tipo_consentimiento (que hace
-  // falta para CUALQUIER cirugía, tome o no el programa). Lo dispara
-  // acepta_programa: "no" o sin definir = sin nivel (tarjeta en blanco,
-  // como "no acepta"); "solo_cirugia" = Platinum (el copago de hoy, sin
-  // programa); "si" = se calcula según los 4 componentes que dependen de
-  // terceros — Black si están los 4, Dorado si falta alguno. Como las
-  // tarjetas de crédito (Platinum < Dorado < Black). Deliberadamente NO se
-  // usan las palabras "premium"/"VIP" en ningún texto visible.
+  // Indicador de extras — independiente de tipo_consentimiento (que hace
+  // falta para CUALQUIER cirugía, tome o no extras). "Solo cirugía" (copago)
+  // no cuenta como extra, Pablo lo maneja aparte. Con "si" + al menos un
+  // componente tildado, la tarjeta se marca para saber de un vistazo que
+  // tiene extras, sin tener que abrir la ficha.
   const NIVEL_PROGRAMA_COMPONENTES = ['incluye_anatomia_patologica', 'incluye_kinesiologia', 'incluye_neumonologia_preqx', 'incluye_cardiologia_preqx'];
-  function pacienteNivelPrograma(p){
-    if(!p) return '';
-    if(p.acepta_programa === 'solo_cirugia') return 'platinum';
-    if(p.acepta_programa === 'si') return NIVEL_PROGRAMA_COMPONENTES.every(k => p[k]) ? 'black' : 'dorado';
-    return '';
+  function pacienteTieneExtras(p){
+    return !!(p && p.acepta_programa === 'si' && NIVEL_PROGRAMA_COMPONENTES.some(k => p[k]));
   }
-  const NIVEL_PROGRAMA_LABEL = { platinum: 'Platinum', dorado: 'Dorado', black: 'Black' };
   function nivelProgramaCardClass(p){
-    const nivel = pacienteNivelPrograma(p);
-    return nivel ? ` nivel-${nivel}` : '';
-  }
-  function nivelProgramaBadgeHtml(p){
-    const nivel = pacienteNivelPrograma(p);
-    return nivel ? `<span class="badge nivel-badge-${nivel}">${NIVEL_PROGRAMA_LABEL[nivel]}</span>` : '';
+    return pacienteTieneExtras(p) ? ' tiene-extras' : '';
   }
   function renderNivelProgramaInfo(p){
     const el = $('#pdNivelProgramaInfo');
-    if(!el) return;
-    const nivel = pacienteNivelPrograma(p);
-    el.textContent = nivel ? `Nivel del programa: ${NIVEL_PROGRAMA_LABEL[nivel]}` : '';
+    if(el) el.textContent = pacienteTieneExtras(p) ? 'Tiene extras contratados' : '';
     const wrap = $('#pdComponentesProgramaWrap');
     if(wrap) wrap.style.display = (p && p.acepta_programa === 'si') ? 'block' : 'none';
   }
@@ -2877,7 +2855,6 @@ if('serviceWorker' in navigator){
       ${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ''}
       ${p.diagnostico ? `<div class="meta">${escapeHtml(p.diagnostico)}</div>` : ''}
       ${p.fecha_qx ? `<div class="dias">${escapeHtml(p.fecha_qx)}</div>` : ''}
-      ${nivelProgramaBadgeHtml(p) ? `<div style="margin-top:6px">${nivelProgramaBadgeHtml(p)}</div>` : ''}
     </div>`;
   }
 
@@ -3219,20 +3196,13 @@ if('serviceWorker' in navigator){
         return yy;
       };
 
-      const operacionTexto = p.operacion || 'cirugía';
+      // El saludo largo ("Antes de arrancar") vive en base.pdf — acá solo un
+      // renglón corto y personalizado, para no repetirlo dos veces seguidas
+      // en el PDF final.
+      const operacionTexto = p.operacion || 'tu cirugía';
       let y = H - 230;
-      y = drawParagraph(`Armé esta guía para que tengas todo el proceso de tu ${operacionTexto} ordenado en un solo lugar: qué vas a necesitar antes, qué va a pasar el día de la cirugía, qué vas a sentir al despertar, y cómo sigue todo una vez que estés en tu casa — junto con el consentimiento informado correspondiente.`, y);
-      y -= 8;
-      y = drawParagraph('Sé que una cirugía genera nervios, incluso cuando el riesgo es bajo — es así para casi todos mis pacientes, y es totalmente normal. Prefiero que tengas esto por escrito desde ahora, en vez de que te vayas enterando de cada paso sobre la marcha.', y);
-      y -= 8;
-      y = drawParagraph('Leela con calma y anotá cualquier duda que te surja — la charlamos en la próxima consulta, o me escribís directo, para eso estoy.', y);
-      y -= 16;
-
-      y = drawParagraph('Pablo', y, { font: fontTitulo, size: 13, color: navy, lineH: 15 });
-      y -= 3;
-      y = drawParagraph('Dr. Pablo Maynard — Cirujano Torácico — M.N. 121828 / M.P. 232938', y, { size: 9.5, color: lightGray, lineH: 12 });
-      y = drawParagraph('cirugia.torax.maynard@gmail.com  ·  pablomaynard.com.ar  ·  @dr.maynard.pablo', y, { size: 9.5, color: lightGray, lineH: 12 });
-      y -= 22;
+      y = drawParagraph(`Te armé esta guía para ${p.operacion ? 'tu ' + operacionTexto : operacionTexto}, con todo lo que necesitás saber ordenado en un solo lugar, junto con el consentimiento informado correspondiente.`, y);
+      y -= 20;
 
       const datos = [
         ['CIRUGÍA', p.operacion || '-'],
@@ -3262,63 +3232,66 @@ if('serviceWorker' in navigator){
 
       // ---- Resumen de contratación (a modo de recibo, sin montos) — misma
       // redacción que el Artifact "Plan Quirúrgico" standalone, armada acá a
-      // partir de lo que ya está tildado en la ficha del paciente.
-      const resumen = out.addPage([W, H]);
-      resumen.drawRectangle({ x: 0, y: 0, width: W, height: H, color: bg });
-      const wmScale = 300 / logoImg.width;
-      const wmDim = { width: 300, height: logoImg.height * wmScale };
-      resumen.drawImage(logoImg, {
-        x: (W - wmDim.width) / 2, y: (H - wmDim.height) / 2 - 40,
-        width: wmDim.width, height: wmDim.height, opacity: 0.06
-      });
-      resumen.drawRectangle({ x: 0, y: H - 90, width: W, height: 90, color: navy });
-      resumen.drawText('Resumen de tu plan', { x: 56, y: H - 52, size: 20, font: fontTitulo, color: rgb(1, 1, 1) });
-      resumen.drawText(new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }), { x: 56, y: H - 72, size: 10, font: fontBody, color: rgb(1, 1, 1) });
+      // partir de lo que ya está tildado en la ficha del paciente. Solo se
+      // agrega si el paciente tiene algún extra contratado.
+      if(pacienteTieneExtras(p)){
+        const resumen = out.addPage([W, H]);
+        resumen.drawRectangle({ x: 0, y: 0, width: W, height: H, color: bg });
+        const wmScale = 300 / logoImg.width;
+        const wmDim = { width: 300, height: logoImg.height * wmScale };
+        resumen.drawImage(logoImg, {
+          x: (W - wmDim.width) / 2, y: (H - wmDim.height) / 2 - 40,
+          width: wmDim.width, height: wmDim.height, opacity: 0.06
+        });
+        resumen.drawRectangle({ x: 0, y: H - 90, width: W, height: 90, color: navy });
+        resumen.drawText('Resumen de tu plan', { x: 56, y: H - 52, size: 20, font: fontTitulo, color: rgb(1, 1, 1) });
+        resumen.drawText(new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }), { x: 56, y: H - 72, size: 10, font: fontBody, color: rgb(1, 1, 1) });
 
-      const itemsResumen = ['Cirugía (VATS uniportal)'];
-      if(p.incluye_anatomia_patologica) itemsResumen.push('Anatomía patológica');
-      if(p.incluye_kinesiologia) itemsResumen.push('Kinesiología post-operatoria');
-      if(p.incluye_neumonologia_preqx) itemsResumen.push('Evaluación preQx de Neumonología');
-      if(p.incluye_cardiologia_preqx) itemsResumen.push('Evaluación preQx de Cardiología');
+        const itemsResumen = ['Cirugía (VATS uniportal)'];
+        if(p.incluye_anatomia_patologica) itemsResumen.push('Anatomía patológica');
+        if(p.incluye_kinesiologia) itemsResumen.push('Kinesiología post-operatoria');
+        if(p.incluye_neumonologia_preqx) itemsResumen.push('Evaluación preQx de Neumonología');
+        if(p.incluye_cardiologia_preqx) itemsResumen.push('Evaluación preQx de Cardiología');
 
-      let yR = H - 125;
-      for(const it of itemsResumen){
-        resumen.drawText('✓  ' + it, { x: 56, y: yR, size: 12, font: fontBody, color: navy });
-        yR -= 20;
-      }
-      yR -= 14;
+        let yR = H - 125;
+        for(const it of itemsResumen){
+          resumen.drawText('✓  ' + it, { x: 56, y: yR, size: 12, font: fontBody, color: navy });
+          yR -= 20;
+        }
+        yR -= 14;
 
-      const seccionesResumen = [
-        ['Cómo se va a operar', 'Tu cirugía se realiza por VATS uniportal: un único acceso de pocos centímetros entre las costillas, sin separar ni fracturar ninguna. Es el abordaje mínimamente invasivo que uso de forma habitual porque, en la mayoría de los casos, se traduce en menos dolor postoperatorio, una movilización más temprana y una recuperación más rápida que la cirugía abierta convencional.']
-      ];
-      if(p.incluye_anatomia_patologica){
-        seccionesResumen.push(['Estudio de la pieza quirúrgica', 'Incluye el estudio anatomopatológico básico de lo que se extraiga durante la cirugía, lo que acelera la entrega del resultado. Si ese estudio sugiere la necesidad de inmunohistoquímica (IHQ) para caracterizar mejor el tejido, esa técnica se cotiza aparte.']);
-      }
-      if(p.incluye_kinesiologia){
-        seccionesResumen.push(['Kinesiología post-operatoria', 'Incluye kinesiología como parte de tu recuperación post-operatoria, para ayudarte a recuperar la movilidad más rápido y de forma más segura.']);
-      }
-      if(p.incluye_neumonologia_preqx || p.incluye_cardiologia_preqx){
-        const n = p.incluye_neumonologia_preqx, c = p.incluye_cardiologia_preqx;
-        const txt = (n && c)
-          ? 'Tenés turno prioritario para las evaluaciones preoperatorias de neumonología y cardiología, para no demorar la programación de tu cirugía.'
-          : n
-            ? 'Tenés turno prioritario para la evaluación preoperatoria de neumonología, para no demorar la programación de tu cirugía.'
-            : 'Tenés turno prioritario para la evaluación preoperatoria de cardiología, para no demorar la programación de tu cirugía.';
-        seccionesResumen.push(['Evaluación preoperatoria con turno prioritario', txt]);
-      }
+        const seccionesResumen = [
+          ['Cómo se va a operar', 'Tu cirugía se realiza por VATS uniportal: un único acceso de pocos centímetros entre las costillas, sin separar ni fracturar ninguna. Es el abordaje mínimamente invasivo que uso de forma habitual porque, en la mayoría de los casos, se traduce en menos dolor postoperatorio, una movilización más temprana y una recuperación más rápida que la cirugía abierta convencional.']
+        ];
+        if(p.incluye_anatomia_patologica){
+          seccionesResumen.push(['Estudio de la pieza quirúrgica', 'Incluye el estudio anatomopatológico básico de lo que se extraiga durante la cirugía, lo que acelera la entrega del resultado. Si ese estudio sugiere la necesidad de inmunohistoquímica (IHQ) para caracterizar mejor el tejido, esa técnica se cotiza aparte.']);
+        }
+        if(p.incluye_kinesiologia){
+          seccionesResumen.push(['Kinesiología post-operatoria', 'Incluye kinesiología como parte de tu recuperación post-operatoria, para ayudarte a recuperar la movilidad más rápido y de forma más segura.']);
+        }
+        if(p.incluye_neumonologia_preqx || p.incluye_cardiologia_preqx){
+          const n = p.incluye_neumonologia_preqx, c = p.incluye_cardiologia_preqx;
+          const txt = (n && c)
+            ? 'Tenés turno prioritario para las evaluaciones preoperatorias de neumonología y cardiología, para no demorar la programación de tu cirugía.'
+            : n
+              ? 'Tenés turno prioritario para la evaluación preoperatoria de neumonología, para no demorar la programación de tu cirugía.'
+              : 'Tenés turno prioritario para la evaluación preoperatoria de cardiología, para no demorar la programación de tu cirugía.';
+          seccionesResumen.push(['Evaluación preoperatoria con turno prioritario', txt]);
+        }
 
-      for(const [titulo, texto] of seccionesResumen){
-        resumen.drawText(titulo, { x: 56, y: yR, size: 13, font: fontTitulo, color: navy });
-        yR -= 18;
-        for(const line of wrapText(texto, fontBody, 11, W - 112)){
-          resumen.drawText(line, { x: 56, y: yR, size: 11, font: fontBody, color: gray });
+        for(const [titulo, texto] of seccionesResumen){
+          resumen.drawText(titulo, { x: 56, y: yR, size: 13, font: fontTitulo, color: navy });
+          yR -= 18;
+          for(const line of wrapText(texto, fontBody, 11, W - 112)){
+            resumen.drawText(line, { x: 56, y: yR, size: 11, font: fontBody, color: gray });
+            yR -= 16;
+          }
           yR -= 16;
         }
-        yR -= 16;
-      }
 
-      resumen.drawLine({ start: { x: 56, y: 76 }, end: { x: W - 56, y: 76 }, thickness: 1, color: softBlue });
-      resumen.drawText('Este resumen es informativo y detalla lo contratado — no reemplaza el consentimiento informado.', { x: 56, y: 56, size: 9, font: fontBody, color: gray });
+        resumen.drawLine({ start: { x: 56, y: 76 }, end: { x: W - 56, y: 76 }, thickness: 1, color: softBlue });
+        resumen.drawText('Este resumen es informativo y detalla lo contratado — no reemplaza el consentimiento informado.', { x: 56, y: 56, size: 9, font: fontBody, color: gray });
+      }
 
       const finalBytes = await out.save();
       const blob = new Blob([finalBytes], { type: 'application/pdf' });
@@ -3358,10 +3331,7 @@ if('serviceWorker' in navigator){
 
   // ---- Calculadora de guía: cirugía base + los 4 componentes del programa,
   // cada uno con un precio editable que se guarda en este navegador
-  // (localStorage, sin backend). Al tildar se suma el total y se recalcula
-  // la categoría con la misma regla que ya usa la ficha del paciente: solo
-  // cirugía = Platinum, cirugía + todos los componentes = Black, cirugía +
-  // algunos = Dorado.
+  // (localStorage, sin backend). Al tildar se suma el total.
   const CALC_ITEMS = [
     { key: 'cirugia', label: 'Cirugía' },
     { key: 'anatomia_patologica', label: 'Anatomía patológica' },
@@ -3392,40 +3362,27 @@ if('serviceWorker' in navigator){
         <input type="number" class="precio" data-action="calcPrecio" data-key="${item.key}" value="${calcPrecios[item.key] || ''}" placeholder="Precio" step="0.01" min="0" style="width:120px; margin-left:auto; text-align:right">
       </li>
     `).join('');
-    calcActualizarTotalYCategoria();
+    calcActualizarTotal();
   }
 
-  function calcActualizarTotalYCategoria(){
+  function calcActualizarTotal(){
     const total = CALC_ITEMS.reduce((sum, item) => sum + (calcTildado[item.key] ? Number(calcPrecios[item.key] || 0) : 0), 0);
     const totalEl = $('#calcTotalValor');
     if(totalEl) totalEl.textContent = fmtMoney(total);
-    const badge = $('#calcCategoriaBadge');
-    if(!badge) return;
-    if(!calcTildado.cirugia){
-      badge.innerHTML = '';
-      return;
-    }
-    const componentes = ['anatomia_patologica', 'kinesiologia', 'neumonologia_preqx', 'cardiologia_preqx'];
-    const marcados = componentes.filter(k => calcTildado[k]).length;
-    let nivel, label;
-    if(marcados === 0){ nivel = 'platinum'; label = 'Platinum'; }
-    else if(marcados === componentes.length){ nivel = 'black'; label = 'Black'; }
-    else { nivel = 'dorado'; label = 'Dorado'; }
-    badge.innerHTML = `<span class="badge nivel-badge-${nivel}">${label}</span>`;
   }
 
   $('#calcServiciosList').addEventListener('change', (e) => {
     const chk = e.target.closest('[data-action="calcToggle"]');
     if(chk){
       calcTildado[chk.dataset.key] = chk.checked;
-      calcActualizarTotalYCategoria();
+      calcActualizarTotal();
       return;
     }
     const precioInput = e.target.closest('[data-action="calcPrecio"]');
     if(precioInput){
       calcPrecios[precioInput.dataset.key] = parseFloat(precioInput.value) || 0;
       calcGuardarPrecios();
-      calcActualizarTotalYCategoria();
+      calcActualizarTotal();
     }
   });
 
@@ -4389,7 +4346,6 @@ if('serviceWorker' in navigator){
       <div class="meta">${i.sector ? escapeHtml(i.sector) : ''}</div>
       ${os ? `<div class="meta">${escapeHtml(os)}</div>` : ''}
       ${condicion ? `<div style="margin-top:6px" ${condicionClickeable ? `data-paciente-id="${paciente.id}"` : ''}>${condicionBadgeHtml(paciente)}</div>` : ''}
-      ${paciente && nivelProgramaBadgeHtml(paciente) ? `<div style="margin-top:6px">${nivelProgramaBadgeHtml(paciente)}</div>` : ''}
       <div class="dias">${diasInternado(i.fecha_ingreso)} día(s) internado</div>
       <div class="row" style="margin-top:8px; gap:6px">
         <button type="button" class="secondary" data-action="editarUbicacionCard" data-id="${i.id}" title="Editar sector/habitación/cama" style="font-size:12px; padding:6px 8px"><i data-lucide="pencil"></i></button>
@@ -4558,7 +4514,7 @@ if('serviceWorker' in navigator){
       ${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ''}
       ${p.operacion ? `<div class="meta">${escapeHtml(p.operacion)}</div>` : ''}
       ${p.diagnostico ? `<div class="meta">${escapeHtml(p.diagnostico)}</div>` : ''}
-      <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap">${condicionBadgeHtml(p)}${nivelProgramaBadgeHtml(p)}</div>
+      <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap">${condicionBadgeHtml(p)}</div>
       ${fechaLine ? `<div class="dias">${fechaLine}</div>` : ''}
     </div>`;
   }
