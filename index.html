@@ -709,7 +709,7 @@
             </a>
             <button type="button" id="pdGuiaFab" class="btnContacto">
               <i data-lucide="file-text"></i>
-              <div><div>Enviar guía premium por WhatsApp</div><div class="btnContactoHint"></div></div>
+              <div><div>Enviar guía del paciente quirúrgico por WhatsApp</div><div class="btnContactoHint"></div></div>
             </button>
           </div>
         </div>
@@ -755,7 +755,7 @@
                 <option value="firmado">Firmado</option>
               </select>
             </label>
-            <label>Tipo de consentimiento (guía premium)
+            <label>Tipo de consentimiento (guía del paciente quirúrgico)
               <select data-pk="tipo_consentimiento" id="pdTipoConsentimiento">
                 <option value="">Sin definir</option>
                 <option value="reseccion-pulmonar">Resección pulmonar</option>
@@ -3063,7 +3063,7 @@ if('serviceWorker' in navigator){
     if(error){ p.contacto_enviado_at = null; updateContactoFab(p); flash('Error al guardar: ' + error.message, true); }
   }
 
-  // ---- Guía premium por WhatsApp (guía + consentimiento informado fusionados) ----
+  // ---- Guía del paciente quirúrgico por WhatsApp (guía + consentimiento informado fusionados) ----
   // No hay una lista fija de sanatorios en la base (es una tabla que Pablo va
   // completando a mano), así que la institución cargada en "Sanatorio" se matchea
   // contra las carpetas de guia-premium/consentimientos/ por palabra clave.
@@ -3318,7 +3318,7 @@ if('serviceWorker' in navigator){
       const loaderIcon = fab.querySelector('svg.lucide, i[data-lucide]');
       if(loaderIcon) loaderIcon.outerHTML = '<i data-lucide="file-text"></i>';
       const label = fab.querySelector('div > div:first-child');
-      if(label) label.textContent = textoOriginal || 'Enviar guía premium por WhatsApp';
+      if(label) label.textContent = textoOriginal || 'Enviar guía del paciente quirúrgico por WhatsApp';
       if(window.lucide) lucide.createIcons();
       updateGuiaFab(p);
     }
