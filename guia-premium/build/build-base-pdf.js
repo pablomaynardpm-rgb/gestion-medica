@@ -177,21 +177,30 @@ async function main() {
     y -= 18;
   }
 
-  function stepBlock(num, title, text) {
-    const size = 11, lineH = 16, indent = 34, pad = 14;
-    const lines = wrapText(text, body, size, CONTENT_W - indent - 10);
-    const blockH = pad * 2 + 20 + lines.length * lineH;
-    checkSpace(blockH + 14);
+  // Los pasos del cronograma van todos dentro de UNA sola tarjeta celeste,
+  // separados por líneas finas — se tienen que leer como una única línea de
+  // tiempo conectada, no como tarjetas sueltas flotando con espacio de más.
+  function stepsCard(steps) {
+    const size = 11, lineH = 16, indent = 34, pad = 13;
+    const wrapped = steps.map(([, , text]) => wrapText(text, body, size, CONTENT_W - indent - 10));
+    const rowH = wrapped.map((lines) => pad + 18 + lines.length * lineH);
+    const totalH = rowH.reduce((a, b) => a + b, 0) + pad;
+    checkSpace(totalH + 16);
     const top = y;
-    page.drawRectangle({ x: MARGIN, y: top - blockH, width: CONTENT_W, height: blockH, color: softBlueBg });
-    page.drawText(String(num), { x: MARGIN + 12, y: top - pad - 10, size: 13, font: bold, color: navy });
-    page.drawText(title, { x: MARGIN + indent, y: top - pad - 8, size: 12, font: bold, color: navy });
-    let ly = top - pad - 26;
-    lines.forEach((line) => {
-      page.drawText(line, { x: MARGIN + indent, y: ly, size, font: body, color: gray });
-      ly -= lineH;
+    page.drawRectangle({ x: MARGIN, y: top - totalH, width: CONTENT_W, height: totalH, color: softBlueBg });
+    let cy = top;
+    steps.forEach(([num, title], i) => {
+      if (i > 0) page.drawLine({ start: { x: MARGIN + 12, y: cy }, end: { x: W - MARGIN - 12, y: cy }, thickness: 0.75, color: softBlue });
+      page.drawText(String(num), { x: MARGIN + 12, y: cy - pad - 10, size: 13, font: bold, color: navy });
+      page.drawText(title, { x: MARGIN + indent, y: cy - pad - 8, size: 12, font: bold, color: navy });
+      let ly = cy - pad - 26;
+      wrapped[i].forEach((line) => {
+        page.drawText(line, { x: MARGIN + indent, y: ly, size, font: body, color: gray });
+        ly -= lineH;
+      });
+      cy -= rowH[i];
     });
-    y = top - blockH - 14;
+    y = top - totalH - 16;
   }
 
   // ---- contenido ----
@@ -202,11 +211,13 @@ async function main() {
 
   heading('Cronograma del proceso');
   paragraph('Cinco etapas, de principio a fin. Cada una la vas a encontrar detallada más adelante en esta guía.', { gapAfter: 14 });
-  stepBlock(1, 'Preoperatorio', 'Estudios prequirúrgicos, evaluación con los distintos profesionales y firma del consentimiento informado.');
-  stepBlock(2, 'Día de la cirugía', 'Ingreso a la institución, contacto conmigo antes de entrar a quirófano, procedimiento y recuperación inmediata.');
-  stepBlock(3, 'Internación', 'Días de internación según el procedimiento, con control diario del equipo tratante.');
-  stepBlock(4, 'Posoperatorio inmediato', 'Primeras 72 horas en casa: control de dolor, cuidados de la herida y línea directa de contacto.');
-  stepBlock(5, 'Controles', 'Control en el consultorio dentro de los 10 días aproximadamente del alta, y otros controles si hacen falta — los vamos acordando juntos según cómo evoluciones. Resultado de anatomía patológica si corresponde.');
+  stepsCard([
+    [1, 'Preoperatorio', 'Estudios prequirúrgicos, evaluación con los distintos profesionales y firma del consentimiento informado.'],
+    [2, 'Día de la cirugía', 'Ingreso a la institución, contacto conmigo antes de entrar a quirófano, procedimiento y recuperación inmediata.'],
+    [3, 'Internación', 'Días de internación según el procedimiento, con control diario del equipo tratante.'],
+    [4, 'Posoperatorio inmediato', 'Primeras 72 horas en casa: control de dolor, cuidados de la herida y línea directa de contacto.'],
+    [5, 'Controles', 'Control en el consultorio dentro de los 10 días aproximadamente del alta, y otros controles si hacen falta — los vamos acordando juntos según cómo evoluciones. Resultado de anatomía patológica si corresponde.']
+  ]);
 
   heading('El día de la cirugía');
   subheading('Qué llevar');
