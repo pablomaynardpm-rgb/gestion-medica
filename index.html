@@ -755,6 +755,7 @@
                 <option value="mediastinoscopia">Mediastinoscopia</option>
                 <option value="vats-pleural">VATS pleural / biopsia / decorticación / pleurodesis</option>
                 <option value="decorticacion-trauma">Decorticación / fracturas costales (trauma)</option>
+                <option value="simpatectomia-hiperhidrosis">Simpatectomía (hiperhidrosis)</option>
               </select>
               <div class="meta" id="pdGuiaEnviadaInfo" style="margin-top:4px"></div>
             </label>
@@ -3065,7 +3066,8 @@ if('serviceWorker' in navigator){
     'reseccion-pulmonar': 'reseccion-pulmonar.pdf',
     'mediastinoscopia': 'mediastinoscopia.pdf',
     'vats-pleural': 'vats-pleural.pdf',
-    'decorticacion-trauma': 'decorticacion-trauma.pdf'
+    'decorticacion-trauma': 'decorticacion-trauma.pdf',
+    'simpatectomia-hiperhidrosis': 'simpatectomia-hiperhidrosis.pdf'
   };
 
   // Sugerencia automática de tipo de consentimiento a partir del texto libre de
@@ -3075,6 +3077,7 @@ if('serviceWorker' in navigator){
     if(!n) return null;
     if(/trauma|fractura costal|fracturas costales/.test(n)) return 'decorticacion-trauma';
     if(/mediastinoscopia/.test(n)) return 'mediastinoscopia';
+    if(/simpatectomia|hiperhidrosis/.test(n)) return 'simpatectomia-hiperhidrosis';
     if(/lobectomia|segmentectomia|neumonectomia|bullectomia|\bbulla\b|nodulo|resecc/.test(n)) return 'reseccion-pulmonar';
     if(/pleural|decorticacion|pleurodesis|empiema|derrame/.test(n)) return 'vats-pleural';
     return null;
@@ -3144,7 +3147,8 @@ if('serviceWorker' in navigator){
     if(window.lucide) lucide.createIcons();
     try {
       const { PDFDocument, StandardFonts, rgb } = PDFLib;
-      const [baseBytes, consentBytes, logoBytes] = await Promise.all([
+      const [portadaBytes, baseBytes, consentBytes, logoBytes] = await Promise.all([
+        fetch('/guia-premium/portada.pdf').then(r => r.arrayBuffer()),
         fetch('/guia-premium/base.pdf').then(r => r.arrayBuffer()),
         fetch(`/guia-premium/consentimientos/${institucion}/${archivoConsentimiento}`).then(r => r.arrayBuffer()),
         fetch('/guia-premium/logo.png').then(r => r.arrayBuffer())
@@ -3160,6 +3164,11 @@ if('serviceWorker' in navigator){
       const bg = rgb(0xF7/255, 0xF9/255, 0xFB/255);
       const softBlue = rgb(0xCE/255, 0xDE/255, 0xEE/255);
       const softBlueBg = rgb(0xEA/255, 0xF1/255, 0xF8/255);
+
+      // Portada general de Pablo primero, después la personalizada por paciente.
+      const portadaDoc = await PDFDocument.load(portadaBytes);
+      const portadaPages = await out.copyPages(portadaDoc, portadaDoc.getPageIndices());
+      portadaPages.forEach(pg => out.addPage(pg));
 
       const W = 595.28, H = 841.89; // A4 en puntos
       const cover = out.addPage([W, H]);
