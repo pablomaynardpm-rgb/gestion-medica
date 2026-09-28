@@ -219,6 +219,12 @@
     border-radius:0; padding:9px 12px; font-size:12px; font-weight:600; white-space:nowrap;
   }
   .fichaTab:hover{background:transparent; color:var(--text)}
+  .auditRow{display:flex; gap:12px; padding:10px 4px; border-bottom:1px solid var(--border); font-size:13px; flex-wrap:wrap}
+  .auditRow:last-child{border-bottom:none}
+  .auditFecha{color:var(--muted); white-space:nowrap; min-width:135px}
+  .auditActor{font-weight:600; min-width:110px}
+  .auditAccion{min-width:190px}
+  .auditDetalle{color:var(--muted); flex:1; min-width:200px}
   .fichaTab.active{color:var(--accent); border-bottom-color:var(--accent)}
   .fichaTabContent{display:none}
   .fichaTabContent.active{display:block}
@@ -428,6 +434,7 @@
     <button class="navtab" data-view="viewInternados">Internados</button>
     <button class="navtab" data-view="viewConsultorio">Consultorio</button>
     <button class="navtab" data-view="viewCalculadora">Calculadora</button>
+    <button class="navtab" id="navtabActividad" data-view="viewActividad" style="display:none">Actividad</button>
   </div>
 
   <details class="panel" id="panelMedicos">
@@ -1201,6 +1208,16 @@
     </div>
   </div>
 
+  <!-- ==================== ACTIVIDAD (solo admin) ==================== -->
+  <div class="view" id="viewActividad">
+    <div class="panel">
+      <h2><i data-lucide="history"></i> Actividad reciente</h2>
+      <div class="msg" style="margin-top:0; margin-bottom:12px">Todo lo que se carga o modifica en la app — la tuya y la de cualquier residente. Se ve solo desde tu cuenta de administrador.</div>
+      <div id="auditoriaLista"></div>
+      <div class="empty" id="auditoriaEmpty" style="display:none">Todavía no hay actividad registrada.</div>
+    </div>
+  </div>
+
   <datalist id="sanatoriosDatalist"></datalist>
   <datalist id="sectoresDatalist"></datalist>
   <datalist id="pacientesDatalistInt"></datalist>
@@ -1279,6 +1296,7 @@ if('serviceWorker' in navigator){
   let medicos = [];
   let pacientes = [];
   let consultorioDias = [];
+  let auditoria = [];
   let sortKey = 'default', sortDir = 'asc';
 
   function isUtiUci(it){
@@ -1655,6 +1673,8 @@ if('serviceWorker' in navigator){
     // admin la ve.
     const fichaTabContactoBtn = document.querySelector('.fichaTab[data-fichatab="fichaTabContacto"]');
     if(fichaTabContactoBtn) fichaTabContactoBtn.style.display = currentMedico.es_admin ? '' : 'none';
+    const navtabActividad = $('#navtabActividad');
+    if(navtabActividad) navtabActividad.style.display = currentMedico.es_admin ? '' : 'none';
     aplicarRestriccionesRol();
     await loadAll();
     await checkGoogleCalendarStatus();
@@ -1745,7 +1765,7 @@ if('serviceWorker' in navigator){
   }
 
   async function loadAll(){
-    const [itemsRes, contactsRes, zonasRes, sanatoriosRes, medicosRes, pacientesRes, internacionesRes, consultasRes, preciosRes, capturasRes, preciosIcRes, icFacturablesRes, consultorioDiasRes] = await Promise.all([
+    const [itemsRes, contactsRes, zonasRes, sanatoriosRes, medicosRes, pacientesRes, internacionesRes, consultasRes, preciosRes, capturasRes, preciosIcRes, icFacturablesRes, consultorioDiasRes, auditoriaRes] = await Promise.all([
       sb.from('interconsultas').select('*').order('created_at', { ascending: false }),
       sb.from('contactos').select('*').order('created_at', { ascending: true }),
       sb.from('zonas').select('*').order('created_at', { ascending: true }),
@@ -1758,7 +1778,8 @@ if('serviceWorker' in navigator){
       sb.from('interconsultas_capturas_pendientes').select('*').order('created_at', { ascending: false }),
       sb.from('precios_interconsulta').select('*'),
       sb.from('interconsultas_facturables').select('*').order('fecha', { ascending: false }),
-      sb.from('consultorio_dias').select('*').order('fecha', { ascending: true })
+      sb.from('consultorio_dias').select('*').order('fecha', { ascending: true }),
+      sb.from('auditoria').select('*').order('created_at', { ascending: false }).limit(200)
     ]);
     if(itemsRes.error) flash('Error al cargar interconsultas: ' + itemsRes.error.message, true);
     if(contactsRes.error) flash('Error al cargar contactos: ' + contactsRes.error.message, true);
@@ -1776,6 +1797,8 @@ if('serviceWorker' in navigator){
     preciosInterconsulta = (preciosIcRes.data || []);
     interconsultasFacturables = (icFacturablesRes.data || []);
     consultorioDias = (consultorioDiasRes.data || []);
+    auditoria = (auditoriaRes.data || []);
+    renderAuditoria();
     renderCapturasPendientes();
     renderPreciosIc();
     renderIcFacturables();
@@ -2564,6 +2587,7 @@ if('serviceWorker' in navigator){
       if(item && valorIc != null) await registrarInterconsultaFacturable(item, 'contestada', valorIc);
       const { error } = await sb.from('interconsultas').delete().eq('id', contestada.dataset.id);
       if(error){ flash('Error al borrar: ' + error.message, true); return; }
+      registrarAuditoria('Interconsulta contestada', item ? `${item.paciente || ''}${item.sanatorio ? ' · ' + item.sanatorio : ''}` : '', contestada.dataset.id);
       items = items.filter(i => i.id !== contestada.dataset.id);
       render();
       return;
@@ -2587,8 +2611,10 @@ if('serviceWorker' in navigator){
     const del = e.target.closest('[data-action="delete"]');
     if(del){
       if(!confirm('¿Borrar esta interconsulta? Esta acción no se puede deshacer.')) return;
+      const itemDel = items.find(i => i.id === del.dataset.id);
       const { error } = await sb.from('interconsultas').delete().eq('id', del.dataset.id);
       if(error){ flash('Error al borrar: ' + error.message, true); return; }
+      registrarAuditoria('Interconsulta borrada', itemDel ? (itemDel.paciente || '') : '', del.dataset.id);
       items = items.filter(i => i.id !== del.dataset.id);
       render();
     }
@@ -2624,6 +2650,7 @@ if('serviceWorker' in navigator){
       paciente = data;
       pacientes.push(paciente);
       pacientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+      registrarAuditoria('Cirugía programada desde interconsulta', `${nombreBuscado}${it.sanatorio ? ' · ' + it.sanatorio : ''}`, paciente.id);
       renderPacientes();
     }
 
@@ -2892,6 +2919,40 @@ if('serviceWorker' in navigator){
     return currentMedico.rol === 'residente' ? currentMedico.supervisor_id : currentUser.id;
   }
 
+  // Registro de auditoría: queda una fila por cada alta/edición/borrado
+  // importante, visible solo para el admin (ver #viewActividad). No bloquea
+  // el flujo si falla — es un registro secundario, no crítico para guardar
+  // el dato real.
+  async function registrarAuditoria(accion, detalle, entidadId){
+    const row = {
+      medico_id: efectivoMedicoId(),
+      actor_id: currentUser.id,
+      actor_nombre: currentMedico.nombre || '',
+      accion,
+      detalle: detalle || null,
+      entidad_id: entidadId || null
+    };
+    const { data, error } = await sb.from('auditoria').insert(row).select().single();
+    if(error){ console.warn('No se pudo registrar auditoría:', error.message); return; }
+    auditoria.unshift(data);
+    renderAuditoria();
+  }
+
+  function renderAuditoria(){
+    const lista = $('#auditoriaLista');
+    const empty = $('#auditoriaEmpty');
+    if(!lista) return;
+    empty.style.display = auditoria.length === 0 ? 'block' : 'none';
+    lista.innerHTML = auditoria.map(a => `
+      <div class="auditRow">
+        <span class="auditFecha">${new Date(a.created_at).toLocaleString('es-AR')}</span>
+        <span class="auditActor">${escapeHtml(a.actor_nombre || '')}</span>
+        <span class="auditAccion">${escapeHtml(a.accion)}</span>
+        <span class="auditDetalle">${escapeHtml(a.detalle || '')}</span>
+      </div>
+    `).join('');
+  }
+
   $('#btnAddPaciente').addEventListener('click', async () => {
     const nombre = $('#pacNombre').value.trim();
     if(!nombre){ flashIn($('#pacMsg'), 'El nombre es obligatorio.', true); return; }
@@ -2911,6 +2972,7 @@ if('serviceWorker' in navigator){
     if(error){ flashIn($('#pacMsg'), 'Error al guardar: ' + error.message, true); return; }
     pacientes.push(data);
     pacientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+    registrarAuditoria('Alta de paciente', `${nombre}${sanatorio ? ' · ' + sanatorio : ''}`, data.id);
     if(sanatorio) await ensureSanatorioRef(sanatorio);
     ['pacNombre','pacSanatorio','pacEdad','pacDni','pacOs','pacNroAfiliado','pacTelefono','pacDiagnostico'].forEach(id => $('#'+id).value = '');
     renderPacientes();
@@ -2932,6 +2994,7 @@ if('serviceWorker' in navigator){
       }
       const { error } = await sb.from('pacientes').delete().eq('id', del.dataset.id);
       if(error){ flashIn($('#pacMsg'), 'Error al borrar: ' + error.message, true); return; }
+      registrarAuditoria('Borrado de paciente', toDelete ? toDelete.nombre : '', del.dataset.id);
       pacientes = pacientes.filter(p => p.id !== del.dataset.id);
       renderPacientes();
       renderCalendar();
@@ -3634,6 +3697,7 @@ if('serviceWorker' in navigator){
     const { data, error } = await sb.from('internaciones').insert(row).select().single();
     if(error){ flashIn($('#pacMsg'), 'Error al registrar como internado: ' + error.message, true); return null; }
     internaciones.push(data);
+    registrarAuditoria('Ingreso a internados', `${p.nombre || ''}${p.sanatorio ? ' · ' + p.sanatorio : ''}`, data.id);
     renderInternados();
     render();
     return data;
@@ -3645,6 +3709,9 @@ if('serviceWorker' in navigator){
     p[key] = value;
     const { error } = await sb.from('pacientes').update({ [key]: value }).eq('id', p.id);
     if(error) flashIn($('#pacMsg'), 'Error al guardar: ' + error.message, true);
+    if(!error && ['nombre','diagnostico','operacion','fecha_qx','materiales','sanatorio'].includes(key)){
+      registrarAuditoria('Edición de ficha', `${p.nombre || ''} · ${key}: ${value || '(vacío)'}`, p.id);
+    }
     if(key === 'sanatorio'){
       $('#pdSanatorioDot').style.background = sanatorioColor(value) || 'transparent';
       if(value){ await ensureSanatorioRef(value); render(); }
@@ -3753,6 +3820,7 @@ if('serviceWorker' in navigator){
     Object.assign(p, patch);
     const { error } = await sb.from('pacientes').update(patch).eq('id', p.id);
     if(error){ flashIn($('#pacMsg'), 'Error al guardar: ' + error.message, true); return; }
+    registrarAuditoria(checked ? 'Marcado como operado' : 'Desmarcado como operado', p.nombre || '', p.id);
     if(checked) $('#pdFechaQx').value = p.fecha_qx;
     refreshCondicionBadge();
     renderCalendar();
@@ -4425,6 +4493,7 @@ if('serviceWorker' in navigator){
       paciente = data;
       pacientes.push(paciente);
       pacientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+      registrarAuditoria('Alta de paciente', `${nombrePaciente}${sanatorio ? ' · ' + sanatorio : ''}`, paciente.id);
       renderPacientes();
     }
 
@@ -4440,6 +4509,7 @@ if('serviceWorker' in navigator){
     const { data, error } = await sb.from('internaciones').insert(row).select().single();
     if(error){ flashIn($('#intMsg'), 'Error al ingresar: ' + error.message, true); return; }
     internaciones.push(data);
+    registrarAuditoria('Ingreso a internados', `${nombrePaciente}${sanatorio ? ' · ' + sanatorio : ''}`, data.id);
     if(sanatorio) await ensureSanatorioRef(sanatorio);
     ['intPaciente','intSanatorio','intSector','intHabitacion','intCama'].forEach(id => $('#'+id).value = '');
     $('#intFechaIngreso').value = toISODate(new Date());
@@ -4507,6 +4577,7 @@ if('serviceWorker' in navigator){
     const { error } = await sb.from('internaciones').update({ fecha_alta: hoy }).eq('id', i.id);
     if(error){ flash('Error al dar de alta: ' + error.message, true); return; }
     i.fecha_alta = hoy;
+    registrarAuditoria('Alta de internación', pacienteNombreFor(i.paciente_id), i.id);
     renderInternados();
   }
 
