@@ -126,6 +126,10 @@
     background:var(--panel); color:var(--text); font-size:13px;
   }
   input[type=text]{min-width:220px}
+  .searchBox{position:relative; flex:1; min-width:220px}
+  .searchBox svg.lucide{position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--accent); pointer-events:none}
+  .searchBox input[type=text]{width:100%; min-width:0; padding:10px 14px 10px 36px; border:2px solid var(--accent); border-radius:10px; font-size:14px; box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+  .searchBox input[type=text]:focus{outline:none; box-shadow:0 0 0 3px rgba(37,99,235,0.18)}
   table{width:100%; border-collapse:collapse; font-size:13px}
   th, td{text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top}
   th{cursor:pointer; user-select:none; color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap}
@@ -339,6 +343,10 @@
     display:flex; align-items:center; gap:8px; padding:9px 14px; background:var(--panel);
     border:1px solid var(--border); border-radius:8px; margin-bottom:12px;
   }
+  details.internadosGroup > summary.internadosGroupHead{cursor:pointer; list-style:none}
+  details.internadosGroup > summary.internadosGroupHead::-webkit-details-marker{display:none}
+  details.internadosGroup > summary.internadosGroupHead::before{content:'▸'; font-size:11px; color:var(--muted); transition:transform .15s; flex-shrink:0}
+  details.internadosGroup[open] > summary.internadosGroupHead::before{transform:rotate(90deg)}
   .internadosGroupTitle{font-weight:700; font-size:15px}
   .internadosGroupCount{margin-left:auto; font-size:12px; color:var(--muted); background:var(--bg); padding:2px 9px; border-radius:999px; border:1px solid var(--border)}
   .internadosCards{display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:14px; margin-bottom:14px}
@@ -604,7 +612,10 @@
     <!-- ---- Listado ---- -->
     <div id="pacListView">
       <div class="toolbar">
-        <input type="text" id="pacSearch" placeholder="Buscar por nombre, DNI o teléfono...">
+        <div class="searchBox">
+          <i data-lucide="search"></i>
+          <input type="text" id="pacSearch" placeholder="Buscar por nombre, DNI o teléfono...">
+        </div>
         <span class="count" id="pacCount"></span>
       </div>
 
@@ -2900,16 +2911,17 @@ if('serviceWorker' in navigator){
     pacTbody.innerHTML = CONDICION_ORDEN.filter(cond => grupos[cond] && grupos[cond].length).map(cond => {
       const grupo = grupos[cond].slice().sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
       const color = CONDICION_GROUP_COLOR[cond];
-      return `
-        <div class="internadosGroup">
-          <div class="internadosGroupHead" data-cond="${cond}" style="border-left:6px solid ${color}">
+      const head = `
+          <${cond === 'operado' ? 'summary' : 'div'} class="internadosGroupHead" data-cond="${cond}" style="border-left:6px solid ${color}">
             <span class="sanatorioDot" style="background:${color}; width:12px; height:12px"></span>
             <span class="internadosGroupTitle">${CONDICION_GROUP_LABEL[cond]}</span>
             <span class="internadosGroupCount">${grupo.length}</span>
-          </div>
+          </${cond === 'operado' ? 'summary' : 'div'}>
           <div class="internadosCards">${grupo.map(p => pacienteCardHtml(p, color)).join('')}</div>
-        </div>
       `;
+      return cond === 'operado'
+        ? `<details class="internadosGroup">${head}</details>`
+        : `<div class="internadosGroup">${head}</div>`;
     }).join('');
   }
 
@@ -4703,7 +4715,10 @@ if('serviceWorker' in navigator){
     renderPacientes();
     requestAnimationFrame(() => {
       const head = pacTbody.querySelector(`.internadosGroupHead[data-cond="${cond}"]`);
-      if(head) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if(!head) return;
+      const details = head.closest('details.internadosGroup');
+      if(details) details.open = true;
+      head.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
 
