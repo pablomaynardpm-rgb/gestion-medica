@@ -442,6 +442,7 @@
     <button class="navtab" data-view="viewInternados">Internados</button>
     <button class="navtab" data-view="viewConsultorio">Consultorio</button>
     <button class="navtab" data-view="viewCalculadora">Calculadora</button>
+    <button class="navtab" id="navtabRecordatorios" data-view="viewRecordatorios" style="display:none">Recordatorios</button>
     <button class="navtab" id="navtabActividad" data-view="viewActividad" style="display:none">Actividad</button>
   </div>
 
@@ -721,6 +722,10 @@
             <button type="button" id="pdGuiaFab" class="btnContacto">
               <i data-lucide="file-text"></i>
               <div><div>Enviar guía del paciente quirúrgico por WhatsApp</div><div class="btnContactoHint"></div></div>
+            </button>
+            <button type="button" id="pdRecordatorioFab" class="btnContacto">
+              <i data-lucide="bell"></i>
+              <div><div>Recordatorio</div><div class="btnContactoHint">Crear un recordatorio para este paciente</div></div>
             </button>
           </div>
         </div>
@@ -1229,6 +1234,26 @@
     </div>
   </div>
 
+  <!-- ==================== RECORDATORIOS (solo admin) ==================== -->
+  <div class="view" id="viewRecordatorios">
+    <div class="panel">
+      <h2><i data-lucide="bell"></i> Nuevo recordatorio</h2>
+      <div class="row" style="margin-top:0; align-items:flex-end">
+        <label style="flex:2; min-width:220px">Recordatorio<input type="text" id="recTexto" placeholder="Ej: llamar por resultado de biopsia"></label>
+        <label style="flex:1; min-width:150px">Paciente (opcional)<input type="text" id="recPaciente" list="pacientesDatalistInt" placeholder="Paciente"></label>
+        <label>Fecha<input type="date" id="recFecha"></label>
+        <label>Hora (opcional)<input type="time" id="recHora"></label>
+        <button id="btnAddRecordatorio">Agregar</button>
+      </div>
+      <div class="msg" id="recMsg"></div>
+    </div>
+    <div class="panel">
+      <h2>Pendientes</h2>
+      <div id="recordatoriosLista"></div>
+      <div class="empty" id="recordatoriosEmpty" style="display:none">No tenés recordatorios pendientes.</div>
+    </div>
+  </div>
+
   <datalist id="sanatoriosDatalist"></datalist>
   <datalist id="sectoresDatalist"></datalist>
   <datalist id="pacientesDatalistInt"></datalist>
@@ -1308,6 +1333,7 @@ if('serviceWorker' in navigator){
   let pacientes = [];
   let consultorioDias = [];
   let auditoria = [];
+  let recordatorios = [];
   let sortKey = 'default', sortDir = 'asc';
 
   function isUtiUci(it){
@@ -1686,6 +1712,8 @@ if('serviceWorker' in navigator){
     if(fichaTabContactoBtn) fichaTabContactoBtn.style.display = currentMedico.es_admin ? '' : 'none';
     const navtabActividad = $('#navtabActividad');
     if(navtabActividad) navtabActividad.style.display = currentMedico.es_admin ? '' : 'none';
+    const navtabRecordatorios = $('#navtabRecordatorios');
+    if(navtabRecordatorios) navtabRecordatorios.style.display = currentMedico.es_admin ? '' : 'none';
     aplicarRestriccionesRol();
     await loadAll();
     await checkGoogleCalendarStatus();
@@ -1776,7 +1804,7 @@ if('serviceWorker' in navigator){
   }
 
   async function loadAll(){
-    const [itemsRes, contactsRes, zonasRes, sanatoriosRes, medicosRes, pacientesRes, internacionesRes, consultasRes, preciosRes, capturasRes, preciosIcRes, icFacturablesRes, consultorioDiasRes, auditoriaRes] = await Promise.all([
+    const [itemsRes, contactsRes, zonasRes, sanatoriosRes, medicosRes, pacientesRes, internacionesRes, consultasRes, preciosRes, capturasRes, preciosIcRes, icFacturablesRes, consultorioDiasRes, auditoriaRes, recordatoriosRes] = await Promise.all([
       sb.from('interconsultas').select('*').order('created_at', { ascending: false }),
       sb.from('contactos').select('*').order('created_at', { ascending: true }),
       sb.from('zonas').select('*').order('created_at', { ascending: true }),
@@ -1790,7 +1818,8 @@ if('serviceWorker' in navigator){
       sb.from('precios_interconsulta').select('*'),
       sb.from('interconsultas_facturables').select('*').order('fecha', { ascending: false }),
       sb.from('consultorio_dias').select('*').order('fecha', { ascending: true }),
-      sb.from('auditoria').select('*').order('created_at', { ascending: false }).limit(200)
+      sb.from('auditoria').select('*').order('created_at', { ascending: false }).limit(200),
+      sb.from('recordatorios').select('*').eq('completado', false).order('fecha', { ascending: true })
     ]);
     if(itemsRes.error) flash('Error al cargar interconsultas: ' + itemsRes.error.message, true);
     if(contactsRes.error) flash('Error al cargar contactos: ' + contactsRes.error.message, true);
@@ -1810,6 +1839,10 @@ if('serviceWorker' in navigator){
     consultorioDias = (consultorioDiasRes.data || []);
     auditoria = (auditoriaRes.data || []);
     renderAuditoria();
+    recordatorios = (recordatoriosRes.data || []);
+    ordenarRecordatorios();
+    renderRecordatorios();
+    $('#recFecha').value = toISODate(new Date());
     renderCapturasPendientes();
     renderPreciosIc();
     renderIcFacturables();
@@ -3406,6 +3439,76 @@ if('serviceWorker' in navigator){
       updateGuiaFab(p);
     }
   }
+
+
+  // ==================== RECORDATORIOS (solo admin) ====================
+  function recordatorioRowHtml(r, hoy){
+    const atrasado = r.fecha < hoy;
+    const cuando = (r.fecha === hoy ? 'Hoy' : new Date(r.fecha + 'T00:00:00').toLocaleDateString('es-AR')) + (r.hora ? ' · ' + r.hora.slice(0,5) : '');
+    return `<div class="auditRow" data-id="${r.id}" style="align-items:center">
+      <input type="checkbox" data-action="completarRecordatorio" data-id="${r.id}" title="Marcar como completado" style="width:auto; margin:0">
+      <span class="auditFecha" style="${atrasado ? 'color:var(--pending); font-weight:600' : ''}">${escapeHtml(cuando)}${atrasado ? ' · atrasado' : ''}</span>
+      <span style="flex:1; min-width:200px">${escapeHtml(r.texto)}${r.paciente ? ` <span class="auditDetalle">· ${escapeHtml(r.paciente)}</span>` : ''}</span>
+      <span class="del" data-action="borrarRecordatorio" data-id="${r.id}" title="Borrar"><i data-lucide="x"></i></span>
+    </div>`;
+  }
+
+  function renderRecordatorios(){
+    const lista = $('#recordatoriosLista');
+    if(!lista) return;
+    const hoy = toISODate(new Date());
+    $('#recordatoriosEmpty').style.display = recordatorios.length === 0 ? 'block' : 'none';
+    const grupos = [
+      ['Atrasados y de hoy', recordatorios.filter(r => r.fecha <= hoy)],
+      ['Próximos', recordatorios.filter(r => r.fecha > hoy)]
+    ];
+    lista.innerHTML = grupos.filter(g => g[1].length).map(([titulo, rows]) =>
+      `<div class="resumenSubhead">${titulo} (${rows.length})</div>${rows.map(r => recordatorioRowHtml(r, hoy)).join('')}`
+    ).join('');
+  }
+
+  function ordenarRecordatorios(){
+    recordatorios.sort((a, b) => (a.fecha + (a.hora || '99')).localeCompare(b.fecha + (b.hora || '99')));
+  }
+
+  $('#btnAddRecordatorio').addEventListener('click', async () => {
+    const texto = $('#recTexto').value.trim();
+    if(!texto){ flashIn($('#recMsg'), 'Escribí el recordatorio.', true); return; }
+    const row = {
+      texto,
+      paciente: $('#recPaciente').value.trim() || null,
+      fecha: $('#recFecha').value || toISODate(new Date()),
+      hora: $('#recHora').value || null
+    };
+    const { data, error } = await sb.from('recordatorios').insert(row).select().single();
+    if(error){ flashIn($('#recMsg'), 'Error al guardar: ' + error.message, true); return; }
+    recordatorios.push(data);
+    ordenarRecordatorios();
+    ['recTexto', 'recPaciente', 'recHora'].forEach(id => $('#' + id).value = '');
+    $('#recFecha').value = toISODate(new Date());
+    flashIn($('#recMsg'), 'Recordatorio guardado.');
+    renderRecordatorios();
+  });
+
+  $('#recordatoriosLista').addEventListener('click', async (e) => {
+    const done = e.target.closest('[data-action="completarRecordatorio"]');
+    const del = e.target.closest('[data-action="borrarRecordatorio"]');
+    if(!done && !del) return;
+    const id = Number((done || del).dataset.id);
+    const { error } = done
+      ? await sb.from('recordatorios').update({ completado: true }).eq('id', id)
+      : await sb.from('recordatorios').delete().eq('id', id);
+    if(error){ flash('Error al guardar: ' + error.message, true); return; }
+    recordatorios = recordatorios.filter(r => r.id !== id);
+    renderRecordatorios();
+  });
+
+  $('#pdRecordatorioFab').addEventListener('click', () => {
+    const p = currentPaciente();
+    document.querySelector('.navtab[data-view="viewRecordatorios"]').click();
+    $('#recPaciente').value = p ? (p.nombre || '') : '';
+    setTimeout(() => $('#recTexto').focus(), 100);
+  });
 
   $('#pdGuiaFab').addEventListener('click', () => {
     const p = currentPaciente();
