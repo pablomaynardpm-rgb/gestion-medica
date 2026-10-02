@@ -719,6 +719,10 @@
               <i data-lucide="contact"></i>
               <div><div>Enviar mi ficha de contacto</div><div class="btnContactoHint"></div></div>
             </a>
+            <a id="pdRctaFab" class="btnContacto" href="#" target="_blank" rel="noopener">
+              <i data-lucide="user-plus"></i>
+              <div><div>Enviar alta de RCTA por WhatsApp</div><div class="btnContactoHint"></div></div>
+            </a>
             <button type="button" id="pdGuiaFab" class="btnContacto">
               <i data-lucide="file-text"></i>
               <div><div>Enviar guía del paciente quirúrgico por WhatsApp</div><div class="btnContactoHint"></div></div>
@@ -1890,6 +1894,7 @@ if('serviceWorker' in navigator){
           ${m.id === currentUser.id
             ? `<span class="msg" style="margin:0; margin-left:auto; display:flex; align-items:center; gap:8px">(vos)
                 ${currentMedico.es_admin ? `<input type="url" class="reviewLinkInput" data-id="${m.id}" data-field="google_review_link" placeholder="Link de reseñas de Google" value="${escapeHtml(m.google_review_link || '')}" title="Link para pedir reseñas por WhatsApp desde la ficha de paciente" style="font-size:12px; padding:5px 8px; width:220px">` : ''}
+                ${currentMedico.es_admin ? `<input type="url" class="rctaLinkInput" data-id="${m.id}" placeholder="Link de invitación de RCTA" value="${escapeHtml(m.rcta_link || '')}" title="Link de RCTA para que el paciente complete sus datos (se envía por WhatsApp desde la ficha)" style="font-size:12px; padding:5px 8px; width:220px">` : ''}
                </span>`
             : esMedico
               ? `<select class="rolSelect" data-id="${m.id}" style="margin-left:auto; font-size:12px; padding:4px 8px">
@@ -1976,6 +1981,16 @@ if('serviceWorker' in navigator){
   });
 
   $('#medicosList').addEventListener('blur', async (e) => {
+    const rctaInput = e.target.closest('.rctaLinkInput');
+    if(rctaInput){
+      const rctaValue = rctaInput.value.trim();
+      const { error: rctaError } = await sb.from('medicos').update({ rcta_link: rctaValue || null }).eq('id', rctaInput.dataset.id);
+      if(rctaError){ flash('Error al guardar el link de RCTA: ' + rctaError.message, true); return; }
+      currentMedico.rcta_link = rctaValue || null;
+      updateRctaFab(currentPaciente());
+      flash('Link de RCTA guardado.');
+      return;
+    }
     const input = e.target.closest('.reviewLinkInput');
     if(!input) return;
     const value = input.value.trim();
@@ -3582,6 +3597,21 @@ if('serviceWorker' in navigator){
   // reviewLinkElegible() y reviewMensaje() se comparten entre el FAB de la
   // ficha y el panel de "pedidos pendientes" de Resumen para no repetir el
   // texto del mensaje en dos lugares.
+  function rctaLinkElegible(){
+    return currentMedico && currentMedico.es_admin && currentMedico.rcta_link;
+  }
+  function updateRctaFab(p){
+    const fab = $('#pdRctaFab');
+    if(!fab) return;
+    const link = rctaLinkElegible();
+    const d = p ? normalizePhoneAR(p.telefono) : '';
+    const elegible = !!link && d.length >= 11;
+    setBtnContactoEstado(fab, elegible, link ? 'Cargá el teléfono del paciente para habilitarlo' : 'Configurá tu link de invitación de RCTA (en Médicos del equipo)');
+    if(elegible){
+      const texto = `¡Hola ${p.nombre || ''}! Para poder hacerte la receta electrónica necesito que completes tus datos en este link: ${link} — cuando termines, avisame por acá. ¡Gracias!`;
+      fab.href = whatsappHref(d, texto);
+    }
+  }
   function reviewLinkElegible(){
     return currentMedico && currentMedico.es_admin && currentMedico.google_review_link;
   }
@@ -3744,6 +3774,7 @@ if('serviceWorker' in navigator){
     updateWhatsappFab(p.telefono);
     updateReviewFab(p);
     updateContactoFab(p);
+    updateRctaFab(p);
     updateGuiaFab(p);
     $('#pdDiagnostico').value = p.diagnostico || '';
     $('#pdOperacion').value = p.operacion || '';
@@ -3817,7 +3848,7 @@ if('serviceWorker' in navigator){
     if(['edad','diagnostico','sexo'].includes(key)) recomputePretest();
     if(key === 'nombre' || key === 'diagnostico') refreshFichaResumen();
     if(key === 'telefono') updateWhatsappFab(value);
-    if(key === 'telefono' || key === 'nombre'){ updateReviewFab(p); updateContactoFab(p); }
+    if(key === 'telefono' || key === 'nombre'){ updateReviewFab(p); updateContactoFab(p); updateRctaFab(p); }
     if(['telefono','nombre','sanatorio','tipo_consentimiento'].includes(key)) updateGuiaFab(p);
     if(key === 'operacion') await autoSuggestTipoConsentimiento(p);
     if(['acepta_programa','incluye_anatomia_patologica','incluye_kinesiologia','incluye_neumonologia_preqx','incluye_cardiologia_preqx'].includes(key)){
