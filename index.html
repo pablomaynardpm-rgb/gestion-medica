@@ -3600,17 +3600,40 @@ if('serviceWorker' in navigator){
   function rctaLinkElegible(){
     return currentMedico && currentMedico.es_admin && currentMedico.rcta_link;
   }
+  function esPami(p){
+    return !!p && normalize(p.os || '').includes('pami');
+  }
   function updateRctaFab(p){
     const fab = $('#pdRctaFab');
     if(!fab) return;
     const link = rctaLinkElegible();
     const d = p ? normalizePhoneAR(p.telefono) : '';
-    const elegible = !!link && d.length >= 11;
-    setBtnContactoEstado(fab, elegible, link ? 'Cargá el teléfono del paciente para habilitarlo' : 'Configurá tu link de invitación de RCTA (en Médicos del equipo)');
-    if(elegible){
+    const pami = esPami(p);
+    const elegible = !!link && !pami && d.length >= 11;
+    const label = fab.querySelector('div > div:first-child');
+    const motivo = !link ? 'Configurá tu link de invitación de RCTA (en Médicos del equipo)'
+      : pami ? 'Paciente de PAMI: la receta no se hace por RCTA'
+      : 'Cargá el teléfono del paciente para habilitarlo';
+    setBtnContactoEstado(fab, elegible, motivo);
+    fab.classList.remove('sent');
+    if(label) label.textContent = 'Enviar alta de RCTA por WhatsApp';
+    if(!elegible) return;
+    if(p.rcta_enviado_at){
+      fab.classList.add('sent');
+      if(label) label.textContent = 'Alta de RCTA ya enviada';
+      fab.querySelector('.btnContactoHint').textContent = 'Se la mandaste el ' + new Date(p.rcta_enviado_at).toLocaleDateString('es-AR');
+      fab.removeAttribute('href');
+    } else {
       const texto = `¡Hola ${p.nombre || ''}! Para poder hacerte la receta electrónica necesito que completes tus datos en este link: ${link} — cuando termines, avisame por acá. ¡Gracias!`;
       fab.href = whatsappHref(d, texto);
     }
+  }
+  async function marcarRctaEnviado(p){
+    const now = new Date().toISOString();
+    p.rcta_enviado_at = now;
+    updateRctaFab(p);
+    const { error } = await sb.from('pacientes').update({ rcta_enviado_at: now }).eq('id', p.id);
+    if(error){ p.rcta_enviado_at = null; updateRctaFab(p); flash('Error al guardar: ' + error.message, true); }
   }
   function reviewLinkElegible(){
     return currentMedico && currentMedico.es_admin && currentMedico.google_review_link;
@@ -3722,6 +3745,11 @@ if('serviceWorker' in navigator){
     const p = currentPaciente();
     if(!p || p.review_solicitado_at){ e.preventDefault(); return; }
     setTimeout(() => marcarReviewSolicitada(p), 0);
+  });
+  $('#pdRctaFab').addEventListener('click', (e) => {
+    const p = currentPaciente();
+    if(!p || p.rcta_enviado_at || esPami(p)){ e.preventDefault(); return; }
+    setTimeout(() => marcarRctaEnviado(p), 0);
   });
   $('#pdContactoFab').addEventListener('click', (e) => {
     const p = currentPaciente();
@@ -3849,6 +3877,7 @@ if('serviceWorker' in navigator){
     if(key === 'nombre' || key === 'diagnostico') refreshFichaResumen();
     if(key === 'telefono') updateWhatsappFab(value);
     if(key === 'telefono' || key === 'nombre'){ updateReviewFab(p); updateContactoFab(p); updateRctaFab(p); }
+    if(key === 'os') updateRctaFab(p);
     if(['telefono','nombre','sanatorio','tipo_consentimiento'].includes(key)) updateGuiaFab(p);
     if(key === 'operacion') await autoSuggestTipoConsentimiento(p);
     if(['acepta_programa','incluye_anatomia_patologica','incluye_kinesiologia','incluye_neumonologia_preqx','incluye_cardiologia_preqx'].includes(key)){
