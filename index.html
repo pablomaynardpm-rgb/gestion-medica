@@ -723,6 +723,10 @@
               <i data-lucide="user-plus"></i>
               <div><div>Enviar alta de RCTA por WhatsApp</div><div class="btnContactoHint"></div></div>
             </a>
+            <a id="pdRctaAbrirFab" class="btnContacto" href="#" target="_blank" rel="noopener">
+              <i data-lucide="external-link"></i>
+              <div><div>Abrir RCTA para hacer la receta</div><div class="btnContactoHint"></div></div>
+            </a>
             <button type="button" id="pdGuiaFab" class="btnContacto">
               <i data-lucide="file-text"></i>
               <div><div>Enviar guía del paciente quirúrgico por WhatsApp</div><div class="btnContactoHint"></div></div>
@@ -3600,12 +3604,21 @@ if('serviceWorker' in navigator){
   function rctaLinkElegible(){
     return currentMedico && currentMedico.es_admin && currentMedico.rcta_link;
   }
+  const RCTA_MIS_PACIENTES_URL = 'https://app.rcta.me/MyPatients';
+  function updateRctaAbrirFab(p){
+    const fab = $('#pdRctaAbrirFab');
+    if(!fab) return;
+    const habilitado = !!p && !!p.rcta_enviado_at;
+    setBtnContactoEstado(fab, habilitado, 'Primero enviá el alta de RCTA al paciente');
+    if(habilitado) fab.href = RCTA_MIS_PACIENTES_URL;
+  }
   function esPami(p){
     return !!p && normalize(p.os || '').includes('pami');
   }
   function updateRctaFab(p){
     const fab = $('#pdRctaFab');
     if(!fab) return;
+    updateRctaAbrirFab(p);
     const link = rctaLinkElegible();
     const d = p ? normalizePhoneAR(p.telefono) : '';
     const pami = esPami(p);
