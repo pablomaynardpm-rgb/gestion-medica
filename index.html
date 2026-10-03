@@ -307,6 +307,7 @@
   .badge.cond-operado{background:rgba(22,163,74,0.15); color:var(--done)}
   .badge.cond-falta_pedir{background:rgba(220,38,38,0.12); color:var(--danger)}
   .badge.cond-esperando{background:var(--purple-bg); color:var(--purple)}
+  .badge.cond-esperando_materiales{background:rgba(8,145,178,0.15); color:#0891B2}
   .badge.cond-consulta{background:rgba(107,114,128,0.15); color:var(--muted)}
   .badge.mat-rechazados{background:var(--danger); color:#fff; text-transform:uppercase; font-weight:800; letter-spacing:.03em}
   .tramiteWarn{display:flex; align-items:center; gap:5px; color:var(--danger); font-size:12px; font-weight:600; margin-top:4px}
@@ -513,7 +514,7 @@
         <div class="kpiNumero" id="kpiProgramar">0</div>
         <div class="kpiLabel">Programar</div>
       </div>
-      <div class="kpiCard kpi-pendientes kpiClickable" data-kpi-action="pacientesCondicion" data-cond="falta_pedir,esperando" role="button" tabindex="0">
+      <div class="kpiCard kpi-pendientes kpiClickable" data-kpi-action="pacientesCondicion" data-cond="falta_pedir,esperando,esperando_materiales" role="button" tabindex="0">
         <div class="kpiIcon"><i data-lucide="hourglass"></i></div>
         <div class="kpiNumero" id="kpiPendientes">0</div>
         <div class="kpiLabel">Pendientes</div>
@@ -2768,7 +2769,7 @@ if('serviceWorker' in navigator){
     ['urea','UREA'], ['creatinina','CREATININA'], ['na','NA'], ['k','K'], ['cl','CL'], ['otros','OTROS']
   ];
 
-  const CONDICION_LABEL = { operado: 'Operado', programado: 'Programado', programar: 'Programar', esperando: 'Esperando respuesta', falta_pedir: 'Falta pedir', consulta: 'Consulta' };
+  const CONDICION_LABEL = { operado: 'Operado', programado: 'Programado', programar: 'Programar', esperando: 'Esperando respuesta', esperando_materiales: 'Esperando materiales', falta_pedir: 'Falta pedir', consulta: 'Consulta' };
 
   // ---- Pretest de nódulo pulmonar (Mayo Clinic / Herder) ----
   function diagnosticoEsNodulo(diagnostico){
@@ -2885,7 +2886,7 @@ if('serviceWorker' in navigator){
   // Dos trámites independientes: autorización de la cirugía (autorizacion_cx) y
   // materiales. Solo se puede programar la fecha con los dos resueltos.
   function autorizacionCxListo(p){ return p.autorizacion_cx === 'aceptada' || p.autorizacion_cx === 'no_requiere'; }
-  function materialesListo(p){ return ['autorizados', 'en_quirofano', 'no_requiere'].includes(p.materiales); }
+  function materialesListo(p){ return p.materiales === 'en_quirofano' || p.materiales === 'no_requiere'; }
 
   function pacienteCondicion(p){
     if(p.operado) return 'operado';
@@ -2893,6 +2894,8 @@ if('serviceWorker' in navigator){
     if(p.tipo_paciente === 'no_quirurgico') return 'consulta';
     if(p.tipo_paciente !== 'quirurgico' && !p.autorizacion_cx && !p.materiales) return '';
     if(autorizacionCxListo(p) && materialesListo(p)) return 'programar';
+    // La obra social ya respondió todo: solo falta que los materiales lleguen a quirófano.
+    if(autorizacionCxListo(p) && p.materiales === 'autorizados') return 'esperando_materiales';
     const sinPedir = !p.autorizacion_cx || !p.materiales;
     const rechazado = p.autorizacion_cx === 'rechazada' || p.materiales === 'rechazados';
     return (sinPedir || rechazado) ? 'falta_pedir' : 'esperando';
@@ -2962,7 +2965,7 @@ if('serviceWorker' in navigator){
   function faltantesParaProgramar(p){
     const faltan = [];
     if(!autorizacionCxListo(p)) faltan.push('autorización de cirugía aceptada (o "No requiere")');
-    if(!materialesListo(p)) faltan.push('materiales autorizados (o "En quirófano" / "No requiere")');
+    if(!materialesListo(p)) faltan.push(p.materiales === 'autorizados' ? 'que los materiales lleguen a quirófano (estado "En quirófano")' : 'materiales en "En quirófano" o "No requiere"');
     return faltan;
   }
   // Si la cirugía ya tiene fecha, los campos quedan editables aunque falte algo
@@ -3006,11 +3009,11 @@ if('serviceWorker' in navigator){
     return pacientes.filter(p => [p.nombre, p.dni, p.telefono, p.sanatorio, p.diagnostico].join(' ').toLowerCase().includes(q));
   }
 
-  const CONDICION_ORDEN = ['programado', 'programar', 'esperando', 'falta_pedir', 'operado', 'consulta', ''];
-  const CONDICION_GROUP_LABEL = { programado: 'Programado', programar: 'Programar', esperando: 'Esperando respuesta', falta_pedir: 'Falta pedir', operado: 'Operado', consulta: 'Consulta', '': 'Sin definir' };
-  const CONDICION_GROUP_COLOR = { programado: 'var(--accent)', programar: 'var(--pending)', esperando: 'var(--purple)', falta_pedir: 'var(--danger)', operado: 'var(--done)', consulta: 'var(--muted)', '': 'var(--border)' };
+  const CONDICION_ORDEN = ['programado', 'programar', 'esperando_materiales', 'esperando', 'falta_pedir', 'operado', 'consulta', ''];
+  const CONDICION_GROUP_LABEL = { programado: 'Programado', programar: 'Programar', esperando: 'Esperando respuesta', esperando_materiales: 'Esperando materiales', falta_pedir: 'Falta pedir', operado: 'Operado', consulta: 'Consulta', '': 'Sin definir' };
+  const CONDICION_GROUP_COLOR = { programado: 'var(--accent)', programar: 'var(--pending)', esperando: 'var(--purple)', esperando_materiales: '#0891B2', falta_pedir: 'var(--danger)', operado: 'var(--done)', consulta: 'var(--muted)', '': 'var(--border)' };
   const CONDICION_COLAPSADAS = ['operado', 'consulta'];
-  const CONDICION_CON_TRAMITE = ['falta_pedir', 'esperando', 'programar'];
+  const CONDICION_CON_TRAMITE = ['falta_pedir', 'esperando', 'esperando_materiales', 'programar'];
 
   function pacienteCardHtml(p, color){
     const puedeBorrar = currentMedico.rol !== 'residente';
@@ -4918,7 +4921,7 @@ if('serviceWorker' in navigator){
     const internadosActivos = activeInternaciones();
     const interconsultasPend = items.filter(it => it.estado === 'pendiente');
     const programarList = pacientes.filter(p => pacienteCondicion(p) === 'programar');
-    const pendienteList = pacientes.filter(p => ['falta_pedir', 'esperando'].includes(pacienteCondicion(p)));
+    const pendienteList = pacientes.filter(p => ['falta_pedir', 'esperando', 'esperando_materiales'].includes(pacienteCondicion(p)));
 
     $('#kpiCirugias').textContent = cirugias.length;
     $('#kpiInternados').textContent = internadosActivos.length;
