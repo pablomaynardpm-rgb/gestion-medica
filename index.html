@@ -149,6 +149,7 @@
   .orig{color:var(--muted); font-size:11px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer}
   .orig:hover{white-space:normal; overflow:visible}
   .del{color:var(--danger); cursor:pointer; font-size:16px; line-height:1}
+  .pacRow .del{padding:10px; margin:-10px -10px 0 0}
   .empty{color:var(--muted); text-align:center; padding:30px; font-size:13px}
   .count{color:var(--muted); font-size:12px; margin-left:auto}
   details summary{cursor:pointer; font-size:12px; color:var(--muted)}
@@ -3032,6 +3033,8 @@ if('serviceWorker' in navigator){
   }
 
   function renderPacientes(){
+    const abiertas = new Set([...pacTbody.querySelectorAll('details.internadosGroup[open] > .internadosGroupHead')].map(h => h.dataset.cond));
+    const buscando = pacSearch.value.trim() !== '';
     const list = getFilteredPacientes();
     pacCount.textContent = `${list.length} de ${pacientes.length} paciente(s)`;
     pacEmpty.style.display = pacientes.length === 0 ? 'block' : 'none';
@@ -3055,7 +3058,7 @@ if('serviceWorker' in navigator){
           <div class="internadosCards">${grupo.map(p => pacienteCardHtml(p, color)).join('')}</div>
       `;
       return colapsable
-        ? `<details class="internadosGroup">${head}</details>`
+        ? `<details class="internadosGroup"${(abiertas.has(cond) || buscando) ? ' open' : ''}>${head}</details>`
         : `<div class="internadosGroup">${head}</div>`;
     }).join('');
   }
@@ -3141,11 +3144,14 @@ if('serviceWorker' in navigator){
         await syncCalendarEvent(del.dataset.id);
       }
       const { error } = await sb.from('pacientes').delete().eq('id', del.dataset.id);
-      if(error){ flashIn($('#pacMsg'), 'Error al borrar: ' + error.message, true); return; }
+      if(error){ alert('No se pudo borrar el paciente: ' + error.message); return; }
       registrarAuditoria('Borrado de paciente', toDelete ? toDelete.nombre : '', del.dataset.id);
       pacientes = pacientes.filter(p => p.id !== del.dataset.id);
+      internaciones = internaciones.filter(i => i.paciente_id !== del.dataset.id);
       renderPacientes();
+      renderInternados();
       renderCalendar();
+      flashIn($('#pacMsg'), 'Paciente borrado.');
       return;
     }
     const row = e.target.closest('.pacRow');
