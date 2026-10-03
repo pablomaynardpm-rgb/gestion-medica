@@ -2885,7 +2885,7 @@ if('serviceWorker' in navigator){
   // Dos trámites independientes: autorización de la cirugía (autorizacion_cx) y
   // materiales. Solo se puede programar la fecha con los dos resueltos.
   function autorizacionCxListo(p){ return p.autorizacion_cx === 'aceptada' || p.autorizacion_cx === 'no_requiere'; }
-  function materialesListo(p){ return p.materiales === 'en_quirofano' || p.materiales === 'no_requiere'; }
+  function materialesListo(p){ return ['autorizados', 'en_quirofano', 'no_requiere'].includes(p.materiales); }
 
   function pacienteCondicion(p){
     if(p.operado) return 'operado';
@@ -2962,7 +2962,7 @@ if('serviceWorker' in navigator){
   function faltantesParaProgramar(p){
     const faltan = [];
     if(!autorizacionCxListo(p)) faltan.push('autorización de cirugía aceptada (o "No requiere")');
-    if(!materialesListo(p)) faltan.push('materiales en "En quirófano" o "No requiere"');
+    if(!materialesListo(p)) faltan.push('materiales autorizados (o "En quirófano" / "No requiere")');
     return faltan;
   }
   // Si la cirugía ya tiene fecha, los campos quedan editables aunque falte algo
