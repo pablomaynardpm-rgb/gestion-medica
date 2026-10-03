@@ -391,6 +391,9 @@
     background:var(--panel); border-radius:12px; padding:20px; width:100%; max-width:480px;
     max-height:85vh; overflow-y:auto;
   }
+  .confirmOverlay{z-index:300}
+  .confirmTexto{white-space:pre-line; font-size:14px; line-height:1.45; margin:0 0 18px 0}
+  .confirmBotones{display:flex; gap:10px; justify-content:flex-end}
 </style>
 </head>
 <body>
@@ -1614,6 +1617,34 @@ if('serviceWorker' in navigator){
     setTimeout(() => { if(msgEl.textContent === text) msgEl.textContent = ''; }, 4000);
   }
 
+  // Reemplaza al cartel nativo de confirmación del navegador: si el navegador bloquea los carteles de
+  // una página ("evitar que esta página cree cuadros de diálogo adicionales"),
+  // ese cartel devuelve "no" sin mostrar nada y los botones de borrar parecen rotos.
+  function confirmar(texto){
+    return new Promise(resolve => {
+      const overlay = document.createElement('div');
+      overlay.className = 'modalOverlay confirmOverlay';
+      overlay.innerHTML = `<div class="modalCard" role="dialog" aria-modal="true">
+        <p class="confirmTexto"></p>
+        <div class="confirmBotones">
+          <button type="button" class="secondary" data-resp="no">Cancelar</button>
+          <button type="button" data-resp="si">Aceptar</button>
+        </div>
+      </div>`;
+      overlay.querySelector('.confirmTexto').textContent = texto;
+      const cerrar = (resp) => { document.removeEventListener('keydown', onKey, true); overlay.remove(); resolve(resp); };
+      const onKey = (e) => { if(e.key === 'Escape'){ e.stopPropagation(); cerrar(false); } };
+      overlay.addEventListener('click', (e) => {
+        if(e.target === overlay) cerrar(false);
+        const b = e.target.closest('[data-resp]');
+        if(b) cerrar(b.dataset.resp === 'si');
+      });
+      document.addEventListener('keydown', onKey, true);
+      document.body.appendChild(overlay);
+      overlay.querySelector('[data-resp="no"]').focus();
+    });
+  }
+
   function flashIn(el, text, isError){
     el.textContent = text;
     el.classList.toggle('error', !!isError);
@@ -2066,7 +2097,7 @@ if('serviceWorker' in navigator){
     } else {
       msg += ` No tiene pacientes, internaciones ni consultas propias asociadas. Esta acción no se puede deshacer.`;
     }
-    if(!confirm(msg)) return;
+    if(!await confirmar(msg)) return;
 
     del.textContent = '…';
     const { data, error } = await sb.functions.invoke('delete-medico', { body: { medico_id: m.id } });
@@ -2209,7 +2240,7 @@ if('serviceWorker' in navigator){
 
   $('#btnClear').addEventListener('click', async () => {
     if(items.length === 0) return;
-    if(confirm('¿Borrar todas las interconsultas guardadas? Esta acción no se puede deshacer.')){
+    if(await confirmar('¿Borrar todas las interconsultas guardadas? Esta acción no se puede deshacer.')){
       const { error } = await sb.from('interconsultas').delete().not('id', 'is', null);
       if(error){ flash('Error al borrar: ' + error.message, true); return; }
       items = [];
@@ -2395,7 +2426,7 @@ if('serviceWorker' in navigator){
   $('#capturasPendientesList').addEventListener('click', async (e) => {
     const del = e.target.closest('[data-action="deleteCaptura"]');
     if(del){
-      if(!confirm('¿Quitar esta captura de la cola? Si todavía no se procesó, esa interconsulta no se va a cargar.')) return;
+      if(!await confirmar('¿Quitar esta captura de la cola? Si todavía no se procesó, esa interconsulta no se va a cargar.')) return;
       await sb.storage.from(CAPTURAS_BUCKET).remove([del.dataset.path]);
       const { error } = await sb.from('interconsultas_capturas_pendientes').delete().eq('id', del.dataset.id);
       if(error){ flash('Error al borrar: ' + error.message, true); return; }
@@ -2579,7 +2610,7 @@ if('serviceWorker' in navigator){
     const delSanatorio = e.target.closest('[data-action="deleteSanatorioAdmin"]');
     if(delSanatorio){
       const nombre = delSanatorio.dataset.nombre;
-      if(!confirm(`¿Borrar "${nombre}"? También se borran su dirección, zona y contactos vinculados. Esta acción no se puede deshacer.`)) return;
+      if(!await confirmar(`¿Borrar "${nombre}"? También se borran su dirección, zona y contactos vinculados. Esta acción no se puede deshacer.`)) return;
       const s = sanatoriosRef.find(x => normalize(x.nombre) === normalize(nombre));
       if(s){
         const { error } = await sb.from('sanatorios').delete().eq('id', s.id);
@@ -2679,7 +2710,7 @@ if('serviceWorker' in navigator){
     }
     const contestada = e.target.closest('[data-action="contestada"]');
     if(contestada){
-      if(!confirm('¿Marcar esta interconsulta como contestada? Se va a borrar de la lista y no se puede deshacer.')) return;
+      if(!await confirmar('¿Marcar esta interconsulta como contestada? Se va a borrar de la lista y no se puede deshacer.')) return;
       const item = items.find(i => i.id === contestada.dataset.id);
       const valorIc = item ? lookupPrecioInterconsulta(item.sanatorio) : null;
       if(item && valorIc != null) await registrarInterconsultaFacturable(item, 'contestada', valorIc);
@@ -2708,7 +2739,7 @@ if('serviceWorker' in navigator){
     }
     const del = e.target.closest('[data-action="delete"]');
     if(del){
-      if(!confirm('¿Borrar esta interconsulta? Esta acción no se puede deshacer.')) return;
+      if(!await confirmar('¿Borrar esta interconsulta? Esta acción no se puede deshacer.')) return;
       const itemDel = items.find(i => i.id === del.dataset.id);
       const { error } = await sb.from('interconsultas').delete().eq('id', del.dataset.id);
       if(error){ flash('Error al borrar: ' + error.message, true); return; }
@@ -2727,7 +2758,7 @@ if('serviceWorker' in navigator){
     const valorIc = lookupPrecioInterconsulta(it.sanatorio);
     let registrarYBorrar = false;
     if(valorIc != null){
-      registrarYBorrar = confirm(`Esta interconsulta es de ${it.sanatorio} (valor de interconsulta: $${valorIc}). Se va a registrar para facturación y se va a borrar de la lista de interconsultas. ¿Continuar?`);
+      registrarYBorrar = await confirmar(`Esta interconsulta es de ${it.sanatorio} (valor de interconsulta: $${valorIc}). Se va a registrar para facturación y se va a borrar de la lista de interconsultas. ¿Continuar?`);
     }
     if(registrarYBorrar){
       await registrarInterconsultaFacturable(it, 'programada', valorIc);
@@ -3135,7 +3166,7 @@ if('serviceWorker' in navigator){
   pacTbody.addEventListener('click', async (e) => {
     const del = e.target.closest('[data-action="deletePaciente"]');
     if(del){
-      if(!confirm('¿Borrar este paciente? Esta acción no se puede deshacer.')) return;
+      if(!await confirmar('¿Borrar este paciente? Esta acción no se puede deshacer.')) return;
       const toDelete = pacientes.find(p => p.id === del.dataset.id);
       if(toDelete && toDelete.fecha_qx){
         // Limpia primero los eventos de Google Calendar (si no, quedarían huérfanos):
@@ -4153,7 +4184,7 @@ if('serviceWorker' in navigator){
     if(!p) return;
     const hayAlgoQueCancelar = p.fecha_qx || p.hora_qx || p.materiales || p.autorizacion_cx || p.operado;
     if(!hayAlgoQueCancelar){ flashIn($('#pacMsg'), 'No hay ninguna cirugía programada para cancelar.', true); return; }
-    if(!confirm('¿Cancelar esta cirugía? Se borra la fecha/hora de la agenda y de Google Calendar, y la condición vuelve a "Sin definir". El paciente sigue apareciendo como internado si ya lo estaba. Esta acción no se puede deshacer.')) return;
+    if(!await confirmar('¿Cancelar esta cirugía? Se borra la fecha/hora de la agenda y de Google Calendar, y la condición vuelve a "Sin definir". El paciente sigue apareciendo como internado si ya lo estaba. Esta acción no se puede deshacer.')) return;
 
     const teniaFecha = !!p.fecha_qx;
     const patch = { fecha_qx: null, hora_qx: null, materiales: null, materiales_enviado_at: null, autorizacion_cx: null, autorizacion_cx_enviada_at: null, operado: false };
@@ -4174,7 +4205,7 @@ if('serviceWorker' in navigator){
     if(!p) return;
     const tieneDatos = p.operacion || p.fecha_qx || p.operado;
     if(!tieneDatos){ flashIn($('#pacMsg'), 'No hay una cirugía cargada todavía para archivar — completá los campos de Operación directamente.', true); return; }
-    if(!confirm('¿Agregar una nueva cirugía? La cirugía actual se guarda en el historial y los campos de Operación quedan libres para cargar la nueva.')) return;
+    if(!await confirmar('¿Agregar una nueva cirugía? La cirugía actual se guarda en el historial y los campos de Operación quedan libres para cargar la nueva.')) return;
 
     const entry = {
       operacion: p.operacion || null,
@@ -4464,10 +4495,10 @@ if('serviceWorker' in navigator){
       const id = consultorioEl.dataset.consultorioId;
       const item = consultorioDias.find(c => c.id === id);
       const hermanos = item && item.grupo_id ? consultorioDias.filter(c => c.grupo_id === item.grupo_id) : [];
-      if(!confirm('¿Quitar este día de consultorio?')) return;
+      if(!await confirmar('¿Quitar este día de consultorio?')) return;
       let borrarSerie = false;
       if(hermanos.length > 1){
-        borrarSerie = confirm(`Este día es parte de una serie repetida (${hermanos.length} fechas). ¿Querés borrar TODA la serie? Cancelar borra solo este día.`);
+        borrarSerie = await confirmar(`Este día es parte de una serie repetida (${hermanos.length} fechas). ¿Querés borrar TODA la serie? Cancelar borra solo este día.`);
       }
       if(borrarSerie){
         const { error } = await sb.from('consultorio_dias').delete().eq('grupo_id', item.grupo_id);
@@ -4851,7 +4882,7 @@ if('serviceWorker' in navigator){
   async function darDeAlta(internacionId){
     const i = internaciones.find(x => x.id === internacionId);
     if(!i) return;
-    if(!confirm('¿Dar de alta a este paciente? Va a salir de la lista de internados activos.')) return;
+    if(!await confirmar('¿Dar de alta a este paciente? Va a salir de la lista de internados activos.')) return;
     const hoy = toISODate(new Date());
     const { error } = await sb.from('internaciones').update({ fecha_alta: hoy }).eq('id', i.id);
     if(error){ flash('Error al dar de alta: ' + error.message, true); return; }
@@ -5209,7 +5240,7 @@ if('serviceWorker' in navigator){
   consultasGrid.addEventListener('click', async (e) => {
     const del = e.target.closest('[data-action="deleteConsulta"]');
     if(del){
-      if(!confirm('¿Borrar este registro de consulta? Esta acción no se puede deshacer.')) return;
+      if(!await confirmar('¿Borrar este registro de consulta? Esta acción no se puede deshacer.')) return;
       const { error } = await sb.from('consultas').delete().eq('id', del.dataset.id);
       if(error){ flashIn($('#consMsg'), 'Error al borrar: ' + error.message, true); return; }
       consultas = consultas.filter(c => c.id !== del.dataset.id);
@@ -5281,7 +5312,7 @@ if('serviceWorker' in navigator){
   icFacturablesGrid.addEventListener('click', async (e) => {
     const del = e.target.closest('[data-action="deleteIcFacturable"]');
     if(del){
-      if(!confirm('¿Borrar este registro? Esta acción no se puede deshacer.')) return;
+      if(!await confirmar('¿Borrar este registro? Esta acción no se puede deshacer.')) return;
       const { error } = await sb.from('interconsultas_facturables').delete().eq('id', del.dataset.id);
       if(error){ flash('Error al borrar: ' + error.message, true); return; }
       interconsultasFacturables = interconsultasFacturables.filter(c => c.id !== del.dataset.id);
