@@ -2770,14 +2770,6 @@ if('serviceWorker' in navigator){
 
   const CONDICION_LABEL = { operado: 'Operado', programado: 'Programado', programar: 'Programar', esperando: 'Esperando respuesta', falta_pedir: 'Falta pedir', consulta: 'Consulta' };
 
-  function isPreQxCompleto(p){
-    const pq = p.preqx || {};
-    const lab = pq.laboratorio || {};
-    const tieneLab = Object.values(lab).some(v => (v || '').toString().trim() !== '');
-    const tieneRcv = !!(pq.rcv || '').toString().trim();
-    return tieneLab && tieneRcv;
-  }
-
   // ---- Pretest de nódulo pulmonar (Mayo Clinic / Herder) ----
   function diagnosticoEsNodulo(diagnostico){
     const n = normalize(diagnostico || '');
@@ -2900,10 +2892,7 @@ if('serviceWorker' in navigator){
     if(p.fecha_qx) return 'programado';
     if(p.tipo_paciente === 'no_quirurgico') return 'consulta';
     if(p.tipo_paciente !== 'quirurgico' && !p.autorizacion_cx && !p.materiales) return '';
-    if(autorizacionCxListo(p) && materialesListo(p)){
-      // Sin materiales, el PreQx (laboratorio + RCV) tiene que estar completo para programar.
-      return (p.materiales === 'no_requiere' && !isPreQxCompleto(p)) ? 'esperando' : 'programar';
-    }
+    if(autorizacionCxListo(p) && materialesListo(p)) return 'programar';
     const sinPedir = !p.autorizacion_cx || !p.materiales;
     const rechazado = p.autorizacion_cx === 'rechazada' || p.materiales === 'rechazados';
     return (sinPedir || rechazado) ? 'falta_pedir' : 'esperando';
@@ -2929,8 +2918,7 @@ if('serviceWorker' in navigator){
   function tramiteResumenTexto(p){
     const cx = p.autorizacion_cx ? AUTH_CX_CARD[p.autorizacion_cx] + (p.autorizacion_cx === 'enviada' && p.autorizacion_cx_enviada_at ? ' ' + fechaCorta(p.autorizacion_cx_enviada_at) : '') : 'sin pedir';
     const mat = p.materiales ? MATERIALES_CARD[p.materiales] + (p.materiales === 'pendiente_autorizacion' && p.materiales_enviado_at ? ' ' + fechaCorta(p.materiales_enviado_at) : '') : 'sin pedir';
-    const preqx = (autorizacionCxListo(p) && p.materiales === 'no_requiere' && !isPreQxCompleto(p)) ? ' · PreQx incompleto' : '';
-    return `Cirugía: ${cx} · Materiales: ${mat}${preqx}`;
+    return `Cirugía: ${cx} · Materiales: ${mat}`;
   }
   function renderTramiteInfo(p){
     const el = $('#pdTramiteInfo');
