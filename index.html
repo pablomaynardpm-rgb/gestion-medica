@@ -258,6 +258,10 @@
   select.matSelect.mat-pendiente_autorizacion{background:rgba(220,38,38,0.15); color:var(--danger); border-color:var(--danger)}
   select.matSelect.mat-autorizados{background:rgba(37,99,235,0.15); color:var(--accent); border-color:var(--accent)}
   select.matSelect.mat-en_quirofano{background:rgba(22,163,74,0.15); color:var(--done); border-color:var(--done)}
+  select.matSelect.mat-rechazados, select.matSelect.auth-rechazada{background:var(--danger); color:#fff; border-color:var(--danger)}
+  select.matSelect.auth-enviada{background:rgba(220,38,38,0.15); color:var(--danger); border-color:var(--danger)}
+  select.matSelect.auth-aceptada{background:rgba(22,163,74,0.15); color:var(--done); border-color:var(--done)}
+  select.matSelect.auth-no_requiere{background:var(--purple-bg); color:var(--purple); border-color:var(--purple)}
   .fieldFull{display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--muted); margin-top:14px}
   .fieldFull input, .fieldFull textarea, .fieldFull select{font-size:13px; color:var(--text)}
   .sanatorioDot{display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:6px; flex-shrink:0; box-shadow:0 0 0 1px rgba(255,255,255,0.15)}
@@ -301,6 +305,12 @@
   .badge.cond-programar{background:rgba(245,158,11,0.15); color:var(--pending)}
   .badge.cond-programado{background:rgba(37,99,235,0.15); color:var(--accent)}
   .badge.cond-operado{background:rgba(22,163,74,0.15); color:var(--done)}
+  .badge.cond-falta_pedir{background:rgba(220,38,38,0.12); color:var(--danger)}
+  .badge.cond-esperando{background:var(--purple-bg); color:var(--purple)}
+  .badge.cond-consulta{background:rgba(107,114,128,0.15); color:var(--muted)}
+  .badge.mat-rechazados{background:var(--danger); color:#fff; text-transform:uppercase; font-weight:800; letter-spacing:.03em}
+  .tramiteWarn{display:flex; align-items:center; gap:5px; color:var(--danger); font-size:12px; font-weight:600; margin-top:4px}
+  .tramiteWarn svg.lucide{width:14px; height:14px; flex-shrink:0}
   /* Botones de contacto: se sacó el FAB flotante/colapsable (Pablo reportó
      que era poco confiable — a veces no respondía al toque) a favor de
      botones fijos y siempre visibles en la pestaña "Contacto" de la ficha. */
@@ -503,7 +513,7 @@
         <div class="kpiNumero" id="kpiProgramar">0</div>
         <div class="kpiLabel">Programar</div>
       </div>
-      <div class="kpiCard kpi-pendientes kpiClickable" data-kpi-action="pacientesCondicion" data-cond="pendiente" role="button" tabindex="0">
+      <div class="kpiCard kpi-pendientes kpiClickable" data-kpi-action="pacientesCondicion" data-cond="falta_pedir,esperando" role="button" tabindex="0">
         <div class="kpiIcon"><i data-lucide="hourglass"></i></div>
         <div class="kpiNumero" id="kpiPendientes">0</div>
         <div class="kpiLabel">Pendientes</div>
@@ -631,6 +641,11 @@
           <input type="text" id="pacNroAfiliado" placeholder="Nro. afiliado">
           <input type="text" id="pacTelefono" placeholder="Teléfono">
           <input type="text" id="pacDiagnostico" placeholder="Diagnóstico">
+          <select id="pacTipo">
+            <option value="">Tipo de paciente</option>
+            <option value="quirurgico">Quirúrgico</option>
+            <option value="no_quirurgico">No quirúrgico</option>
+          </select>
           <button id="btnAddPaciente">Agregar</button>
         </div>
         <div class="msg" id="pacMsg"></div>
@@ -665,6 +680,13 @@
           <h2 style="margin:0">Datos generales</h2>
           <div class="fichaGrid">
             <label>Nombre y apellido<input type="text" data-pk="nombre" id="pdNombre"></label>
+            <label>Tipo de paciente
+              <select data-pk="tipo_paciente" id="pdTipoPaciente">
+                <option value="">Sin definir</option>
+                <option value="quirurgico">Quirúrgico</option>
+                <option value="no_quirurgico">No quirúrgico</option>
+              </select>
+            </label>
             <label>Sanatorio <span id="pdSanatorioDot" class="sanatorioDot" style="background:transparent"></span><input type="text" data-pk="sanatorio" id="pdSanatorio" list="sanatoriosDatalist3"></label>
             <label>Edad<input type="number" data-pk="edad" id="pdEdad" min="0" max="130"></label>
             <label>Sexo
@@ -756,13 +778,23 @@
             <label>Operación a realizar<input type="text" data-pk="operacion" id="pdOperacion"></label>
             <label>Fecha Qx<input type="date" data-pk="fecha_qx" id="pdFechaQx"></label>
             <label>Hora Qx<input type="time" data-pk="hora_qx" id="pdHoraQx"></label>
+            <label>Autorización de cirugía
+              <select class="matSelect" data-pk="autorizacion_cx" id="pdAutorizacionCx">
+                <option value="">Sin pedir</option>
+                <option value="enviada">Enviada</option>
+                <option value="aceptada">Aceptada</option>
+                <option value="rechazada">Rechazada</option>
+                <option value="no_requiere">No requiere</option>
+              </select>
+            </label>
             <label>Materiales
               <select class="matSelect" data-pk="materiales" id="pdMateriales">
-                <option value="">Sin definir</option>
+                <option value="">Sin pedir</option>
                 <option value="no_requiere">No requiere</option>
                 <option value="pendiente_autorizacion">Pendiente de autorización</option>
                 <option value="autorizados">Autorizados</option>
                 <option value="en_quirofano">En quirófano</option>
+                <option value="rechazados">Rechazados</option>
               </select>
             </label>
             <label>Consentimiento informado (link)
@@ -819,7 +851,8 @@
             </div>
             <div class="meta" id="pdNivelProgramaInfo" style="margin-top:6px"></div>
           </div>
-          <div class="msg" id="fechaQxLockMsg" style="margin-top:8px">Definí Materiales en "En quirófano" o "No requiere" para poder programar la fecha.</div>
+          <div class="msg" id="fechaQxLockMsg" style="margin-top:8px"></div>
+          <div id="pdTramiteInfo"></div>
           <label style="display:flex; align-items:center; gap:8px; margin-top:14px; font-size:13px; font-weight:normal; cursor:pointer">
             <input type="checkbox" id="pdOperado"> Ya fue operado (marca hoy como Fecha Qx)
           </label>
@@ -2735,7 +2768,7 @@ if('serviceWorker' in navigator){
     ['urea','UREA'], ['creatinina','CREATININA'], ['na','NA'], ['k','K'], ['cl','CL'], ['otros','OTROS']
   ];
 
-  const CONDICION_LABEL = { operado: 'Operado', programado: 'Programado', programar: 'Programar', pendiente: 'Pendiente' };
+  const CONDICION_LABEL = { operado: 'Operado', programado: 'Programado', programar: 'Programar', esperando: 'Esperando respuesta', falta_pedir: 'Falta pedir', consulta: 'Consulta' };
 
   function isPreQxCompleto(p){
     const pq = p.preqx || {};
@@ -2857,13 +2890,51 @@ if('serviceWorker' in navigator){
     }
   }
 
+  // Dos trámites independientes: autorización de la cirugía (autorizacion_cx) y
+  // materiales. Solo se puede programar la fecha con los dos resueltos.
+  function autorizacionCxListo(p){ return p.autorizacion_cx === 'aceptada' || p.autorizacion_cx === 'no_requiere'; }
+  function materialesListo(p){ return p.materiales === 'en_quirofano' || p.materiales === 'no_requiere'; }
+
   function pacienteCondicion(p){
     if(p.operado) return 'operado';
     if(p.fecha_qx) return 'programado';
-    if(p.materiales === 'en_quirofano') return 'programar';
-    if(p.materiales === 'no_requiere') return isPreQxCompleto(p) ? 'programar' : 'pendiente';
-    if(p.materiales === 'pendiente_autorizacion' || p.materiales === 'autorizados') return 'pendiente';
-    return '';
+    if(p.tipo_paciente === 'no_quirurgico') return 'consulta';
+    if(p.tipo_paciente !== 'quirurgico' && !p.autorizacion_cx && !p.materiales) return '';
+    if(autorizacionCxListo(p) && materialesListo(p)){
+      // Sin materiales, el PreQx (laboratorio + RCV) tiene que estar completo para programar.
+      return (p.materiales === 'no_requiere' && !isPreQxCompleto(p)) ? 'esperando' : 'programar';
+    }
+    const sinPedir = !p.autorizacion_cx || !p.materiales;
+    const rechazado = p.autorizacion_cx === 'rechazada' || p.materiales === 'rechazados';
+    return (sinPedir || rechazado) ? 'falta_pedir' : 'esperando';
+  }
+
+  const AVISO_SIN_RESPUESTA_DIAS = 15;
+  const AUTH_CX_CARD = { enviada: 'enviada', aceptada: 'aceptada', rechazada: 'rechazada', no_requiere: 'no requiere' };
+  const MATERIALES_CARD = { no_requiere: 'no requiere', pendiente_autorizacion: 'enviados', autorizados: 'autorizados', en_quirofano: 'en quirófano', rechazados: 'rechazados' };
+  function diasDesde(iso){ return iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86400000) : null; }
+  function fechaCorta(iso){ return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }); }
+
+  function tramiteAvisos(p){
+    const avisos = [];
+    const dCx = p.autorizacion_cx === 'enviada' ? diasDesde(p.autorizacion_cx_enviada_at) : null;
+    if(dCx !== null && dCx >= AVISO_SIN_RESPUESTA_DIAS) avisos.push(`Autorización de cirugía sin respuesta hace ${dCx} días`);
+    const dMat = p.materiales === 'pendiente_autorizacion' ? diasDesde(p.materiales_enviado_at) : null;
+    if(dMat !== null && dMat >= AVISO_SIN_RESPUESTA_DIAS) avisos.push(`Materiales sin respuesta hace ${dMat} días`);
+    return avisos;
+  }
+  function tramiteAvisosHtml(p){
+    return tramiteAvisos(p).map(t => `<div class="tramiteWarn"><i data-lucide="triangle-alert"></i> ${escapeHtml(t)}</div>`).join('');
+  }
+  function tramiteResumenTexto(p){
+    const cx = p.autorizacion_cx ? AUTH_CX_CARD[p.autorizacion_cx] + (p.autorizacion_cx === 'enviada' && p.autorizacion_cx_enviada_at ? ' ' + fechaCorta(p.autorizacion_cx_enviada_at) : '') : 'sin pedir';
+    const mat = p.materiales ? MATERIALES_CARD[p.materiales] + (p.materiales === 'pendiente_autorizacion' && p.materiales_enviado_at ? ' ' + fechaCorta(p.materiales_enviado_at) : '') : 'sin pedir';
+    const preqx = (autorizacionCxListo(p) && p.materiales === 'no_requiere' && !isPreQxCompleto(p)) ? ' · PreQx incompleto' : '';
+    return `Cirugía: ${cx} · Materiales: ${mat}${preqx}`;
+  }
+  function renderTramiteInfo(p){
+    const el = $('#pdTramiteInfo');
+    if(el) el.innerHTML = p ? tramiteAvisosHtml(p) : '';
   }
 
   function condicionBadgeHtml(p){
@@ -2892,15 +2963,32 @@ if('serviceWorker' in navigator){
   }
 
   function setMatSelectClass(el, value){
-    el.classList.remove('mat-no_requiere', 'mat-pendiente_autorizacion', 'mat-autorizados', 'mat-en_quirofano');
+    el.classList.remove('mat-no_requiere', 'mat-pendiente_autorizacion', 'mat-autorizados', 'mat-en_quirofano', 'mat-rechazados');
     if(value) el.classList.add('mat-' + value);
   }
+  function setAuthSelectClass(el, value){
+    el.classList.remove('auth-enviada', 'auth-aceptada', 'auth-rechazada', 'auth-no_requiere');
+    if(value) el.classList.add('auth-' + value);
+  }
 
-  function updateFechaQxLock(materiales){
-    const listo = materiales === 'en_quirofano' || materiales === 'no_requiere';
-    $('#pdFechaQx').disabled = !listo;
-    $('#pdHoraQx').disabled = !listo;
-    $('#fechaQxLockMsg').style.display = listo ? 'none' : 'block';
+  function faltantesParaProgramar(p){
+    const faltan = [];
+    if(!autorizacionCxListo(p)) faltan.push('autorización de cirugía aceptada (o "No requiere")');
+    if(!materialesListo(p)) faltan.push('materiales en "En quirófano" o "No requiere"');
+    return faltan;
+  }
+  // Si la cirugía ya tiene fecha, los campos quedan editables aunque falte algo
+  // (para poder corregirla o borrarla).
+  function updateFechaQxLock(){
+    const p = currentPaciente();
+    if(!p) return;
+    const faltan = faltantesParaProgramar(p);
+    const bloqueado = faltan.length > 0 && !p.fecha_qx;
+    $('#pdFechaQx').disabled = bloqueado;
+    $('#pdHoraQx').disabled = bloqueado;
+    const msg = $('#fechaQxLockMsg');
+    msg.style.display = bloqueado ? 'block' : 'none';
+    msg.textContent = 'Para programar la fecha falta: ' + faltan.join(' y ') + '.';
   }
 
   const pacListView = $('#pacListView');
@@ -2930,9 +3018,11 @@ if('serviceWorker' in navigator){
     return pacientes.filter(p => [p.nombre, p.dni, p.telefono, p.sanatorio, p.diagnostico].join(' ').toLowerCase().includes(q));
   }
 
-  const CONDICION_ORDEN = ['programado', 'programar', 'pendiente', 'operado', ''];
-  const CONDICION_GROUP_LABEL = { programado: 'Programado', programar: 'Programar', pendiente: 'Pendiente', operado: 'Operado', '': 'Sin definir' };
-  const CONDICION_GROUP_COLOR = { programado: 'var(--accent)', programar: 'var(--pending)', pendiente: 'var(--muted)', operado: 'var(--done)', '': 'var(--border)' };
+  const CONDICION_ORDEN = ['programado', 'programar', 'esperando', 'falta_pedir', 'operado', 'consulta', ''];
+  const CONDICION_GROUP_LABEL = { programado: 'Programado', programar: 'Programar', esperando: 'Esperando respuesta', falta_pedir: 'Falta pedir', operado: 'Operado', consulta: 'Consulta', '': 'Sin definir' };
+  const CONDICION_GROUP_COLOR = { programado: 'var(--accent)', programar: 'var(--pending)', esperando: 'var(--purple)', falta_pedir: 'var(--danger)', operado: 'var(--done)', consulta: 'var(--muted)', '': 'var(--border)' };
+  const CONDICION_COLAPSADAS = ['operado', 'consulta'];
+  const CONDICION_CON_TRAMITE = ['falta_pedir', 'esperando', 'programar'];
 
   function pacienteCardHtml(p, color){
     const puedeBorrar = currentMedico.rol !== 'residente';
@@ -2946,6 +3036,7 @@ if('serviceWorker' in navigator){
       ${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ''}
       ${p.diagnostico ? `<div class="meta">${escapeHtml(p.diagnostico)}</div>` : ''}
       ${p.fecha_qx ? `<div class="dias">${escapeHtml(p.fecha_qx)}</div>` : ''}
+      ${CONDICION_CON_TRAMITE.includes(pacienteCondicion(p)) ? `<div class="meta">${escapeHtml(tramiteResumenTexto(p))}</div>${tramiteAvisosHtml(p)}` : ''}
     </div>`;
   }
 
@@ -2963,15 +3054,16 @@ if('serviceWorker' in navigator){
     pacTbody.innerHTML = CONDICION_ORDEN.filter(cond => grupos[cond] && grupos[cond].length).map(cond => {
       const grupo = grupos[cond].slice().sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
       const color = CONDICION_GROUP_COLOR[cond];
+      const colapsable = CONDICION_COLAPSADAS.includes(cond);
       const head = `
-          <${cond === 'operado' ? 'summary' : 'div'} class="internadosGroupHead" data-cond="${cond}" style="border-left:6px solid ${color}">
+          <${colapsable ? 'summary' : 'div'} class="internadosGroupHead" data-cond="${cond}" style="border-left:6px solid ${color}">
             <span class="sanatorioDot" style="background:${color}; width:12px; height:12px"></span>
             <span class="internadosGroupTitle">${CONDICION_GROUP_LABEL[cond]}</span>
             <span class="internadosGroupCount">${grupo.length}</span>
-          </${cond === 'operado' ? 'summary' : 'div'}>
+          </${colapsable ? 'summary' : 'div'}>
           <div class="internadosCards">${grupo.map(p => pacienteCardHtml(p, color)).join('')}</div>
       `;
-      return cond === 'operado'
+      return colapsable
         ? `<details class="internadosGroup">${head}</details>`
         : `<div class="internadosGroup">${head}</div>`;
     }).join('');
@@ -3030,7 +3122,8 @@ if('serviceWorker' in navigator){
       os: $('#pacOs').value.trim() || null,
       nro_afiliado: $('#pacNroAfiliado').value.trim() || null,
       telefono: $('#pacTelefono').value.trim() || null,
-      diagnostico: $('#pacDiagnostico').value.trim() || null
+      diagnostico: $('#pacDiagnostico').value.trim() || null,
+      tipo_paciente: $('#pacTipo').value || null
     };
     const { data, error } = await sb.from('pacientes').insert(row).select().single();
     if(error){ flashIn($('#pacMsg'), 'Error al guardar: ' + error.message, true); return; }
@@ -3038,7 +3131,7 @@ if('serviceWorker' in navigator){
     pacientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
     registrarAuditoria('Alta de paciente', `${nombre}${sanatorio ? ' · ' + sanatorio : ''}`, data.id);
     if(sanatorio) await ensureSanatorioRef(sanatorio);
-    ['pacNombre','pacSanatorio','pacEdad','pacDni','pacOs','pacNroAfiliado','pacTelefono','pacDiagnostico'].forEach(id => $('#'+id).value = '');
+    ['pacNombre','pacSanatorio','pacEdad','pacDni','pacOs','pacNroAfiliado','pacTelefono','pacDiagnostico','pacTipo'].forEach(id => $('#'+id).value = '');
     renderPacientes();
     render();
     renderCalendar();
@@ -3708,8 +3801,8 @@ if('serviceWorker' in navigator){
     const statsHtml = `<div class="meta" style="margin-bottom:12px">${esteMes} pedida${esteMes === 1 ? '' : 's'} este mes · ${solicitadas.length} en total</div>`;
 
     const pendientesTotal = pacientes
-      .filter(p => p.operado && !p.review_solicitado_at && normalizePhoneAR(p.telefono).length >= 11)
-      .sort((a, b) => (b.fecha_qx || '').localeCompare(a.fecha_qx || ''));
+      .filter(p => (p.operado || pacienteCondicion(p) === 'consulta') && !p.review_solicitado_at && normalizePhoneAR(p.telefono).length >= 11)
+      .sort((a, b) => (b.fecha_qx || b.created_at || '').localeCompare(a.fecha_qx || a.created_at || ''));
     const pendientes = resenasPendientesExpandido ? pendientesTotal : pendientesTotal.slice(0, RESENAS_PENDIENTES_LIMITE);
     const restantes = pendientesTotal.length - pendientes.length;
 
@@ -3721,7 +3814,7 @@ if('serviceWorker' in navigator){
       <div class="row" style="justify-content:space-between; align-items:center; margin-top:0; padding:8px 0; border-bottom:1px solid var(--border)">
         <div data-paciente-id="${p.id}" style="cursor:pointer">
           <div style="font-weight:600">${escapeHtml(p.nombre)}</div>
-          <div class="meta" style="font-size:12px">${escapeHtml(p.sanatorio || '')}</div>
+          <div class="meta" style="font-size:12px">${p.operado ? 'Operado' : 'Consulta'}${p.sanatorio ? ' · ' + escapeHtml(p.sanatorio) : ''}</div>
         </div>
         <button type="button" class="secondary" data-action="pedirResenaPanel" data-id="${p.id}" style="font-size:12px; padding:6px 10px; white-space:nowrap"><i data-lucide="star"></i> Pedir reseña</button>
       </div>
@@ -3823,7 +3916,11 @@ if('serviceWorker' in navigator){
     $('#pdHoraQx').value = (p.hora_qx || '').slice(0,5);
     $('#pdMateriales').value = p.materiales || '';
     setMatSelectClass($('#pdMateriales'), p.materiales || '');
-    updateFechaQxLock(p.materiales || '');
+    $('#pdAutorizacionCx').value = p.autorizacion_cx || '';
+    setAuthSelectClass($('#pdAutorizacionCx'), p.autorizacion_cx || '');
+    $('#pdTipoPaciente').value = p.tipo_paciente || '';
+    updateFechaQxLock();
+    renderTramiteInfo(p);
     $('#pdConsentimientoLink').value = p.consentimiento_link || '';
     $('#pdConsentimientoEstado').value = p.consentimiento_estado || '';
     $('#pdTipoConsentimiento').value = p.tipo_consentimiento || '';
@@ -3873,10 +3970,28 @@ if('serviceWorker' in navigator){
   async function savePacienteField(key, value){
     const p = currentPaciente();
     if(!p) return;
-    p[key] = value;
-    const { error } = await sb.from('pacientes').update({ [key]: value }).eq('id', p.id);
+    const patch = { [key]: value };
+    // Fecha de envío (para el aviso de "sin respuesta"): se estampa al pasar a "enviada",
+    // se borra al volver a "sin pedir" y se conserva en cualquier otro estado.
+    if(key === 'autorizacion_cx'){
+      if(value === 'enviada') patch.autorizacion_cx_enviada_at = new Date().toISOString();
+      else if(!value) patch.autorizacion_cx_enviada_at = null;
+    }
+    if(key === 'materiales'){
+      if(value === 'pendiente_autorizacion') patch.materiales_enviado_at = new Date().toISOString();
+      else if(!value) patch.materiales_enviado_at = null;
+    }
+    Object.assign(p, patch);
+    const { error } = await sb.from('pacientes').update(patch).eq('id', p.id);
     if(error) flashIn($('#pacMsg'), 'Error al guardar: ' + error.message, true);
-    if(!error && ['nombre','diagnostico','operacion','fecha_qx','materiales','sanatorio'].includes(key)){
+    if(['autorizacion_cx','materiales','tipo_paciente'].includes(key)){
+      refreshCondicionBadge();
+      updateFechaQxLock();
+      renderTramiteInfo(p);
+      renderPacientes();
+      renderResumen();
+    }
+    if(!error && ['nombre','diagnostico','operacion','fecha_qx','materiales','sanatorio','autorizacion_cx','tipo_paciente'].includes(key)){
       registrarAuditoria('Edición de ficha', `${p.nombre || ''} · ${key}: ${value || '(vacío)'}`, p.id);
     }
     if(key === 'sanatorio'){
@@ -3944,7 +4059,9 @@ if('serviceWorker' in navigator){
     if(el.tagName === 'SELECT' && el.dataset.pk){
       const value = el.value || null;
       savePacienteField(el.dataset.pk, value);
-      if(el.classList.contains('matSelect')){ setMatSelectClass(el, value || ''); updateFechaQxLock(value || ''); }
+      if(el.id === 'pdMateriales') setMatSelectClass(el, value || '');
+      if(el.id === 'pdAutorizacionCx') setAuthSelectClass(el, value || '');
+      updateFechaQxLock();
       return;
     }
     if(el.tagName === 'INPUT' && el.type === 'checkbox' && el.dataset.pk){
@@ -4037,12 +4154,12 @@ if('serviceWorker' in navigator){
   $('#btnCancelarCx').addEventListener('click', async () => {
     const p = currentPaciente();
     if(!p) return;
-    const hayAlgoQueCancelar = p.fecha_qx || p.hora_qx || p.materiales || p.operado;
+    const hayAlgoQueCancelar = p.fecha_qx || p.hora_qx || p.materiales || p.autorizacion_cx || p.operado;
     if(!hayAlgoQueCancelar){ flashIn($('#pacMsg'), 'No hay ninguna cirugía programada para cancelar.', true); return; }
     if(!confirm('¿Cancelar esta cirugía? Se borra la fecha/hora de la agenda y de Google Calendar, y la condición vuelve a "Sin definir". El paciente sigue apareciendo como internado si ya lo estaba. Esta acción no se puede deshacer.')) return;
 
     const teniaFecha = !!p.fecha_qx;
-    const patch = { fecha_qx: null, hora_qx: null, materiales: null, operado: false };
+    const patch = { fecha_qx: null, hora_qx: null, materiales: null, materiales_enviado_at: null, autorizacion_cx: null, autorizacion_cx_enviada_at: null, operado: false };
     Object.assign(p, patch);
     const { error } = await sb.from('pacientes').update(patch).eq('id', p.id);
     if(error){ flashIn($('#pacMsg'), 'Error al guardar: ' + error.message, true); return; }
@@ -4067,6 +4184,7 @@ if('serviceWorker' in navigator){
       fecha_qx: p.fecha_qx || null,
       hora_qx: p.hora_qx || null,
       materiales: p.materiales || null,
+      autorizacion_cx: p.autorizacion_cx || null,
       operado: !!p.operado
     };
     const teniaFecha = !!p.fecha_qx;
@@ -4076,6 +4194,9 @@ if('serviceWorker' in navigator){
       fecha_qx: null,
       hora_qx: null,
       materiales: null,
+      materiales_enviado_at: null,
+      autorizacion_cx: null,
+      autorizacion_cx_enviada_at: null,
       operado: false
     };
     Object.assign(p, patch);
@@ -4158,7 +4279,7 @@ if('serviceWorker' in navigator){
   // ==================== AGENDA (calendario quirúrgico) ====================
   const agFilterSanatorio = $('#agFilterSanatorio');
   const calContainer = $('#calContainer');
-  const MATERIALES_LABEL = { no_requiere: 'No requiere', pendiente_autorizacion: 'Pendiente de autorización', autorizados: 'Autorizados', en_quirofano: 'En quirófano' };
+  const MATERIALES_LABEL = { no_requiere: 'No requiere', pendiente_autorizacion: 'Pendiente de autorización', autorizados: 'Autorizados', en_quirofano: 'En quirófano', rechazados: 'Rechazados' };
   const DOW_LABELS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
   const MONTH_LABELS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   let calView = 'month';
@@ -4809,7 +4930,7 @@ if('serviceWorker' in navigator){
     const internadosActivos = activeInternaciones();
     const interconsultasPend = items.filter(it => it.estado === 'pendiente');
     const programarList = pacientes.filter(p => pacienteCondicion(p) === 'programar');
-    const pendienteList = pacientes.filter(p => pacienteCondicion(p) === 'pendiente');
+    const pendienteList = pacientes.filter(p => ['falta_pedir', 'esperando'].includes(pacienteCondicion(p)));
 
     $('#kpiCirugias').textContent = cirugias.length;
     $('#kpiInternados').textContent = internadosActivos.length;
@@ -4890,7 +5011,7 @@ if('serviceWorker' in navigator){
     pacListView.style.display = 'block';
     renderPacientes();
     requestAnimationFrame(() => {
-      const head = pacTbody.querySelector(`.internadosGroupHead[data-cond="${cond}"]`);
+      const head = cond.split(',').map(c => pacTbody.querySelector(`.internadosGroupHead[data-cond="${c}"]`)).find(Boolean);
       if(!head) return;
       const details = head.closest('details.internadosGroup');
       if(details) details.open = true;
