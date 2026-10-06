@@ -1693,7 +1693,7 @@ if('serviceWorker' in navigator){
         document.removeEventListener('keydown', onKey, true);
         overlay.remove();
         resolve(resp);
-        if(capasAbiertas.includes(cerrarPorHistorial)) cerrarCapaUI();
+        cerrarCapaUI(cerrarPorHistorial);
       };
       const onKey = (e) => { if(e.key === 'Escape'){ e.stopPropagation(); cerrar(false); } };
       overlay.addEventListener('click', (e) => {
@@ -2061,15 +2061,17 @@ if('serviceWorker' in navigator){
   }
   // Cierre hecho desde la propia app (botón de cerrar, aceptar, etc.): saca la entrada
   // del historial; el cierre real ocurre en popstate (o acá si el navegador no responde).
-  function cerrarCapaUI(){
-    if(!capasAbiertas.length) return;
+  // La capa sale de la lista en el acto (así una ventana que se abre enseguida, por
+  // ejemplo la pregunta de la serie después de "¿Quitar este día?", no se cierra sola).
+  function cerrarCapaUI(cerrar){
+    const pos = capasAbiertas.indexOf(cerrar);
+    if(pos === -1) return;
+    capasAbiertas.splice(pos, 1);
     atrasPendiente = true;
     history.back();
     setTimeout(() => {
       if(!atrasPendiente) return;
       atrasPendiente = false;
-      const cerrar = capasAbiertas.pop();
-      if(cerrar) cerrar();
       if(sincronizarDespues){ sincronizarDespues = false; sincronizarHistorial(); }
     }, 1000);
   }
@@ -2100,10 +2102,12 @@ if('serviceWorker' in navigator){
     const eraPropio = atrasPendiente;
     atrasPendiente = false;
     const st = e.state;
-    const destinoCapas = (st && st.c) || 0;
-    while(capasAbiertas.length > destinoCapas){
-      const cerrar = capasAbiertas.pop();
-      try { cerrar(); } catch(_e){}
+    if(!eraPropio){
+      const destinoCapas = (st && st.c) || 0;
+      while(capasAbiertas.length > destinoCapas){
+        const cerrar = capasAbiertas.pop();
+        try { cerrar(); } catch(_e){}
+      }
     }
     if(!eraPropio && st && st.v && !mismaVista(st, pantallaActual())){
       aplicandoHistorial = true;
@@ -2384,7 +2388,7 @@ if('serviceWorker' in navigator){
   function cerrarManualIc(){
     const estabaAbierto = manualIcOverlay.style.display !== 'none';
     manualIcOverlay.style.display = 'none';
-    if(estabaAbierto && capasAbiertas.includes(cerrarManualIc)) cerrarCapaUI();
+    if(estabaAbierto) cerrarCapaUI(cerrarManualIc);
   }
   $('#btnAddManual').addEventListener('click', abrirManualIc);
   $('#btnCerrarManualIc').addEventListener('click', cerrarManualIc);
@@ -5272,7 +5276,7 @@ if('serviceWorker' in navigator){
     const estabaAbierto = overlay.style.display !== 'none';
     overlay.style.display = 'none';
     currentInternacionId = null;
-    if(estabaAbierto && capasAbiertas.includes(cerrarEvolucion)) cerrarCapaUI();
+    if(estabaAbierto) cerrarCapaUI(cerrarEvolucion);
   }
 
   async function saveInternacionField(key, value){
