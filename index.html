@@ -126,6 +126,20 @@
     background:var(--panel); color:var(--text); font-size:13px;
   }
   input[type=text]{min-width:220px}
+  .hubKpis{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin:12px 0}
+  .hubKpi{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px 16px}
+  .hubKpi .t{font-size:12px; color:var(--muted); font-weight:600}
+  .hubKpi .n{font-size:24px; font-weight:700; margin-top:4px}
+  .hubKpi .s{font-size:12px; color:var(--muted); margin-top:2px}
+  .sanGrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:12px; margin-top:14px}
+  .sanCard{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; cursor:pointer}
+  .sanCard:hover{background:var(--bg)}
+  .sanCard:focus-visible{outline:2px solid var(--accent)}
+  .sanCardNombre{font-weight:700; font-size:15px}
+  .sanChips{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+  .sanChip{font-size:12px; font-weight:600; padding:3px 9px; border-radius:999px; background:var(--bg); border:1px solid var(--border); color:var(--muted)}
+  .sanChip.aviso{background:var(--purple-bg); color:var(--purple); border-color:transparent}
+  .hubDia{display:inline-flex; align-items:center; gap:6px; background:var(--purple-bg); color:var(--purple); border-radius:8px; padding:6px 10px; font-size:13px; font-weight:600; margin:0 6px 6px 0}
   .searchBox{position:relative; flex:1; min-width:220px}
   .searchBox svg.lucide{position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--accent); pointer-events:none}
   .searchBox input[type=text]{width:100%; min-width:0; padding:10px 14px 10px 36px; border:2px solid var(--accent); border-radius:10px; font-size:14px; box-shadow:0 1px 3px rgba(0,0,0,0.08)}
@@ -441,6 +455,7 @@
         </div>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
+        <button class="secondary !text-xs !py-1.5 !px-3" id="btnAjustes" style="display:none"><i data-lucide="settings"></i> Ajustes</button>
         <button class="secondary !text-xs !py-1.5 !px-3" id="btnTheme"><i data-lucide="moon"></i> Modo oscuro</button>
         <button class="secondary !text-xs !py-1.5 !px-3" id="btnGoogleCal"><i data-lucide="calendar"></i> Conectar Google Calendar</button>
         <button class="secondary !text-xs !py-1.5 !px-3" id="btnNotif"><i data-lucide="bell"></i> Activar notificaciones</button>
@@ -460,40 +475,6 @@
     <button class="navtab" id="navtabRecordatorios" data-view="viewRecordatorios" style="display:none">Recordatorios</button>
     <button class="navtab" id="navtabActividad" data-view="viewActividad" style="display:none">Actividad</button>
   </div>
-
-  <details class="panel" id="panelMedicos">
-    <summary style="font-size:14px; font-weight:600"><i data-lucide="users"></i> Médicos del equipo</summary>
-    <div style="margin-top:16px">
-      <ul class="contactList" id="medicosList"></ul>
-      <div class="contactForm" style="margin-top:12px">
-        <input type="email" id="inviteEmail" placeholder="Email del médico a invitar">
-        <input type="text" id="inviteNombre" placeholder="Nombre y apellido">
-        <input type="text" id="inviteEspecialidad" placeholder="Especialidad (opcional)">
-        <select id="inviteRol">
-          <option value="medico">Médico</option>
-          <option value="residente">Residente</option>
-        </select>
-        <div class="sanDropdown" id="inviteSanatoriosDropdown" style="display:none">
-          <button type="button" class="secondary sanDropdownBtn" id="inviteSanatoriosBtn">Todos los sanatorios ▾</button>
-          <div class="sanDropdownPanel" id="inviteSanatoriosPanel"></div>
-        </div>
-        <button id="btnInvite" class="secondary">Invitar</button>
-      </div>
-      <div class="msg" id="inviteMsg"></div>
-    </div>
-  </details>
-
-  <details class="panel" id="panelSanatoriosAdmin" style="display:none">
-    <summary style="font-size:14px; font-weight:600"><i data-lucide="building-2"></i> Sanatorios</summary>
-    <div style="margin-top:16px">
-      <div class="msg" style="margin-top:0; margin-bottom:8px">Dirección, zona de facturación y contactos vinculados de cada sanatorio, todo en un solo lugar — visible y editable solo para vos.</div>
-      <div class="contactForm">
-        <input type="text" id="nuevoSanatorioNombre" placeholder="Nombre del sanatorio nuevo">
-        <button id="btnAddSanatorioAdmin" class="secondary">Agregar sanatorio</button>
-      </div>
-      <div id="sanatoriosAdminGrid" style="margin-top:16px"></div>
-    </div>
-  </details>
 
   <!-- ==================== RESUMEN ==================== -->
   <div class="view active" id="viewResumen">
@@ -608,16 +589,7 @@
         </div>
       </div>
 
-      <div style="margin-top:24px">
-        <h2>Valor de interconsulta por sanatorio</h2>
-        <div class="msg" style="margin-top:0; margin-bottom:8px">Si un sanatorio te paga la interconsulta aparte (ej: Berazategui), cargá el valor acá. Al contestar o programar una interconsulta de ese sanatorio, se registra sola para facturación en la pestaña Consultorio.</div>
-        <div class="contactForm">
-          <input type="text" id="valorIcSanatorio" placeholder="Sanatorio" list="sanatoriosDatalist">
-          <input type="number" id="valorIcInput" placeholder="Valor" step="0.01" min="0">
-          <button id="btnAddValorIc" class="secondary">Vincular</button>
-        </div>
-        <ul class="contactList" id="valorIcList"></ul>
-      </div>
+      <div class="msg" style="margin-top:24px">El valor de interconsulta de cada sanatorio se configura en <b>Ajustes → Sanatorios</b>.</div>
 
     </details>
   </div>
@@ -1009,77 +981,7 @@
       <select id="agFilterSanatorio"><option value="">Todos los sanatorios</option></select>
     </div>
 
-    <details class="panel" id="panelConsultorioDias">
-      <summary style="font-size:13px; font-weight:600"><i data-lucide="calendar-clock"></i> Agendar días de consultorio</summary>
-      <div style="margin-top:12px">
-        <div class="msg" style="margin-top:0; margin-bottom:8px">Marcá qué días tenés consultorio en cada sanatorio, para verlo junto con las cirugías programadas y evitar que se pisen.</div>
-        <div class="contactForm">
-          <input type="date" id="consDiaFecha">
-          <input type="time" id="consDiaHoraInicio" title="Hora de inicio">
-          <input type="time" id="consDiaHoraFin" title="Hora de fin">
-          <input type="text" id="consDiaSanatorio" placeholder="Sanatorio" list="sanatoriosDatalist">
-        </div>
-        <div class="contactForm" style="margin-top:8px">
-          <select id="consDiaRepite">
-            <option value="">No se repite</option>
-            <option value="dia">Cada día</option>
-            <option value="semana">Cada semana</option>
-            <option value="mes">Cada mes</option>
-            <option value="personalizado">Personalizar...</option>
-          </select>
-          <span id="consDiaIntervaloWrap" style="display:none; align-items:center; gap:6px">
-            <span class="msg" style="margin:0">Cada</span>
-            <input type="number" id="consDiaIntervalo" value="1" min="1" style="width:60px">
-            <span class="msg" style="margin:0" id="consDiaIntervaloUnidad">semana(s)</span>
-          </span>
-          <span id="consDiaHastaWrap" style="display:none; align-items:center; gap:6px">
-            <span class="msg" style="margin:0">Hasta</span>
-            <input type="date" id="consDiaHasta">
-          </span>
-          <button id="btnAddConsultorioDia" class="secondary">Agendar consultorio</button>
-        </div>
-
-        <div id="consDiaPersonalizadoPanel" style="display:none; margin-top:10px; padding:12px; border:1px solid var(--border); border-radius:8px; background:var(--bg)">
-          <div class="row" style="margin-top:0; align-items:center">
-            <span class="msg" style="margin:0">Repetir cada</span>
-            <input type="number" id="consDiaPersIntervalo" value="1" min="1" style="width:60px">
-            <select id="consDiaPersUnidad">
-              <option value="dia">día(s)</option>
-              <option value="semana" selected>semana(s)</option>
-              <option value="mes">mes(es)</option>
-              <option value="anio">año(s)</option>
-            </select>
-          </div>
-          <div id="consDiaPersDiasWrap" style="margin-top:10px">
-            <div class="msg" style="margin-top:0; margin-bottom:6px">Se repite el</div>
-            <div class="row" style="margin-top:0; gap:4px">
-              <button type="button" class="dowToggle" data-dow="0">L</button>
-              <button type="button" class="dowToggle" data-dow="1">M</button>
-              <button type="button" class="dowToggle" data-dow="2">X</button>
-              <button type="button" class="dowToggle" data-dow="3">J</button>
-              <button type="button" class="dowToggle" data-dow="4">V</button>
-              <button type="button" class="dowToggle" data-dow="5">S</button>
-              <button type="button" class="dowToggle" data-dow="6">D</button>
-            </div>
-          </div>
-          <div style="margin-top:12px">
-            <div class="msg" style="margin-top:0; margin-bottom:6px">Termina</div>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:normal; margin-bottom:6px">
-              <input type="radio" name="consDiaPersTermina" value="nunca" checked> Nunca (hasta 2 años como máximo)
-            </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:normal; margin-bottom:6px">
-              <input type="radio" name="consDiaPersTermina" value="el"> El
-              <input type="date" id="consDiaPersHasta" style="margin-left:4px">
-            </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:normal">
-              <input type="radio" name="consDiaPersTermina" value="despues"> Después de
-              <input type="number" id="consDiaPersRepeticiones" value="10" min="1" style="width:60px; margin-left:4px"> repeticiones
-            </label>
-          </div>
-        </div>
-        <div class="msg" id="consDiaMsg"></div>
-      </div>
-    </details>
+    <div class="msg" id="agHintConsultorio" style="display:none">Para agendar días de consultorio, andá a <b>Ajustes → Sanatorios</b> y elegí el sanatorio.</div>
 
     <div class="panel" id="calContainer" style="padding:0; overflow:hidden"></div>
 
@@ -1213,29 +1115,7 @@
       <div class="msg" id="consMsg"></div>
     </div>
 
-    <details class="panel" id="panelPreciosConsulta">
-      <summary style="font-size:14px; font-weight:600"><i data-lucide="circle-dollar-sign"></i> Precios por sanatorio y obra social</summary>
-      <div style="margin-top:16px">
-        <div class="msg" style="margin-top:0; margin-bottom:8px">Se usa para autocompletar el valor al cargar una consulta nueva.</div>
-        <div class="contactForm">
-          <input type="text" id="precioSanatorio" placeholder="Sanatorio" list="sanatoriosDatalist">
-          <select id="precioOs">
-            <option value="">OS</option>
-            <option value="unico">Valor único (todas las OS)</option>
-            <option value="PAMI">PAMI</option>
-            <option value="OSDE">OSDE</option>
-            <option value="Swiss Medical">Swiss Medical</option>
-            <option value="Medife">Medife</option>
-            <option value="Samisalud">Samisalud</option>
-            <option value="IOMA">IOMA</option>
-            <option value="Particular">Particular</option>
-          </select>
-          <input type="number" id="precioValor" placeholder="Valor" step="0.01" min="0">
-          <button id="btnAddPrecio" class="secondary">Vincular</button>
-        </div>
-        <ul class="contactList" id="preciosList"></ul>
-      </div>
-    </details>
+    <div class="msg">Los precios por sanatorio y obra social se configuran en <b>Ajustes → Sanatorios</b>.</div>
 
     <details class="panel" id="panelIcFacturables">
       <summary style="font-size:14px; font-weight:600"><i data-lucide="clipboard-list"></i> Interconsultas facturables (Berazategui, etc.)</summary>
@@ -1277,6 +1157,179 @@
       <div class="msg" style="margin-top:0; margin-bottom:12px">Todo lo que se carga o modifica en la app — la tuya y la de cualquier residente. Se ve solo desde tu cuenta de administrador.</div>
       <div id="auditoriaLista"></div>
       <div class="empty" id="auditoriaEmpty" style="display:none">Todavía no hay actividad registrada.</div>
+    </div>
+  </div>
+
+  <!-- ==================== AJUSTES (solo admin) ==================== -->
+  <div class="view" id="viewAjustes">
+
+    <div id="ajustesInicio">
+      <div class="panel">
+        <h2><i data-lucide="building-2"></i> Sanatorios</h2>
+        <div class="msg" style="margin-top:0; margin-bottom:8px">Tocá un sanatorio para ver y editar todo lo suyo: dirección, contactos, valores, facturación y días de consultorio. Solo lo ves vos.</div>
+        <div class="contactForm">
+          <input type="text" id="nuevoSanatorioNombre" placeholder="Nombre del sanatorio nuevo">
+          <button id="btnAddSanatorioAdmin" class="secondary">Agregar sanatorio</button>
+        </div>
+        <div class="sanGrid" id="sanatoriosListaGrid"></div>
+      </div>
+
+  <div class="panel" id="panelMedicos">
+    <h2><i data-lucide="users"></i> Equipo</h2>
+    
+    <div style="margin-top:16px">
+      <ul class="contactList" id="medicosList"></ul>
+      <div class="contactForm" style="margin-top:12px">
+        <input type="email" id="inviteEmail" placeholder="Email del médico a invitar">
+        <input type="text" id="inviteNombre" placeholder="Nombre y apellido">
+        <input type="text" id="inviteEspecialidad" placeholder="Especialidad (opcional)">
+        <select id="inviteRol">
+          <option value="medico">Médico</option>
+          <option value="residente">Residente</option>
+        </select>
+        <div class="sanDropdown" id="inviteSanatoriosDropdown" style="display:none">
+          <button type="button" class="secondary sanDropdownBtn" id="inviteSanatoriosBtn">Todos los sanatorios ▾</button>
+          <div class="sanDropdownPanel" id="inviteSanatoriosPanel"></div>
+        </div>
+        <button id="btnInvite" class="secondary">Invitar</button>
+      </div>
+      <div class="msg" id="inviteMsg"></div>
+    </div>
+  </div>
+
+      <div class="panel">
+        <h2><i data-lucide="user"></i> Mi cuenta</h2>
+        <div class="row" id="ajustesCuenta" style="margin-top:0; gap:8px"></div>
+      </div>
+    </div>
+
+    <div id="ajustesSanatorio" style="display:none">
+      <button type="button" class="secondary" id="btnHubVolver">← Ajustes</button>
+      <div class="hubKpis" id="hubResumen"></div>
+
+      <div id="sanatoriosAdminGrid"></div>
+
+      <div class="panel">
+        <h2>Valores</h2>
+        <h3 class="subhead" style="margin-top:0">Consulta por obra social</h3>
+        <ul class="contactList" id="hubPreciosList"></ul>
+        <div class="contactForm" style="margin-top:8px">
+          <select id="hubPrecioOs">
+            <option value="">Obra social</option>
+            <option value="unico">Valor único (todas las OS)</option>
+            <option value="PAMI">PAMI</option>
+            <option value="OSDE">OSDE</option>
+            <option value="Swiss Medical">Swiss Medical</option>
+            <option value="Medife">Medife</option>
+            <option value="Samisalud">Samisalud</option>
+            <option value="IOMA">IOMA</option>
+            <option value="Particular">Particular</option>
+          </select>
+          <input type="number" id="hubPrecioValor" placeholder="Valor" step="0.01" min="0">
+          <button type="button" id="btnHubAddPrecio" class="secondary">Guardar valor</button>
+        </div>
+        <div class="msg" style="margin-top:4px">Se usa para autocompletar el valor al cargar una consulta nueva.</div>
+        <h3 class="subhead">Interconsulta</h3>
+        <div class="msg" style="margin-top:0; margin-bottom:8px">Si este sanatorio te paga la interconsulta aparte, cargá el valor. Al contestar o programar una interconsulta de acá, se anota sola para facturar.</div>
+        <div class="contactForm">
+          <input type="number" id="hubValorIc" placeholder="Valor por interconsulta" step="0.01" min="0">
+          <button type="button" id="btnHubGuardarIc" class="secondary">Guardar</button>
+          <button type="button" id="btnHubQuitarIc" class="secondary">Quitar</button>
+        </div>
+        <div class="msg" id="hubValoresMsg"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Facturación</h2>
+        <h3 class="subhead" style="margin-top:0">Consultas de este mes</h3>
+        <div id="hubConsultas"></div>
+        <div class="row" style="margin-top:8px; gap:8px">
+          <button type="button" class="secondary" id="btnHubExportCons">Exportar consultas (CSV)</button>
+          <button type="button" class="secondary" id="btnHubVerConsultorio">Ver todas y editar en Consultorio →</button>
+        </div>
+        <h3 class="subhead">Interconsultas por facturar</h3>
+        <div id="hubIcFact"></div>
+        <div class="row" style="margin-top:8px; gap:8px">
+          <button type="button" class="secondary" id="btnHubExportIc">Exportar interconsultas (CSV)</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Días de consultorio</h2>
+        <div class="msg" style="margin-top:0; margin-bottom:8px">Se ven también en la Agenda, junto a las cirugías, para que no se pisen.</div>
+        <div id="hubDiasLista"></div>
+    <details class="panel" id="panelConsultorioDias">
+      <summary style="font-size:13px; font-weight:600"><i data-lucide="calendar-clock"></i> Agendar días de consultorio</summary>
+      <div style="margin-top:12px">
+        <div class="msg" style="margin-top:0; margin-bottom:8px">Marcá qué días tenés consultorio en cada sanatorio, para verlo junto con las cirugías programadas y evitar que se pisen.</div>
+        <div class="contactForm">
+          <input type="date" id="consDiaFecha">
+          <input type="time" id="consDiaHoraInicio" title="Hora de inicio">
+          <input type="time" id="consDiaHoraFin" title="Hora de fin">
+          <input type="text" id="consDiaSanatorio" placeholder="Sanatorio" list="sanatoriosDatalist">
+        </div>
+        <div class="contactForm" style="margin-top:8px">
+          <select id="consDiaRepite">
+            <option value="">No se repite</option>
+            <option value="dia">Cada día</option>
+            <option value="semana">Cada semana</option>
+            <option value="mes">Cada mes</option>
+            <option value="personalizado">Personalizar...</option>
+          </select>
+          <span id="consDiaIntervaloWrap" style="display:none; align-items:center; gap:6px">
+            <span class="msg" style="margin:0">Cada</span>
+            <input type="number" id="consDiaIntervalo" value="1" min="1" style="width:60px">
+            <span class="msg" style="margin:0" id="consDiaIntervaloUnidad">semana(s)</span>
+          </span>
+          <span id="consDiaHastaWrap" style="display:none; align-items:center; gap:6px">
+            <span class="msg" style="margin:0">Hasta</span>
+            <input type="date" id="consDiaHasta">
+          </span>
+          <button id="btnAddConsultorioDia" class="secondary">Agendar consultorio</button>
+        </div>
+
+        <div id="consDiaPersonalizadoPanel" style="display:none; margin-top:10px; padding:12px; border:1px solid var(--border); border-radius:8px; background:var(--bg)">
+          <div class="row" style="margin-top:0; align-items:center">
+            <span class="msg" style="margin:0">Repetir cada</span>
+            <input type="number" id="consDiaPersIntervalo" value="1" min="1" style="width:60px">
+            <select id="consDiaPersUnidad">
+              <option value="dia">día(s)</option>
+              <option value="semana" selected>semana(s)</option>
+              <option value="mes">mes(es)</option>
+              <option value="anio">año(s)</option>
+            </select>
+          </div>
+          <div id="consDiaPersDiasWrap" style="margin-top:10px">
+            <div class="msg" style="margin-top:0; margin-bottom:6px">Se repite el</div>
+            <div class="row" style="margin-top:0; gap:4px">
+              <button type="button" class="dowToggle" data-dow="0">L</button>
+              <button type="button" class="dowToggle" data-dow="1">M</button>
+              <button type="button" class="dowToggle" data-dow="2">X</button>
+              <button type="button" class="dowToggle" data-dow="3">J</button>
+              <button type="button" class="dowToggle" data-dow="4">V</button>
+              <button type="button" class="dowToggle" data-dow="5">S</button>
+              <button type="button" class="dowToggle" data-dow="6">D</button>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <div class="msg" style="margin-top:0; margin-bottom:6px">Termina</div>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:normal; margin-bottom:6px">
+              <input type="radio" name="consDiaPersTermina" value="nunca" checked> Nunca (hasta 2 años como máximo)
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:normal; margin-bottom:6px">
+              <input type="radio" name="consDiaPersTermina" value="el"> El
+              <input type="date" id="consDiaPersHasta" style="margin-left:4px">
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:normal">
+              <input type="radio" name="consDiaPersTermina" value="despues"> Después de
+              <input type="number" id="consDiaPersRepeticiones" value="10" min="1" style="width:60px; margin-left:4px"> repeticiones
+            </label>
+          </div>
+        </div>
+        <div class="msg" id="consDiaMsg"></div>
+      </div>
+    </details>
+      </div>
     </div>
   </div>
 
@@ -1791,8 +1844,15 @@ if('serviceWorker' in navigator){
       pila[0] = inicial;
     }
     $('#userchip').innerHTML = `<b>${escapeHtml(currentMedico.nombre)}</b>${currentMedico.especialidad ? ' · ' + escapeHtml(currentMedico.especialidad) : ''}${currentMedico.rol === 'residente' ? ' · Residente' : ''}`;
-    const panelSanatoriosAdmin = $('#panelSanatoriosAdmin');
-    if(panelSanatoriosAdmin) panelSanatoriosAdmin.style.display = currentMedico.es_admin ? '' : 'none';
+    // Ajustes (equipo, sanatorios, cuenta) lo ve solo el admin; sus botones de cuenta
+    // pasan del encabezado a "Mi cuenta". Los demás usuarios los siguen viendo arriba.
+    if(currentMedico.es_admin){
+      $('#btnAjustes').style.display = '';
+      const cuenta = $('#ajustesCuenta');
+      ['btnTheme', 'btnGoogleCal', 'btnNotif', 'btnLogout'].forEach(id => cuenta.appendChild($('#' + id)));
+      const hintConsultorio = $('#agHintConsultorio');
+      if(hintConsultorio) hintConsultorio.style.display = '';
+    }
     // La pestaña "Contacto" de la ficha (WhatsApp/reseña/mi contacto/guía) es
     // específica de Pablo (su link de reseñas, su guía, su número de WhatsApp
     // Business) — no tiene sentido para el resto del equipo, así que solo el
@@ -1972,12 +2032,12 @@ if('serviceWorker' in navigator){
   const pila = [];
 
   function pantallaActual(){
-    const tab = document.querySelector('.navtab.active');
-    const v = tab ? tab.dataset.view : 'viewResumen';
+    const vista = document.querySelector('.view.active');
+    const v = vista ? vista.id : 'viewResumen';
     const fichaAbierta = v === 'viewPacientes' && !!currentPacienteId && pacDetailView.style.display === 'block';
-    return { v, f: fichaAbierta ? currentPacienteId : null, c: capasAbiertas.length };
+    return { v, f: fichaAbierta ? currentPacienteId : null, s: v === 'viewAjustes' ? (sanatorioHubActual || null) : null, c: capasAbiertas.length };
   }
-  function mismaVista(a, b){ return !!a && !!b && a.v === b.v && (a.f || null) === (b.f || null); }
+  function mismaVista(a, b){ return !!a && !!b && a.v === b.v && (a.f || null) === (b.f || null) && (a.s || null) === (b.s || null); }
   function mismaPantalla(a, b){ return mismaVista(a, b) && (a.c || 0) === (b.c || 0); }
 
   function sincronizarHistorial(){
@@ -2016,6 +2076,11 @@ if('serviceWorker' in navigator){
 
   function aplicarPantalla(st){
     activarVista(st.v);
+    if(st.v === 'viewAjustes'){
+      sanatorioHubActual = st.s || null;
+      aplicarVistaAjustes();
+      return;
+    }
     if(st.v !== 'viewPacientes') return;
     if(st.f && pacientes.some(p => p.id === st.f)){
       currentPacienteId = st.f;
@@ -2545,18 +2610,7 @@ if('serviceWorker' in navigator){
     }
   });
 
-  function renderPreciosIc(){
-    $('#valorIcList').innerHTML = preciosInterconsulta.length === 0
-      ? '<li style="color:var(--muted); justify-content:center">Sin valores cargados todavía.</li>'
-      : preciosInterconsulta.slice().sort((a,b) => a.sanatorio.localeCompare(b.sanatorio)).map(p => `
-        <li data-id="${p.id}">
-          <span>${escapeHtml(p.sanatorio)}</span>
-          <span class="arrow">→</span>
-          <span class="sanat">$${Number(p.valor).toFixed(2)} por interconsulta</span>
-          <span class="del" data-action="deleteValorIc" data-id="${p.id}" title="Quitar"><i data-lucide="x"></i></span>
-        </li>
-      `).join('');
-  }
+  function renderPreciosIc(){ if(sanatorioHubActual) renderHubValores(); }
 
   function lookupPrecioInterconsulta(sanatorio){
     if(!sanatorio) return null;
@@ -2578,81 +2632,307 @@ if('serviceWorker' in navigator){
     interconsultasFacturables.push(data);
     renderIcFacturables();
     renderConsultas();
+    renderSanatoriosAdmin();
   }
 
-  $('#btnAddValorIc').addEventListener('click', async () => {
-    const sanatorio = $('#valorIcSanatorio').value.trim();
-    const valor = parseFloat($('#valorIcInput').value);
-    if(!sanatorio || !valor){ flash('Completá el sanatorio y el valor.'); return; }
+  // ==================== AJUSTES (solo admin): equipo, sanatorios y cuenta ====================
+  // Cada sanatorio es una ficha con todo adentro: datos, contactos, valores,
+  // facturación y días de consultorio. Los datos siguen viviendo en las mismas
+  // tablas; esta pantalla es solo el lugar donde se editan.
+  let sanatorioHubActual = null;
+  const igual = (a, b) => normalize(a || '') === normalize(b || '');
+  const plata = (n) => '$ ' + Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 });
+  const osLabel = (os) => os === 'unico' ? 'Todas las OS' : os;
+  const fechaDia = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' });
+
+  function aplicarVistaAjustes(){
+    const hub = !!sanatorioHubActual && sanatoriosRef.some(x => igual(x.nombre, sanatorioHubActual));
+    if(!hub) sanatorioHubActual = null;
+    $('#ajustesInicio').style.display = hub ? 'none' : 'block';
+    $('#ajustesSanatorio').style.display = hub ? 'block' : 'none';
+    if(hub){
+      const dia = $('#consDiaSanatorio');
+      dia.value = sanatorioHubActual;
+      dia.readOnly = true;
+    }
+    renderSanatoriosAdmin();
+  }
+  function mostrarAjustes(nombre){
+    sanatorioHubActual = nombre || null;
+    activarVista('viewAjustes');
+    aplicarVistaAjustes();
+    window.scrollTo(0, 0);
+    sincronizarHistorial();
+  }
+  function volverAListaAjustes(){
+    const st = history.state;
+    const anterior = st && st.i ? pila[st.i - 1] : null;
+    if(anterior && anterior.v === 'viewAjustes' && !anterior.s && !(st.c) && !atrasPendiente){
+      history.back();
+      return;
+    }
+    sanatorioHubActual = null;
+    aplicarVistaAjustes();
+    if(st && st.s){
+      const nueva = Object.assign({}, st, { s: null });
+      history.replaceState(nueva, '');
+      if(st.i !== undefined) pila[st.i] = nueva;
+    }
+  }
+  $('#btnAjustes').addEventListener('click', () => mostrarAjustes(null));
+  $('#btnHubVolver').addEventListener('click', volverAListaAjustes);
+
+  function renderSanatoriosLista(){
+    const nombres = sanatoriosRef.map(x => x.nombre).sort((a, b) => a.localeCompare(b));
+    const hoy = toISODate(new Date());
+    $('#sanatoriosListaGrid').innerHTML = nombres.length === 0
+      ? '<div class="msg" style="text-align:center">Sin sanatorios cargados todavía.</div>'
+      : nombres.map(nombre => {
+        const x = sanatoriosRef.find(r => igual(r.nombre, nombre));
+        const color = sanatorioColor(nombre) || '#64748b';
+        const nContactos = contacts.filter(c => igual(c.sanatorio, nombre)).length;
+        const nDias = consultorioDias.filter(d => igual(d.sanatorio, nombre) && d.fecha >= hoy).length;
+        const ic = interconsultasFacturables.filter(c => igual(c.sanatorio, nombre));
+        return `<div class="sanCard" role="button" tabindex="0" data-sanatorio="${escapeHtml(nombre)}">
+          <div class="row" style="margin-top:0; gap:8px; align-items:center">
+            <span class="sanatorioDot" style="background:${color}"></span>
+            <span class="sanCardNombre">${escapeHtml(nombre)}</span>
+          </div>
+          <div class="meta" style="margin-top:6px">${escapeHtml(x.direccion || 'Sin dirección cargada')}</div>
+          <div class="sanChips">
+            <span class="sanChip">${nContactos} contacto${nContactos === 1 ? '' : 's'}</span>
+            <span class="sanChip">${nDias === 0 ? 'Sin consultorio agendado' : nDias + ' día' + (nDias === 1 ? '' : 's') + ' de consultorio'}</span>
+            ${ic.length ? `<span class="sanChip aviso">${ic.length} interconsulta${ic.length === 1 ? '' : 's'} por facturar</span>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+  }
+  function abrirSanatorioDesde(el){
+    const card = el.closest('[data-sanatorio]');
+    if(card) mostrarAjustes(card.dataset.sanatorio);
+  }
+  $('#sanatoriosListaGrid').addEventListener('click', (e) => abrirSanatorioDesde(e.target));
+  $('#sanatoriosListaGrid').addEventListener('keydown', (e) => {
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    abrirSanatorioDesde(e.target);
+  });
+
+  // Datos (dirección + zona) y contactos de un sanatorio.
+  function sanatorioBloqueHtml(nombre){
+    const x = sanatoriosRef.find(r => igual(r.nombre, nombre));
+    const zonaRow = zonas.find(z => igual(z.sanatorio, nombre));
+    const contactosSanatorio = contacts.filter(c => igual(c.sanatorio, nombre));
+    const color = sanatorioColor(nombre) || '#64748b';
+    return `
+      <div class="internadosGroup">
+        <div class="internadosGroupHead" style="border-left:6px solid ${color}">
+          <span class="sanatorioDot" style="background:${color}"></span>
+          <span class="internadosGroupTitle">${escapeHtml(nombre)}</span>
+          <span class="del" data-action="deleteSanatorioAdmin" data-nombre="${escapeHtml(nombre)}" title="Borrar sanatorio" style="margin-left:auto"><i data-lucide="x"></i></span>
+        </div>
+        <div class="panel" style="margin-top:0">
+          <h2>Datos</h2>
+          <div class="fichaGrid">
+            <label>Dirección (se usa en los eventos de Google Calendar)
+              <input type="text" data-field="direccion" data-id="${x.id}" value="${escapeHtml(x.direccion || '')}" placeholder="Sin cargar">
+            </label>
+            <label>Zona de facturación
+              <input type="text" data-field="zona" data-nombre="${escapeHtml(nombre)}" data-zona-id="${zonaRow ? zonaRow.id : ''}" value="${escapeHtml(zonaRow ? zonaRow.zona : '')}" placeholder="Sin cargar">
+            </label>
+          </div>
+          <h2 style="margin-top:18px">Contactos vinculados</h2>
+          <div class="msg" style="margin-top:0; margin-bottom:8px">Si un mensaje no menciona el sanatorio explícitamente, se completa según quién lo envía.</div>
+          <div class="contactForm">
+            <input type="text" class="nuevoContactoInput" data-nombre="${escapeHtml(nombre)}" placeholder="Nombre o número tal como figura en WhatsApp">
+            <button type="button" class="secondary" data-action="addContactoAdmin" data-nombre="${escapeHtml(nombre)}">Vincular</button>
+          </div>
+          <ul class="contactList" style="margin-top:8px">
+            ${contactosSanatorio.length === 0
+              ? '<li style="color:var(--muted); justify-content:center">Sin contactos vinculados.</li>'
+              : contactosSanatorio.map(c => `
+                <li data-id="${c.id}">
+                  <span>${escapeHtml(c.contacto)}</span>
+                  <span class="del" data-action="deleteContactoAdmin" data-id="${c.id}" title="Quitar"><i data-lucide="x"></i></span>
+                </li>
+              `).join('')}
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+
+  function consultasDelMes(nombre){
+    const mes = toISODate(new Date()).slice(0, 7);
+    return consultas.filter(c => igual(c.sanatorio, nombre) && (c.fecha || '').slice(0, 7) === mes)
+      .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
+  }
+  function icDelSanatorio(nombre){
+    return interconsultasFacturables.filter(c => igual(c.sanatorio, nombre))
+      .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
+  }
+  function diasProximos(nombre){
+    const hoy = toISODate(new Date());
+    return consultorioDias.filter(d => igual(d.sanatorio, nombre) && d.fecha >= hoy)
+      .sort((a, b) => (a.fecha + (a.hora_inicio || '')).localeCompare(b.fecha + (b.hora_inicio || '')));
+  }
+  const sumaValores = (lista) => lista.reduce((t, c) => t + (parseFloat(c.valor) || 0), 0);
+
+  function renderHubResumen(){
+    const nombre = sanatorioHubActual;
+    const cons = consultasDelMes(nombre);
+    const ic = icDelSanatorio(nombre);
+    const prox = diasProximos(nombre)[0];
+    $('#hubResumen').innerHTML = `
+      <div class="hubKpi"><div class="t">Facturado este mes</div><div class="n">${plata(sumaValores(cons))}</div><div class="s">${cons.length} consulta${cons.length === 1 ? '' : 's'}</div></div>
+      <div class="hubKpi"><div class="t">Interconsultas por facturar</div><div class="n" style="color:var(--purple)">${plata(sumaValores(ic))}</div><div class="s">${ic.length} interconsulta${ic.length === 1 ? '' : 's'}</div></div>
+      <div class="hubKpi"><div class="t">Próximo consultorio</div><div class="n">${prox ? escapeHtml(fechaDia(prox.fecha)) : 'Sin días'}</div><div class="s">${prox ? escapeHtml((prox.hora_inicio ? prox.hora_inicio.slice(0, 5) : 'Sin hora') + (prox.grupo_id ? ' · se repite' : '')) : 'No hay consultorio agendado'}</div></div>`;
+  }
+
+  function renderHubValores(){
+    const nombre = sanatorioHubActual;
+    if(!nombre) return;
+    const precios = preciosConsulta.filter(p => igual(p.sanatorio, nombre)).sort((a, b) => a.os.localeCompare(b.os));
+    $('#hubPreciosList').innerHTML = precios.length === 0
+      ? '<li style="color:var(--muted); justify-content:center">Sin valores de consulta cargados.</li>'
+      : precios.map(p => `
+        <li data-id="${p.id}">
+          <span>${escapeHtml(osLabel(p.os))}</span>
+          <span class="arrow">→</span>
+          <span class="sanat">${plata(p.valor)}</span>
+          <span class="del" data-action="hubDelPrecio" data-id="${p.id}" title="Quitar"><i data-lucide="x"></i></span>
+        </li>`).join('');
+    const ic = preciosInterconsulta.find(p => igual(p.sanatorio, nombre));
+    const inp = $('#hubValorIc');
+    if(document.activeElement !== inp) inp.value = ic ? ic.valor : '';
+    $('#btnHubQuitarIc').style.display = ic ? '' : 'none';
+  }
+
+  function renderHubFacturacion(){
+    const nombre = sanatorioHubActual;
+    if(!nombre) return;
+    const cons = consultasDelMes(nombre);
+    $('#hubConsultas').innerHTML = cons.length === 0
+      ? '<div class="msg" style="margin-top:0">Todavía no hay consultas cargadas este mes.</div>'
+      : `<div class="panel" style="padding:0; overflow-x:auto; margin-top:0"><table>
+          <thead><tr><th>Fecha</th><th>Paciente</th><th>OS</th><th>Valor</th></tr></thead>
+          <tbody>${cons.map(c => `<tr><td>${escapeHtml(c.fecha)}</td><td>${escapeHtml(c.paciente || '')}</td><td>${escapeHtml(c.os || '')}</td><td>${c.valor != null ? plata(c.valor) : ''}</td></tr>`).join('')}</tbody>
+        </table></div>
+        <div class="msg" style="text-align:right; font-weight:700">Total del mes: ${plata(sumaValores(cons))}</div>`;
+    const ic = icDelSanatorio(nombre);
+    $('#hubIcFact').innerHTML = ic.length === 0
+      ? '<div class="msg" style="margin-top:0">No hay interconsultas pendientes de facturar.</div>'
+      : `<div class="panel" style="padding:0; overflow-x:auto; margin-top:0"><table>
+          <thead><tr><th>Fecha</th><th>Paciente</th><th>Tipo</th><th>Valor</th><th></th></tr></thead>
+          <tbody>${ic.map(icFacturableRowHtml).join('')}</tbody>
+        </table></div>
+        <div class="msg" style="text-align:right; font-weight:700; color:var(--purple)">Total por facturar: ${plata(sumaValores(ic))}</div>`;
+  }
+
+  function renderHubDias(){
+    const nombre = sanatorioHubActual;
+    if(!nombre) return;
+    const dias = diasProximos(nombre);
+    const LIMITE = 14;
+    $('#hubDiasLista').innerHTML = dias.length === 0
+      ? '<div class="msg" style="margin-top:0">No hay días de consultorio agendados.</div>'
+      : dias.slice(0, LIMITE).map(d => `<span class="hubDia">${escapeHtml(fechaDia(d.fecha))}${d.hora_inicio ? ' · ' + escapeHtml(d.hora_inicio.slice(0, 5)) : ''}${d.grupo_id ? ' ↻' : ''}<span class="del" data-action="hubDelDia" data-id="${d.id}" title="Quitar este día"><i data-lucide="x"></i></span></span>`).join('')
+        + (dias.length > LIMITE ? `<span class="msg" style="display:inline">y ${dias.length - LIMITE} más…</span>` : '');
+  }
+
+  function renderSanatoriosAdmin(){
+    renderSanatoriosLista();
+    if(!sanatorioHubActual || !sanatoriosRef.some(r => igual(r.nombre, sanatorioHubActual))) return;
+    $('#sanatoriosAdminGrid').innerHTML = sanatorioBloqueHtml(sanatorioHubActual);
+    renderHubResumen();
+    renderHubValores();
+    renderHubFacturacion();
+    renderHubDias();
+  }
+
+  function descargarCsv(nombreArchivo, filas){
+    const csv = filas.map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = nombreArchivo;
+    a.click();
+  }
+
+  // ---- Valores ----
+  $('#btnHubAddPrecio').addEventListener('click', async () => {
+    const sanatorio = sanatorioHubActual;
+    const os = $('#hubPrecioOs').value;
+    const valor = parseFloat($('#hubPrecioValor').value);
+    if(!sanatorio || !os || !valor){ flashIn($('#hubValoresMsg'), 'Elegí la obra social y completá el valor.', true); return; }
+    const { data, error } = await sb.from('precios_consulta')
+      .upsert({ medico_id: currentUser.id, sanatorio, os, valor }, { onConflict: 'medico_id,sanatorio,os' })
+      .select().single();
+    if(error){ flashIn($('#hubValoresMsg'), 'Error al guardar: ' + error.message, true); return; }
+    preciosConsulta = preciosConsulta.filter(p => !(igual(p.sanatorio, sanatorio) && p.os === os));
+    preciosConsulta.push(data);
+    $('#hubPrecioOs').value = ''; $('#hubPrecioValor').value = '';
+    renderHubValores();
+    flashIn($('#hubValoresMsg'), 'Valor guardado.');
+  });
+  $('#btnHubGuardarIc').addEventListener('click', async () => {
+    const sanatorio = sanatorioHubActual;
+    const valor = parseFloat($('#hubValorIc').value);
+    if(!sanatorio || !valor){ flashIn($('#hubValoresMsg'), 'Completá el valor de la interconsulta.', true); return; }
     const { data, error } = await sb.from('precios_interconsulta')
       .upsert({ medico_id: currentUser.id, sanatorio, valor }, { onConflict: 'medico_id,sanatorio' })
       .select().single();
-    if(error){ flash('Error al vincular: ' + error.message, true); return; }
-    preciosInterconsulta = preciosInterconsulta.filter(p => normalize(p.sanatorio) !== normalize(sanatorio));
+    if(error){ flashIn($('#hubValoresMsg'), 'Error al guardar: ' + error.message, true); return; }
+    preciosInterconsulta = preciosInterconsulta.filter(p => !igual(p.sanatorio, sanatorio));
     preciosInterconsulta.push(data);
-    await ensureSanatorioRef(sanatorio);
-    $('#valorIcSanatorio').value = ''; $('#valorIcInput').value = '';
-    renderPreciosIc();
+    renderHubValores();
+    flashIn($('#hubValoresMsg'), 'Valor de interconsulta guardado.');
+  });
+  $('#btnHubQuitarIc').addEventListener('click', async () => {
+    const actual = preciosInterconsulta.find(p => igual(p.sanatorio, sanatorioHubActual));
+    if(!actual) return;
+    const { error } = await sb.from('precios_interconsulta').delete().eq('id', actual.id);
+    if(error){ flashIn($('#hubValoresMsg'), 'Error al quitar: ' + error.message, true); return; }
+    preciosInterconsulta = preciosInterconsulta.filter(p => p.id !== actual.id);
+    $('#hubValorIc').value = '';
+    renderHubValores();
+    flashIn($('#hubValoresMsg'), 'Valor de interconsulta quitado.');
   });
 
-  $('#valorIcList').addEventListener('click', async (e) => {
-    const del = e.target.closest('[data-action="deleteValorIc"]');
-    if(del){
-      const { error } = await sb.from('precios_interconsulta').delete().eq('id', del.dataset.id);
-      if(error){ flash('Error al borrar: ' + error.message, true); return; }
-      preciosInterconsulta = preciosInterconsulta.filter(p => p.id !== del.dataset.id);
-      renderPreciosIc();
+  // ---- Facturación ----
+  $('#btnHubExportCons').addEventListener('click', () => {
+    const filas = [['Fecha', 'Sanatorio', 'Paciente', 'OS', 'Valor']];
+    consultasDelMes(sanatorioHubActual).forEach(c => filas.push([c.fecha, c.sanatorio, c.paciente, c.os, c.valor]));
+    descargarCsv('consultas_' + sanatorioHubActual.replace(/\W+/g, '_') + '.csv', filas);
+  });
+  $('#btnHubExportIc').addEventListener('click', () => {
+    const filas = [['Fecha', 'Sanatorio', 'Paciente', 'Tipo', 'Valor']];
+    icDelSanatorio(sanatorioHubActual).forEach(c => filas.push([c.fecha, c.sanatorio, c.paciente, c.tipo === 'programada' ? 'Programada (Qx)' : 'Contestada', c.valor]));
+    descargarCsv('interconsultas_' + sanatorioHubActual.replace(/\W+/g, '_') + '.csv', filas);
+  });
+  $('#btnHubVerConsultorio').addEventListener('click', () => {
+    const nombre = sanatorioHubActual;
+    document.querySelector('.navtab[data-view="viewConsultorio"]').click();
+    const opcion = Array.from(consFilterSanatorio.options).find(o => igual(o.value, nombre));
+    consFilterSanatorio.value = opcion ? opcion.value : '';
+    renderConsultas();
+  });
+
+  // ---- Acciones dentro de la ficha del sanatorio ----
+  $('#ajustesSanatorio').addEventListener('click', async (e) => {
+    const delPrecio = e.target.closest('[data-action="hubDelPrecio"]');
+    if(delPrecio){
+      const { error } = await sb.from('precios_consulta').delete().eq('id', delPrecio.dataset.id);
+      if(error){ flashIn($('#hubValoresMsg'), 'Error al quitar: ' + error.message, true); return; }
+      preciosConsulta = preciosConsulta.filter(p => p.id !== delPrecio.dataset.id);
+      renderHubValores();
+      return;
     }
+    const delIc = e.target.closest('[data-action="deleteIcFacturable"]');
+    if(delIc){ await borrarIcFacturable(delIc.dataset.id); return; }
+    const delDia = e.target.closest('[data-action="hubDelDia"]');
+    if(delDia){ await quitarConsultorioDia(delDia.dataset.id); return; }
   });
-
-  // ---- Panel admin-only: Sanatorios (dirección + zona + contactos, todo junto) ----
-  function renderSanatoriosAdmin(){
-    const grid = $('#sanatoriosAdminGrid');
-    const nombres = sanatoriosRef.map(s => s.nombre).sort((a,b) => a.localeCompare(b));
-    grid.innerHTML = nombres.length === 0
-      ? '<div class="msg" style="text-align:center">Sin sanatorios cargados todavía.</div>'
-      : nombres.map(nombre => {
-        const s = sanatoriosRef.find(x => normalize(x.nombre) === normalize(nombre));
-        const zonaRow = zonas.find(z => normalize(z.sanatorio) === normalize(nombre));
-        const contactosSanatorio = contacts.filter(c => normalize(c.sanatorio) === normalize(nombre));
-        const color = sanatorioColor(nombre) || '#64748b';
-        return `
-          <div class="internadosGroup">
-            <div class="internadosGroupHead" style="border-left:6px solid ${color}">
-              <span class="sanatorioDot" style="background:${color}"></span>
-              <span class="internadosGroupTitle">${escapeHtml(nombre)}</span>
-              <span class="del" data-action="deleteSanatorioAdmin" data-nombre="${escapeHtml(nombre)}" title="Borrar sanatorio" style="margin-left:auto"><i data-lucide="x"></i></span>
-            </div>
-            <div class="panel" style="margin-top:0">
-              <div class="fichaGrid">
-                <label>Dirección
-                  <input type="text" data-field="direccion" data-id="${s.id}" value="${escapeHtml(s.direccion || '')}" placeholder="Sin cargar">
-                </label>
-                <label>Zona de facturación
-                  <input type="text" data-field="zona" data-nombre="${escapeHtml(nombre)}" data-zona-id="${zonaRow ? zonaRow.id : ''}" value="${escapeHtml(zonaRow ? zonaRow.zona : '')}" placeholder="Sin cargar">
-                </label>
-              </div>
-              <h3 class="subhead" style="margin-top:14px">Contactos vinculados</h3>
-              <div class="msg" style="margin-top:0; margin-bottom:8px">Si un mensaje no menciona el sanatorio explícitamente, se completa según quién lo envía.</div>
-              <div class="contactForm">
-                <input type="text" class="nuevoContactoInput" data-nombre="${escapeHtml(nombre)}" placeholder="Nombre o número tal como figura en WhatsApp">
-                <button type="button" class="secondary" data-action="addContactoAdmin" data-nombre="${escapeHtml(nombre)}">Vincular</button>
-              </div>
-              <ul class="contactList" style="margin-top:8px">
-                ${contactosSanatorio.length === 0
-                  ? '<li style="color:var(--muted); justify-content:center">Sin contactos vinculados.</li>'
-                  : contactosSanatorio.map(c => `
-                    <li data-id="${c.id}">
-                      <span>${escapeHtml(c.contacto)}</span>
-                      <span class="del" data-action="deleteContactoAdmin" data-id="${c.id}" title="Quitar"><i data-lucide="x"></i></span>
-                    </li>
-                  `).join('')}
-              </ul>
-            </div>
-          </div>
-        `;
-      }).join('');
-  }
 
   $('#btnAddSanatorioAdmin').addEventListener('click', async () => {
     const nombre = $('#nuevoSanatorioNombre').value.trim();
@@ -2732,6 +3012,7 @@ if('serviceWorker' in navigator){
       const contactosSanatorio = contacts.filter(c => normalize(c.sanatorio) === normalize(nombre));
       for(const c of contactosSanatorio){ await sb.from('contactos').delete().eq('id', c.id); }
       contacts = contacts.filter(c => normalize(c.sanatorio) !== normalize(nombre));
+      if(igual(sanatorioHubActual, nombre)) volverAListaAjustes();
       renderSanatoriosAdmin();
       render();
     }
@@ -4611,27 +4892,31 @@ if('serviceWorker' in navigator){
   $('#calToday').addEventListener('click', () => { calDate = new Date(); renderCalendar(); });
   agFilterSanatorio.addEventListener('change', renderCalendar);
 
+  async function quitarConsultorioDia(id){
+    const item = consultorioDias.find(c => c.id === id);
+    const hermanos = item && item.grupo_id ? consultorioDias.filter(c => c.grupo_id === item.grupo_id) : [];
+    if(!await confirmar('¿Quitar este día de consultorio?')) return;
+    let borrarSerie = false;
+    if(hermanos.length > 1){
+      borrarSerie = await confirmar(`Este día es parte de una serie repetida (${hermanos.length} fechas). ¿Querés borrar TODA la serie? Cancelar borra solo este día.`);
+    }
+    if(borrarSerie){
+      const { error } = await sb.from('consultorio_dias').delete().eq('grupo_id', item.grupo_id);
+      if(error){ flash('Error al quitar: ' + error.message, true); return; }
+      consultorioDias = consultorioDias.filter(c => c.grupo_id !== item.grupo_id);
+    } else {
+      const { error } = await sb.from('consultorio_dias').delete().eq('id', id);
+      if(error){ flash('Error al quitar: ' + error.message, true); return; }
+      consultorioDias = consultorioDias.filter(c => c.id !== id);
+    }
+    renderCalendar();
+    renderSanatoriosAdmin();
+  }
+
   calContainer.addEventListener('click', async (e) => {
     const consultorioEl = e.target.closest('[data-consultorio-id]');
     if(consultorioEl){
-      const id = consultorioEl.dataset.consultorioId;
-      const item = consultorioDias.find(c => c.id === id);
-      const hermanos = item && item.grupo_id ? consultorioDias.filter(c => c.grupo_id === item.grupo_id) : [];
-      if(!await confirmar('¿Quitar este día de consultorio?')) return;
-      let borrarSerie = false;
-      if(hermanos.length > 1){
-        borrarSerie = await confirmar(`Este día es parte de una serie repetida (${hermanos.length} fechas). ¿Querés borrar TODA la serie? Cancelar borra solo este día.`);
-      }
-      if(borrarSerie){
-        const { error } = await sb.from('consultorio_dias').delete().eq('grupo_id', item.grupo_id);
-        if(error){ flash('Error al quitar: ' + error.message, true); return; }
-        consultorioDias = consultorioDias.filter(c => c.grupo_id !== item.grupo_id);
-      } else {
-        const { error } = await sb.from('consultorio_dias').delete().eq('id', id);
-        if(error){ flash('Error al quitar: ' + error.message, true); return; }
-        consultorioDias = consultorioDias.filter(c => c.id !== id);
-      }
-      renderCalendar();
+      await quitarConsultorioDia(consultorioEl.dataset.consultorioId);
       return;
     }
     const el = e.target.closest('[data-id]');
@@ -4769,10 +5054,12 @@ if('serviceWorker' in navigator){
     consultorioDias = consultorioDias.concat(data);
     if(sanatorio) await ensureSanatorioRef(sanatorio);
     ['consDiaFecha','consDiaHoraInicio','consDiaHoraFin','consDiaSanatorio','consDiaHasta'].forEach(id => $('#'+id).value = '');
+    if(sanatorioHubActual) $('#consDiaSanatorio').value = sanatorioHubActual;
     $('#consDiaRepite').value = '';
     $('#consDiaRepite').dispatchEvent(new Event('change'));
     document.querySelectorAll('.dowToggle.active').forEach(b => b.classList.remove('active'));
     renderCalendar();
+    renderSanatoriosAdmin();
     flashIn($('#consDiaMsg'), fechas.length > 1 ? `Se agendaron ${fechas.length} días de consultorio.` : 'Consultorio agendado.');
   });
 
@@ -5436,16 +5723,18 @@ if('serviceWorker' in navigator){
     }).join('');
   }
 
+  async function borrarIcFacturable(id){
+    if(!await confirmar('¿Borrar este registro? Esta acción no se puede deshacer.')) return;
+    const { error } = await sb.from('interconsultas_facturables').delete().eq('id', id);
+    if(error){ flash('Error al borrar: ' + error.message, true); return; }
+    interconsultasFacturables = interconsultasFacturables.filter(c => c.id !== id);
+    renderIcFacturables();
+    renderConsultas();
+    renderSanatoriosAdmin();
+  }
   icFacturablesGrid.addEventListener('click', async (e) => {
     const del = e.target.closest('[data-action="deleteIcFacturable"]');
-    if(del){
-      if(!await confirmar('¿Borrar este registro? Esta acción no se puede deshacer.')) return;
-      const { error } = await sb.from('interconsultas_facturables').delete().eq('id', del.dataset.id);
-      if(error){ flash('Error al borrar: ' + error.message, true); return; }
-      interconsultasFacturables = interconsultasFacturables.filter(c => c.id !== del.dataset.id);
-      renderIcFacturables();
-      renderConsultas();
-    }
+    if(del) await borrarIcFacturable(del.dataset.id);
   });
 
   $('#btnExportIcFacturables').addEventListener('click', () => {
@@ -5459,45 +5748,7 @@ if('serviceWorker' in navigator){
     a.click();
   });
 
-  function renderPreciosConsulta(){
-    $('#preciosList').innerHTML = preciosConsulta.length === 0
-      ? '<li style="color:var(--muted); justify-content:center">Sin precios cargados todavía.</li>'
-      : preciosConsulta.slice().sort((a,b) => (a.sanatorio+a.os).localeCompare(b.sanatorio+b.os)).map(p => `
-        <li data-id="${p.id}">
-          <span>${escapeHtml(p.sanatorio)}</span>
-          <span class="arrow">→</span>
-          <span class="sanat">${p.os === 'unico' ? 'Todas las OS' : escapeHtml(p.os)}: $${Number(p.valor).toFixed(2)}</span>
-          <span class="del" data-action="deletePrecio" data-id="${p.id}" title="Quitar"><i data-lucide="x"></i></span>
-        </li>
-      `).join('');
-  }
-
-  $('#btnAddPrecio').addEventListener('click', async () => {
-    const sanatorio = $('#precioSanatorio').value.trim();
-    const os = $('#precioOs').value;
-    const valor = parseFloat($('#precioValor').value);
-    if(!sanatorio || !os || !valor){ flashIn($('#consMsg'), 'Completá sanatorio, OS y valor.', true); return; }
-    const { data, error } = await sb.from('precios_consulta')
-      .upsert({ medico_id: currentUser.id, sanatorio, os, valor }, { onConflict: 'medico_id,sanatorio,os' })
-      .select().single();
-    if(error){ flashIn($('#consMsg'), 'Error al vincular: ' + error.message, true); return; }
-    preciosConsulta = preciosConsulta.filter(p => !(normalize(p.sanatorio) === normalize(sanatorio) && p.os === os));
-    preciosConsulta.push(data);
-    if(sanatorio) await ensureSanatorioRef(sanatorio);
-    $('#precioSanatorio').value = ''; $('#precioOs').value = ''; $('#precioValor').value = '';
-    renderPreciosConsulta();
-    render();
-  });
-
-  $('#preciosList').addEventListener('click', async (e) => {
-    const del = e.target.closest('[data-action="deletePrecio"]');
-    if(del){
-      const { error } = await sb.from('precios_consulta').delete().eq('id', del.dataset.id);
-      if(error){ flashIn($('#consMsg'), 'Error al borrar: ' + error.message, true); return; }
-      preciosConsulta = preciosConsulta.filter(p => p.id !== del.dataset.id);
-      renderPreciosConsulta();
-    }
-  });
+  function renderPreciosConsulta(){ if(sanatorioHubActual) renderHubValores(); }
 })();
 </script>
 </body>
