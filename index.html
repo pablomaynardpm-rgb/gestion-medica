@@ -287,6 +287,29 @@
     .pacFilaOs{display:none}
     .osInline{display:inline}
   }
+  .fichaAvance{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin:0 0 12px 0}
+  .avanceTitulo{font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:12px}
+  .avancePasos{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px}
+  .avancePaso .fila{display:flex; align-items:center; gap:8px}
+  .avanceCirculo{width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:700; font-size:13px; background:var(--bg); color:var(--muted); border:2px solid transparent; box-sizing:border-box}
+  .avanceCirculo svg{width:15px; height:15px}
+  .avanceLinea{flex:1; height:3px; border-radius:2px; background:var(--border)}
+  .avancePaso:last-child .avanceLinea{display:none}
+  .avancePaso .t{font-size:13px; font-weight:700; margin-top:8px}
+  .avancePaso .st{font-size:12px; color:var(--muted); margin-top:2px}
+  .avancePaso.hecho .avanceCirculo{background:var(--done); color:#fff}
+  .avancePaso.hecho .avanceLinea{background:var(--done)}
+  .avancePaso.hecho .st{color:var(--done); font-weight:600}
+  .avancePaso.actual .avanceCirculo{background:var(--panel); border-color:var(--purple); color:var(--purple)}
+  .avancePaso.actual .st{color:var(--purple); font-weight:600}
+  .avancePaso.alerta .avanceCirculo{background:var(--danger); color:#fff}
+  .avancePaso.alerta .st{color:var(--danger); font-weight:600}
+  .avancePaso.listo .avanceCirculo{background:var(--panel); border-color:var(--done); color:var(--done)}
+  .avancePaso.listo .st{color:var(--done); font-weight:600}
+  .avancePaso.programado .avanceCirculo{background:var(--accent); color:#fff}
+  .avancePaso.programado .st{color:var(--accent); font-weight:600}
+  .avanceProximo{margin-top:14px; padding:10px 14px; background:var(--bg); border-radius:10px; font-size:13px; display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; justify-content:space-between}
+  @media (max-width:760px){ .avancePasos{grid-template-columns:repeat(2, minmax(0, 1fr))} .avanceLinea{display:none} }
   .navMas{position:relative; display:inline-block}
   .navMasBtn{background:transparent; color:var(--muted); border:none; border-bottom:2px solid transparent; border-radius:0; padding:10px 4px; margin-right:18px; font-size:13px; font-weight:600}
   .navMasBtn:hover{background:transparent; color:var(--text)}
@@ -733,6 +756,8 @@
         <button class="secondary" id="btnPacBack">← Volver a la lista</button>
         <span id="pdCondicion"></span>
       </div>
+
+      <div class="fichaAvance" id="fichaAvance" style="display:none"></div>
 
       <div class="fichaSticky">
       <div class="fichaResumen"><span class="fichaResumenNombre" id="pdResumenNombre"></span><span class="fichaResumenDx" id="pdResumenDx"></span></div>
@@ -4627,10 +4652,90 @@ if('serviceWorker' in navigator){
   }
   window.addEventListener('resize', syncAppHeaderHeight);
 
+  // Barra de avance de la cirugía: autorización → materiales → fecha → operado.
+  const ICONO_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  const ICONO_CANDADO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11V7a5 5 0 0 1 10 0v4M5 11h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1"/></svg>';
+  function avancePasos(p){
+    const ddmm = (iso) => iso ? ' ' + fechaCorta(iso) : '';
+    const cxMap = {
+      aceptada: ['hecho', 'Aceptada'], no_requiere: ['hecho', 'No requiere'],
+      enviada: ['actual', 'Enviada' + ddmm(p.autorizacion_cx_enviada_at)], rechazada: ['alerta', 'Rechazada']
+    };
+    const matMap = {
+      no_requiere: ['hecho', 'No requiere'], en_quirofano: ['hecho', 'En quirófano'],
+      autorizados: ['actual', 'Autorizados · faltan en quirófano'],
+      pendiente_autorizacion: ['actual', 'Enviados' + ddmm(p.materiales_enviado_at)], rechazados: ['alerta', 'Rechazados']
+    };
+    const [claseCx, subCx] = cxMap[p.autorizacion_cx] || ['pendiente', 'Sin pedir'];
+    const [claseMat, subMat] = matMap[p.materiales] || ['pendiente', 'Sin pedir'];
+    const listos = autorizacionCxListo(p) && materialesListo(p);
+    let paso3;
+    if(p.fecha_qx) paso3 = ['programado', fechaDia(p.fecha_qx) + (p.hora_qx ? ' · ' + p.hora_qx.slice(0, 5) : '')];
+    else if(listos) paso3 = ['listo', 'Lista para programar'];
+    else paso3 = ['bloqueado', 'Se habilita con los pasos 1 y 2'];
+    const paso4 = p.operado ? ['hecho', 'Operado'] : ['pendiente', 'Pendiente'];
+    const icono = (clase, n) => clase === 'hecho' ? ICONO_CHECK : clase === 'bloqueado' ? ICONO_CANDADO : n;
+    return [
+      ['Autorización de cirugía', claseCx, subCx],
+      ['Materiales', claseMat, subMat],
+      ['Fecha de cirugía', paso3[0], paso3[1]],
+      ['Operado', paso4[0], paso4[1]]
+    ].map(([titulo, clase, sub], i) => ({ titulo, clase, sub, icono: icono(clase, i + 1) }));
+  }
+  function avanceProximoTexto(p, cond){
+    const sinCx = !p.autorizacion_cx || p.autorizacion_cx === 'rechazada';
+    const sinMat = !p.materiales || p.materiales === 'rechazados';
+    switch(cond){
+      case 'operado': return 'Operado' + (p.fecha_qx ? ' el ' + fechaDia(p.fecha_qx) : '') + '.';
+      case 'programado': return 'Cirugía programada para ' + fechaDia(p.fecha_qx) + (p.hora_qx ? ' a las ' + p.hora_qx.slice(0, 5) : '') + '.';
+      case 'programar': return 'Todo listo: poné la fecha de la cirugía.';
+      case 'esperando_materiales': return 'Esperá que los materiales lleguen a quirófano. Cuando pases Materiales a «En quirófano», se habilita la fecha.';
+      case 'esperando': {
+        const faltan = [];
+        if(p.autorizacion_cx === 'enviada') faltan.push('la autorización de cirugía');
+        if(p.materiales === 'pendiente_autorizacion') faltan.push('los materiales');
+        return 'Esperando la respuesta de la obra social' + (faltan.length ? ': ' + faltan.join(' y ') : '') + '.';
+      }
+      case 'falta_pedir': {
+        const faltan = [];
+        if(sinCx) faltan.push(p.autorizacion_cx === 'rechazada' ? 'reenviar la autorización de cirugía (fue rechazada)' : 'pedir la autorización de cirugía');
+        if(sinMat) faltan.push(p.materiales === 'rechazados' ? 'reenviar los materiales (fueron rechazados)' : 'pedir los materiales');
+        return 'Falta ' + faltan.join(' y ') + '.';
+      }
+      default: return '';
+    }
+  }
+  function renderFichaAvance(p){
+    const el = $('#fichaAvance');
+    if(!el) return;
+    const aplica = p.tipo_paciente !== 'no_quirurgico' && (p.tipo_paciente === 'quirurgico' || p.autorizacion_cx || p.materiales || p.fecha_qx || p.operado);
+    el.style.display = aplica ? 'block' : 'none';
+    if(!aplica) return;
+    const cond = pacienteCondicion(p);
+    const texto = avanceProximoTexto(p, cond);
+    const conAccion = ['programar', 'falta_pedir', 'esperando', 'esperando_materiales'].includes(cond);
+    el.innerHTML = `
+      <div class="avanceTitulo">Avance de la cirugía</div>
+      <ol class="avancePasos">${avancePasos(p).map(x => `
+        <li class="avancePaso ${x.clase}">
+          <div class="fila"><span class="avanceCirculo">${x.icono}</span><span class="avanceLinea"></span></div>
+          <div class="t">${x.titulo}</div>
+          <div class="st">${escapeHtml(x.sub)}</div>
+        </li>`).join('')}</ol>
+      ${texto ? `<div class="avanceProximo"><span><b>Próximo paso:</b> ${escapeHtml(texto)}</span>${conAccion ? '<button type="button" class="secondary" data-action="irQuirofano">Ir a Quirófano</button>' : ''}</div>` : ''}
+      ${tramiteAvisosHtml(p)}`;
+  }
+  $('#fichaAvance').addEventListener('click', (e) => {
+    if(!e.target.closest('[data-action="irQuirofano"]')) return;
+    activarFichaTab('fichaTabQuirofano');
+    $('#fichaTabQuirofano').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
   function refreshCondicionBadge(){
     const p = currentPaciente();
     if(!p) return;
     $('#pdCondicion').innerHTML = condicionBadgeHtml(p);
+    renderFichaAvance(p);
   }
 
   function renderPacienteDetail(){
@@ -4744,7 +4849,7 @@ if('serviceWorker' in navigator){
     }
     if(['fecha_qx','hora_qx','sanatorio','nombre','operacion','materiales'].includes(key)) renderCalendar();
     if(['fecha_qx','hora_qx','sanatorio','nombre','operacion'].includes(key)) syncCalendarEvent(p.id);
-    if(['fecha_qx','materiales'].includes(key)) refreshCondicionBadge();
+    if(['fecha_qx','hora_qx','materiales'].includes(key)) refreshCondicionBadge();
     if(['edad','diagnostico','sexo'].includes(key)) recomputePretest();
     if(key === 'nombre' || key === 'diagnostico') refreshFichaResumen();
     if(key === 'telefono') updateWhatsappFab(value);
