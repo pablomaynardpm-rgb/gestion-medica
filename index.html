@@ -126,6 +126,31 @@
     background:var(--panel); color:var(--text); font-size:13px;
   }
   input[type=text]{min-width:220px}
+  .resumenSaludo{margin:0 0 16px 0}
+  .resumenSaludo h1{margin:0; font-size:26px; font-weight:700; letter-spacing:-0.01em}
+  .resumenFecha{font-size:14px; color:var(--muted); margin-top:2px}
+  .resumenKpisCalmos{grid-template-columns:repeat(auto-fit, minmax(170px, 1fr))}
+  .resumenKpisCalmos .kpiCard{background:var(--panel); color:var(--text); border:1px solid var(--border); box-shadow:none; border-radius:14px; padding:16px 18px}
+  .resumenKpisCalmos .kpiCard.kpiClickable:hover{transform:none; box-shadow:0 2px 10px rgba(0,0,0,0.08); border-color:var(--kpi)}
+  .resumenKpisCalmos .kpiTop{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--muted)}
+  .resumenKpisCalmos .kpiDot{width:10px; height:10px; border-radius:50%; background:var(--kpi); flex-shrink:0}
+  .resumenKpisCalmos .kpiNumero{font-size:38px; margin-top:8px}
+  .resumenKpisCalmos .kpiSub{font-size:12px; color:var(--muted); margin-top:6px; min-height:16px}
+  .resumenCols{display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start}
+  .resumenColPrincipal{flex:1.6 1 560px; min-width:0}
+  .resumenColLateral{flex:1 1 320px; min-width:0}
+  @media (max-width:760px){ .resumenColLateral{order:-1; flex-basis:100%} }
+  .paraHacerTitulo{font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin:14px 0 6px}
+  .paraHacerTitulo.alerta{color:var(--danger)}
+  .paraHacerAviso{display:flex; gap:10px; align-items:flex-start; padding:10px 12px; margin-bottom:8px; background:rgba(220,38,38,0.12); border-radius:10px; cursor:pointer; font-size:14px}
+  .paraHacerAviso svg.lucide{color:var(--danger); width:18px; height:18px; margin-top:2px}
+  .paraHacerAviso .sub{color:var(--muted); font-size:13px}
+  .paraHacerRec{display:flex; align-items:center; gap:12px; min-height:44px; font-size:14px; cursor:pointer}
+  .paraHacerRec input{width:20px; height:20px; margin:0; flex-shrink:0}
+  .nuevoPacGrid{display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin-top:12px}
+  .nuevoPacGrid input, .nuevoPacGrid select{width:100%; min-width:0}
+  .nuevoPacGrid .full{grid-column:1 / -1}
+  @media (max-width:520px){ .nuevoPacGrid{grid-template-columns:1fr} }
   .hubKpis{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin:12px 0}
   .hubKpi{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px 16px}
   .hubKpi .t{font-size:12px; color:var(--muted); font-weight:600}
@@ -478,46 +503,64 @@
 
   <!-- ==================== RESUMEN ==================== -->
   <div class="view active" id="viewResumen">
-    <div class="resumenKpis" id="resumenKpisRow">
-      <div class="kpiCard kpi-cirugias kpiClickable" data-kpi-action="pacientesCondicion" data-cond="programado" role="button" tabindex="0">
-        <div class="kpiIcon"><i data-lucide="scissors"></i></div>
+    <div class="resumenSaludo">
+      <h1 id="resumenSaludo">Buen día</h1>
+      <div class="resumenFecha" id="resumenFecha"></div>
+    </div>
+    <div class="resumenKpis resumenKpisCalmos" id="resumenKpisRow">
+      <div class="kpiCard kpiClickable" style="--kpi:#1D4ED8" data-kpi-action="pacientesCondicion" data-cond="programado" role="button" tabindex="0">
+        <div class="kpiTop"><span class="kpiDot"></span>Cirugías programadas</div>
         <div class="kpiNumero" id="kpiCirugias">0</div>
-        <div class="kpiLabel">Cirugías programadas</div>
+        <div class="kpiSub" id="kpiCirugiasSub"></div>
       </div>
-      <div class="kpiCard kpi-internados kpiClickable" data-kpi-action="internados" role="button" tabindex="0">
-        <div class="kpiIcon"><i data-lucide="bed"></i></div>
+      <div class="kpiCard kpiClickable" style="--kpi:#4B5A70" data-kpi-action="internados" role="button" tabindex="0">
+        <div class="kpiTop"><span class="kpiDot"></span>Internados</div>
         <div class="kpiNumero" id="kpiInternados">0</div>
-        <div class="kpiLabel">Internados</div>
+        <div class="kpiSub" id="kpiInternadosSub"></div>
       </div>
-      <div class="kpiCard kpi-interconsultas kpiClickable" data-kpi-action="interconsultas" role="button" tabindex="0">
-        <div class="kpiIcon"><i data-lucide="message-circle"></i></div>
+      <div class="kpiCard kpiClickable" style="--kpi:#DC2626" data-kpi-action="interconsultas" role="button" tabindex="0">
+        <div class="kpiTop"><span class="kpiDot"></span>Interconsultas pendientes</div>
         <div class="kpiNumero" id="kpiInterconsultas">0</div>
-        <div class="kpiLabel">Interconsultas pendientes</div>
+        <div class="kpiSub">Para contestar</div>
       </div>
-      <div class="kpiCard kpi-programar kpiClickable" data-kpi-action="pacientesCondicion" data-cond="programar" role="button" tabindex="0">
-        <div class="kpiIcon"><i data-lucide="clipboard-list"></i></div>
+      <div class="kpiCard kpiClickable" style="--kpi:#17693B" data-kpi-action="pacientesCondicion" data-cond="programar" role="button" tabindex="0">
+        <div class="kpiTop"><span class="kpiDot"></span>Listos para programar</div>
         <div class="kpiNumero" id="kpiProgramar">0</div>
-        <div class="kpiLabel">Programar</div>
+        <div class="kpiSub">Falta poner la fecha</div>
       </div>
-      <div class="kpiCard kpi-pendientes kpiClickable" data-kpi-action="pacientesCondicion" data-cond="falta_pedir,esperando,esperando_materiales" role="button" tabindex="0">
-        <div class="kpiIcon"><i data-lucide="hourglass"></i></div>
+      <div class="kpiCard kpiClickable" style="--kpi:#5B3FC4" data-kpi-action="pacientesCondicion" data-cond="falta_pedir,esperando,esperando_materiales" role="button" tabindex="0">
+        <div class="kpiTop"><span class="kpiDot"></span>En trámite</div>
         <div class="kpiNumero" id="kpiPendientes">0</div>
-        <div class="kpiLabel">Pendientes</div>
+        <div class="kpiSub" id="kpiPendientesSub"></div>
       </div>
     </div>
-    <div class="panel" id="resenasPendientesPanel" style="margin-bottom:16px; display:none">
-      <h2 style="margin:0 0 12px 0; font-size:14px"><i data-lucide="star"></i> Pedidos de reseña pendientes</h2>
-      <div id="resenasPendientesList"></div>
+
+    <div class="resumenCols">
+      <div class="resumenColPrincipal">
+        <div class="panel" id="resumenSemanaPanel" style="margin-bottom:16px">
+          <h2 style="margin:0 0 12px 0; font-size:16px">Esta semana</h2>
+          <div id="resumenSemanaGrid"></div>
+        </div>
+        <div class="toolbar">
+          <span class="count" id="resumenCount"></span>
+        </div>
+        <div id="resumenContainer"></div>
+        <div class="empty" id="resumenEmpty">No hay cirugías programadas, internados ni interconsultas pendientes.</div>
+      </div>
+
+      <div class="resumenColLateral">
+        <div class="panel" id="paraHacerPanel" style="margin-bottom:16px">
+          <h2 style="margin:0; font-size:16px">Para hacer</h2>
+          <div id="paraHacerAvisos"></div>
+          <div id="paraHacerRecordatorios"></div>
+          <div class="msg" id="paraHacerVacio" style="display:none; margin-top:10px">Nada urgente por ahora.</div>
+        </div>
+        <div class="panel" id="resenasPendientesPanel" style="margin-bottom:16px; display:none">
+          <h2 style="margin:0 0 12px 0; font-size:14px"><i data-lucide="star"></i> Pedidos de reseña pendientes</h2>
+          <div id="resenasPendientesList"></div>
+        </div>
+      </div>
     </div>
-    <div class="panel" id="resumenSemanaPanel" style="margin-bottom:16px">
-      <h2 style="margin:0 0 12px 0; font-size:14px">Esta semana</h2>
-      <div id="resumenSemanaGrid"></div>
-    </div>
-    <div class="toolbar">
-      <span class="count" id="resumenCount"></span>
-    </div>
-    <div id="resumenContainer"></div>
-    <div class="empty" id="resumenEmpty">No hay cirugías programadas, internados ni interconsultas pendientes.</div>
   </div>
 
   <!-- ==================== INTERCONSULTAS ==================== -->
@@ -604,29 +647,11 @@
           <i data-lucide="search"></i>
           <input type="text" id="pacSearch" placeholder="Buscar por nombre, DNI o teléfono...">
         </div>
+        <button type="button" id="btnNuevoPaciente"><i data-lucide="plus"></i> Nuevo paciente</button>
         <span class="count" id="pacCount"></span>
       </div>
 
-      <div class="panel">
-        <h2>Nuevo paciente</h2>
-        <div class="contactForm">
-          <input type="text" id="pacNombre" placeholder="Nombre y apellido *">
-          <input type="text" id="pacSanatorio" placeholder="Sanatorio" list="sanatoriosDatalist3">
-          <input type="number" id="pacEdad" placeholder="Edad" min="0" max="130" style="max-width:90px">
-          <input type="text" id="pacDni" placeholder="DNI">
-          <input type="text" id="pacOs" placeholder="OS (obra social)">
-          <input type="text" id="pacNroAfiliado" placeholder="Nro. afiliado">
-          <input type="text" id="pacTelefono" placeholder="Teléfono">
-          <input type="text" id="pacDiagnostico" placeholder="Diagnóstico">
-          <select id="pacTipo">
-            <option value="">Tipo de paciente</option>
-            <option value="quirurgico">Quirúrgico</option>
-            <option value="no_quirurgico">No quirúrgico</option>
-          </select>
-          <button id="btnAddPaciente">Agregar</button>
-        </div>
-        <div class="msg" id="pacMsg"></div>
-      </div>
+      <div class="msg" id="pacMsg"></div>
 
       <div id="pacTbody"></div>
       <div class="empty" id="pacEmpty">Todavía no cargaste pacientes.</div>
@@ -1012,6 +1037,35 @@
 
     <div class="internadosGrid" id="internadosGrid"></div>
     <div class="empty" id="intEmpty">No hay pacientes internados activos.</div>
+  </div>
+
+  <div class="modalOverlay" id="nuevoPacienteOverlay" style="display:none">
+    <div class="modalCard">
+      <div class="row" style="margin-top:0; justify-content:space-between; align-items:center">
+        <h2 style="margin:0">Nuevo paciente</h2>
+        <span class="del" id="btnCerrarNuevoPaciente" title="Cerrar"><i data-lucide="x"></i></span>
+      </div>
+      <div class="nuevoPacGrid">
+        <input type="text" id="pacNombre" class="full" placeholder="Nombre y apellido *">
+        <input type="text" id="pacSanatorio" placeholder="Sanatorio" list="sanatoriosDatalist3">
+        <select id="pacTipo">
+          <option value="">Tipo de paciente</option>
+          <option value="quirurgico">Quirúrgico</option>
+          <option value="no_quirurgico">No quirúrgico</option>
+        </select>
+        <input type="number" id="pacEdad" placeholder="Edad" min="0" max="130">
+        <input type="text" id="pacDni" placeholder="DNI">
+        <input type="text" id="pacOs" placeholder="OS (obra social)">
+        <input type="text" id="pacNroAfiliado" placeholder="Nro. afiliado">
+        <input type="text" id="pacTelefono" placeholder="Teléfono">
+        <input type="text" id="pacDiagnostico" placeholder="Diagnóstico">
+      </div>
+      <div class="row" style="margin-top:14px; gap:8px; justify-content:flex-end">
+        <button type="button" class="secondary" id="btnCancelarNuevoPaciente">Cancelar</button>
+        <button id="btnAddPaciente">Agregar</button>
+      </div>
+      <div class="msg" id="pacNuevoMsg"></div>
+    </div>
   </div>
 
   <div class="modalOverlay" id="evolucionOverlay" style="display:none">
@@ -3529,9 +3583,32 @@ if('serviceWorker' in navigator){
     `).join('');
   }
 
+  // El formulario de alta vive en una ventana: la lista queda limpia y el buscador primero.
+  const nuevoPacienteOverlay = $('#nuevoPacienteOverlay');
+  function abrirNuevoPaciente(){
+    if(nuevoPacienteOverlay.style.display === 'flex') return;
+    $('#pacNuevoMsg').textContent = '';
+    nuevoPacienteOverlay.style.display = 'flex';
+    abrirCapa(cerrarNuevoPaciente);
+    setTimeout(() => $('#pacNombre').focus(), 50);
+  }
+  function cerrarNuevoPaciente(){
+    const estabaAbierto = nuevoPacienteOverlay.style.display !== 'none';
+    nuevoPacienteOverlay.style.display = 'none';
+    if(estabaAbierto) cerrarCapaUI(cerrarNuevoPaciente);
+  }
+  $('#btnNuevoPaciente').addEventListener('click', abrirNuevoPaciente);
+  $('#btnCerrarNuevoPaciente').addEventListener('click', cerrarNuevoPaciente);
+  $('#btnCancelarNuevoPaciente').addEventListener('click', cerrarNuevoPaciente);
+  nuevoPacienteOverlay.addEventListener('click', (e) => { if(e.target === nuevoPacienteOverlay) cerrarNuevoPaciente(); });
+  nuevoPacienteOverlay.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape'){ cerrarNuevoPaciente(); return; }
+    if(e.key === 'Enter' && e.target.tagName === 'INPUT'){ e.preventDefault(); $('#btnAddPaciente').click(); }
+  });
+
   $('#btnAddPaciente').addEventListener('click', async () => {
     const nombre = $('#pacNombre').value.trim();
-    if(!nombre){ flashIn($('#pacMsg'), 'El nombre es obligatorio.', true); return; }
+    if(!nombre){ flashIn($('#pacNuevoMsg'), 'El nombre es obligatorio.', true); return; }
     const sanatorio = $('#pacSanatorio').value.trim();
     const row = {
       medico_id: efectivoMedicoId(),
@@ -3546,12 +3623,13 @@ if('serviceWorker' in navigator){
       tipo_paciente: $('#pacTipo').value || null
     };
     const { data, error } = await sb.from('pacientes').insert(row).select().single();
-    if(error){ flashIn($('#pacMsg'), 'Error al guardar: ' + error.message, true); return; }
+    if(error){ flashIn($('#pacNuevoMsg'), 'Error al guardar: ' + error.message, true); return; }
     pacientes.push(data);
     pacientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
     registrarAuditoria('Alta de paciente', `${nombre}${sanatorio ? ' · ' + sanatorio : ''}`, data.id);
     if(sanatorio) await ensureSanatorioRef(sanatorio);
     ['pacNombre','pacSanatorio','pacEdad','pacDni','pacOs','pacNroAfiliado','pacTelefono','pacDiagnostico','pacTipo'].forEach(id => $('#'+id).value = '');
+    cerrarNuevoPaciente();
     renderPacientes();
     render();
     renderCalendar();
@@ -4001,6 +4079,7 @@ if('serviceWorker' in navigator){
     lista.innerHTML = grupos.filter(g => g[1].length).map(([titulo, rows]) =>
       `<div class="resumenSubhead">${titulo} (${rows.length})</div>${rows.map(r => recordatorioRowHtml(r, hoy)).join('')}`
     ).join('');
+    renderParaHacer();
   }
 
   function ordenarRecordatorios(){
@@ -5069,10 +5148,10 @@ if('serviceWorker' in navigator){
 
   $('#btnFabAdd').addEventListener('click', () => {
     document.querySelector('.navtab[data-view="viewPacientes"]').click();
+    currentPacienteId = null;
     pacDetailView.style.display = 'none';
     pacListView.style.display = 'block';
-    $('#pacNombre').focus();
-    $('#pacNombre').scrollIntoView({ behavior:'smooth', block:'center' });
+    abrirNuevoPaciente();
   });
 
   // ==================== INTERNADOS ====================
@@ -5369,9 +5448,50 @@ if('serviceWorker' in navigator){
     if(el) openPacienteFromAgenda(el.dataset.pacienteId);
   });
 
+  function renderResumenSaludo(){
+    const hora = new Date().getHours();
+    const saludo = hora < 12 ? 'Buen día' : hora < 20 ? 'Buenas tardes' : 'Buenas noches';
+    const nombre = (currentMedico && currentMedico.nombre ? currentMedico.nombre : '').split(/\s+/).find(t => t && !/^dra?\.?$/i.test(t)) || '';
+    $('#resumenSaludo').textContent = nombre ? `${saludo}, ${nombre}` : saludo;
+    const fecha = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+    $('#resumenFecha').textContent = fecha.charAt(0).toUpperCase() + fecha.slice(1);
+  }
+
+  // Lo que te toca a vos: trámites sin respuesta hace mucho y recordatorios de hoy.
+  function renderParaHacer(){
+    const panel = $('#paraHacerPanel');
+    if(!panel) return;
+    const hoy = toISODate(new Date());
+    const avisos = [];
+    pacientes.forEach(p => tramiteAvisos(p).forEach(texto => avisos.push({ p, texto })));
+    const recs = recordatorios.filter(r => r.fecha <= hoy);
+    $('#paraHacerAvisos').innerHTML = avisos.length === 0 ? '' :
+      `<div class="paraHacerTitulo alerta">Sin respuesta hace más de ${AVISO_SIN_RESPUESTA_DIAS} días</div>` +
+      avisos.map(a => `<div class="paraHacerAviso" data-paciente-id="${a.p.id}"><i data-lucide="triangle-alert"></i><div><b>${escapeHtml(a.p.nombre)}</b><div class="sub">${escapeHtml(a.texto)}</div></div></div>`).join('');
+    $('#paraHacerRecordatorios').innerHTML = recs.length === 0 ? '' :
+      `<div class="paraHacerTitulo">Recordatorios de hoy</div>` +
+      recs.map(r => `<label class="paraHacerRec"><input type="checkbox" data-action="completarRecordatorioResumen" data-id="${r.id}"><span>${escapeHtml(r.texto)}${r.paciente ? ` <span style="color:var(--muted)">· ${escapeHtml(r.paciente)}</span>` : ''}</span></label>`).join('');
+    $('#paraHacerVacio').style.display = (avisos.length || recs.length) ? 'none' : 'block';
+  }
+  $('#paraHacerPanel').addEventListener('click', (e) => {
+    const aviso = e.target.closest('.paraHacerAviso');
+    if(aviso) openPacienteFromAgenda(aviso.dataset.pacienteId);
+  });
+  $('#paraHacerPanel').addEventListener('change', async (e) => {
+    const cb = e.target.closest('[data-action="completarRecordatorioResumen"]');
+    if(!cb) return;
+    const id = Number(cb.dataset.id);
+    const { error } = await sb.from('recordatorios').update({ completado: true }).eq('id', id);
+    if(error){ flash('Error al guardar: ' + error.message, true); cb.checked = false; return; }
+    recordatorios = recordatorios.filter(r => r.id !== id);
+    renderRecordatorios();
+  });
+
   function renderResumen(){
+    renderResumenSaludo();
     renderResumenSemana();
     renderResenasPendientes();
+    renderParaHacer();
     const cirugias = pacientes.filter(p => pacienteCondicion(p) === 'programado');
     const internadosActivos = activeInternaciones();
     const interconsultasPend = items.filter(it => it.estado === 'pendiente');
@@ -5383,6 +5503,17 @@ if('serviceWorker' in navigator){
     $('#kpiInterconsultas').textContent = interconsultasPend.length;
     $('#kpiProgramar').textContent = programarList.length;
     $('#kpiPendientes').textContent = pendienteList.length;
+
+    const hoyIso = toISODate(new Date());
+    const proxima = cirugias.filter(p => p.fecha_qx >= hoyIso)
+      .sort((a, b) => (a.fecha_qx + (a.hora_qx || '')).localeCompare(b.fecha_qx + (b.hora_qx || '')))[0];
+    $('#kpiCirugiasSub').textContent = proxima
+      ? 'Próxima: ' + fechaDia(proxima.fecha_qx) + (proxima.hora_qx ? ' · ' + proxima.hora_qx.slice(0, 5) : '')
+      : 'Ninguna próxima';
+    const enUti = internadosActivos.filter(isUtiUci).length;
+    $('#kpiInternadosSub').textContent = enUti ? `${enUti} en UTI` : '';
+    const nFalta = pendienteList.filter(p => pacienteCondicion(p) === 'falta_pedir').length;
+    $('#kpiPendientesSub').textContent = pendienteList.length ? `${nFalta} falta pedir · ${pendienteList.length - nFalta} esperando` : '';
 
     const sanatoriosSet = new Set();
     cirugias.forEach(p => p.sanatorio && sanatoriosSet.add(p.sanatorio));
