@@ -129,7 +129,7 @@
   .resumenSaludo{display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:0 0 20px 0}
   .resumenSaludo h1{margin:0; font-size:28px; font-weight:700; letter-spacing:-0.01em}
   .resumenFecha{font-size:14px; color:var(--muted)}
-  .resumenKpisCalmos{grid-template-columns:repeat(4, minmax(0, 1fr)); gap:16px}
+  .resumenKpis.resumenKpisCalmos{grid-template-columns:repeat(4, minmax(0, 1fr)); gap:16px}
   .resumenKpisCalmos .kpiCard{background:var(--panel); color:var(--text); border:1px solid var(--border); box-shadow:none; border-radius:14px; padding:18px 20px}
   .resumenKpisCalmos .kpiCard.kpiClickable:hover{transform:none; box-shadow:0 2px 10px rgba(0,0,0,0.08); border-color:var(--kpi)}
   .resumenKpisCalmos .kpiTop{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--muted)}
@@ -142,7 +142,7 @@
   .resumenColLateral{flex:1 1 340px; min-width:0; display:flex; flex-direction:column; gap:20px}
   @media (max-width:760px){
     .resumenColLateral{order:-1; flex-basis:100%}
-    .resumenKpisCalmos{grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px}
+    .resumenKpis.resumenKpisCalmos{grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px}
     .resumenKpisCalmos .kpiCard{padding:14px 16px}
     .resumenKpisCalmos .kpiNumero{font-size:32px}
     .resumenSaludo h1{font-size:24px}
