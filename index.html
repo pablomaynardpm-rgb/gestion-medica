@@ -251,6 +251,30 @@
   }
   .navtab:hover{background:transparent; color:var(--text)}
   .navtab.active{color:var(--accent); border-bottom-color:var(--accent)}
+  .navMas{position:relative; display:inline-block}
+  .navMasBtn{background:transparent; color:var(--muted); border:none; border-bottom:2px solid transparent; border-radius:0; padding:10px 4px; margin-right:18px; font-size:13px; font-weight:600}
+  .navMasBtn:hover{background:transparent; color:var(--text)}
+  .navMasBtn.active{color:var(--accent); border-bottom-color:var(--accent)}
+  .navMasMenu{position:absolute; top:100%; left:0; min-width:190px; background:var(--panel); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.14); padding:6px; z-index:60}
+  .navMasMenu .navtab{display:block; width:100%; text-align:left; margin:0; padding:10px 12px; border:none; border-radius:8px; font-size:13px; background:transparent}
+  .navMasMenu .navtab:hover{background:var(--bg)}
+  .navMasMenu .navtab.active{color:var(--accent); background:var(--bg)}
+  .bottomBar{display:none}
+  .bottomTab{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; min-height:56px; padding:4px 2px; border:none; border-radius:10px; background:transparent; color:var(--muted); font-size:12px; font-weight:600}
+  .bottomTab:hover{background:transparent; color:var(--text)}
+  .bottomTab.active{color:var(--accent); font-weight:700}
+  .bottomTab svg{width:24px; height:24px}
+  .masOverlay{position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:150; display:flex; align-items:flex-end; justify-content:center}
+  .masSheetCard{background:var(--panel); width:100%; max-width:520px; border-radius:16px 16px 0 0; padding:12px 12px calc(16px + env(safe-area-inset-bottom))}
+  .masSheetTitulo{font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; padding:6px 10px 8px}
+  .masItem{display:flex; align-items:center; width:100%; min-height:52px; padding:0 14px; border:none; background:transparent; color:var(--text); font-size:15px; font-weight:600; text-align:left; border-radius:10px}
+  .masItem:hover{background:var(--bg); color:var(--text)}
+  .masItem.active{color:var(--accent); background:var(--bg)}
+  @media (max-width:760px){
+    .navtabs{display:none}
+    .bottomBar{display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0, 1fr); position:fixed; left:0; right:0; bottom:0; z-index:50; background:var(--panel); border-top:1px solid var(--border); padding:6px 4px calc(8px + env(safe-area-inset-bottom))}
+    #appScreen{padding-bottom:84px}
+  }
   .view{display:none}
   .fichaSticky{position:sticky; top:var(--appHeaderH,64px); z-index:30; background:var(--bg); margin:0 0 16px 0; padding-top:4px}
   .fichaResumen{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; padding:6px 2px 8px 2px; min-width:0}
@@ -491,14 +515,19 @@
 
   <div class="navtabs">
     <button class="navtab active" data-view="viewResumen">Resumen</button>
-    <button class="navtab" data-view="viewInterconsultas">Interconsultas</button>
     <button class="navtab" data-view="viewPacientes">Pacientes</button>
     <button class="navtab" data-view="viewAgenda">Agenda</button>
     <button class="navtab" data-view="viewInternados">Internados</button>
-    <button class="navtab" data-view="viewConsultorio">Consultorio</button>
-    <button class="navtab" data-view="viewCalculadora">Calculadora</button>
-    <button class="navtab" id="navtabRecordatorios" data-view="viewRecordatorios" style="display:none">Recordatorios</button>
-    <button class="navtab" id="navtabActividad" data-view="viewActividad" style="display:none">Actividad</button>
+    <button class="navtab" data-view="viewInterconsultas">Interconsultas</button>
+    <div class="navMas" id="navMas">
+      <button type="button" class="navMasBtn" id="navMasBtn" aria-haspopup="true" aria-expanded="false">Más ▾</button>
+      <div class="navMasMenu" id="navMasMenu" style="display:none">
+        <button class="navtab navMasItem" data-view="viewConsultorio">Consultorio</button>
+        <button class="navtab navMasItem" data-view="viewCalculadora">Calculadora</button>
+        <button class="navtab navMasItem" id="navtabRecordatorios" data-view="viewRecordatorios" style="display:none">Recordatorios</button>
+        <button class="navtab navMasItem" id="navtabActividad" data-view="viewActividad" style="display:none">Actividad</button>
+      </div>
+    </div>
   </div>
 
   <!-- ==================== RESUMEN ==================== -->
@@ -1037,6 +1066,20 @@
 
     <div class="internadosGrid" id="internadosGrid"></div>
     <div class="empty" id="intEmpty">No hay pacientes internados activos.</div>
+  </div>
+
+  <nav class="bottomBar" id="bottomBar" aria-label="Navegación principal">
+    <button type="button" class="bottomTab active" data-view="viewResumen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 22V12h6v10"/></svg><span>Resumen</span></button>
+    <button type="button" class="bottomTab" data-view="viewPacientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pacientes</span></button>
+    <button type="button" class="bottomTab" data-view="viewAgenda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg><span>Agenda</span></button>
+    <button type="button" class="bottomTab" data-view="viewInternados"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16M2 8h18a2 2 0 0 1 2 2v10M2 17h20M6 8v9"/></svg><span>Internados</span></button>
+    <button type="button" class="bottomTab" id="bottomMas"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg><span>Más</span></button>
+  </nav>
+  <div class="masOverlay" id="masSheet" style="display:none">
+    <div class="masSheetCard" role="dialog" aria-modal="true" aria-label="Más secciones">
+      <div class="masSheetTitulo">Más</div>
+      <div id="masSheetLista"></div>
+    </div>
   </div>
 
   <div class="modalOverlay" id="nuevoPacienteOverlay" style="display:none">
@@ -1918,6 +1961,7 @@ if('serviceWorker' in navigator){
     const navtabRecordatorios = $('#navtabRecordatorios');
     if(navtabRecordatorios) navtabRecordatorios.style.display = currentMedico.es_admin ? '' : 'none';
     aplicarRestriccionesRol();
+    actualizarMasVisible();
     await loadAll();
     await checkGoogleCalendarStatus();
     handleGoogleCalendarRedirect();
@@ -2067,7 +2111,62 @@ if('serviceWorker' in navigator){
   function activarVista(viewId){
     document.querySelectorAll('.navtab').forEach(b => b.classList.toggle('active', b.dataset.view === viewId));
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === viewId));
+    document.querySelectorAll('.bottomTab[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === viewId));
+    $('#bottomMas').classList.toggle('active', MAS_VISTAS.some(([id]) => id === viewId));
+    $('#navMasBtn').classList.toggle('active', !!document.querySelector('.navMasItem.active'));
   }
+
+  // Secciones poco usadas: "Más" en la barra superior (computadora) y hoja inferior (celular).
+  const MAS_VISTAS = [['viewInterconsultas', 'Interconsultas'], ['viewConsultorio', 'Consultorio'], ['viewCalculadora', 'Calculadora'], ['viewRecordatorios', 'Recordatorios'], ['viewActividad', 'Actividad']];
+  function vistaDisponible(id){
+    const tab = document.querySelector(`.navtab[data-view="${id}"]`);
+    return !!tab && tab.style.display !== 'none';
+  }
+  function actualizarMasVisible(){
+    const hayMenu = ['viewConsultorio', 'viewCalculadora', 'viewRecordatorios', 'viewActividad'].some(vistaDisponible);
+    $('#navMas').style.display = hayMenu ? '' : 'none';
+    $('#bottomMas').style.display = MAS_VISTAS.some(([id]) => vistaDisponible(id)) ? '' : 'none';
+  }
+  function cerrarNavMas(){
+    $('#navMasMenu').style.display = 'none';
+    $('#navMasBtn').setAttribute('aria-expanded', 'false');
+  }
+  $('#navMasBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const abierto = $('#navMasMenu').style.display !== 'none';
+    $('#navMasMenu').style.display = abierto ? 'none' : 'block';
+    $('#navMasBtn').setAttribute('aria-expanded', abierto ? 'false' : 'true');
+  });
+  document.addEventListener('click', (e) => { if(!e.target.closest('#navMas')) cerrarNavMas(); });
+  document.addEventListener('keydown', (e) => { if(e.key === 'Escape') cerrarNavMas(); });
+  $('#navMasMenu').addEventListener('click', cerrarNavMas);
+
+  document.querySelectorAll('.bottomTab[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => document.querySelector(`.navtab[data-view="${btn.dataset.view}"]`).click());
+  });
+  const masSheet = $('#masSheet');
+  function abrirMasSheet(){
+    const activa = (document.querySelector('.view.active') || {}).id;
+    $('#masSheetLista').innerHTML = MAS_VISTAS.filter(([id]) => vistaDisponible(id))
+      .map(([id, nombre]) => `<button type="button" class="masItem${id === activa ? ' active' : ''}" data-view="${id}">${nombre}</button>`).join('');
+    masSheet.style.display = 'flex';
+    abrirCapa(cerrarMasSheet);
+  }
+  function cerrarMasSheet(){
+    const estabaAbierta = masSheet.style.display !== 'none';
+    masSheet.style.display = 'none';
+    if(estabaAbierta) cerrarCapaUI(cerrarMasSheet);
+  }
+  $('#bottomMas').addEventListener('click', abrirMasSheet);
+  masSheet.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-view]');
+    if(item){
+      cerrarMasSheet();
+      document.querySelector(`.navtab[data-view="${item.dataset.view}"]`).click();
+      return;
+    }
+    if(e.target === masSheet) cerrarMasSheet();
+  });
   document.querySelectorAll('.navtab').forEach(btn => {
     btn.addEventListener('click', () => {
       activarVista(btn.dataset.view);
