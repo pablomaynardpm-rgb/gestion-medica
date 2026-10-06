@@ -1632,7 +1632,16 @@ if('serviceWorker' in navigator){
         </div>
       </div>`;
       overlay.querySelector('.confirmTexto').textContent = texto;
-      const cerrar = (resp) => { document.removeEventListener('keydown', onKey, true); overlay.remove(); resolve(resp); };
+      let cerrado = false;
+      const cerrarPorHistorial = () => cerrar(false);
+      const cerrar = (resp) => {
+        if(cerrado) return;
+        cerrado = true;
+        document.removeEventListener('keydown', onKey, true);
+        overlay.remove();
+        resolve(resp);
+        if(capasAbiertas.includes(cerrarPorHistorial)) cerrarCapaUI();
+      };
       const onKey = (e) => { if(e.key === 'Escape'){ e.stopPropagation(); cerrar(false); } };
       overlay.addEventListener('click', (e) => {
         if(e.target === overlay) cerrar(false);
@@ -1641,6 +1650,7 @@ if('serviceWorker' in navigator){
       });
       document.addEventListener('keydown', onKey, true);
       document.body.appendChild(overlay);
+      abrirCapa(cerrarPorHistorial);
       overlay.querySelector('[data-resp="no"]').focus();
     });
   }
@@ -1775,6 +1785,11 @@ if('serviceWorker' in navigator){
     loginScreen.style.display = 'none';
     setupScreen.style.display = 'none';
     appScreen.style.display = 'block';
+    if(!history.state || history.state.i === undefined){
+      const inicial = Object.assign(pantallaActual(), { c: 0, i: 0 });
+      history.replaceState(inicial, '');
+      pila[0] = inicial;
+    }
     $('#userchip').innerHTML = `<b>${escapeHtml(currentMedico.nombre)}</b>${currentMedico.especialidad ? ' · ' + escapeHtml(currentMedico.especialidad) : ''}${currentMedico.rol === 'residente' ? ' · Residente' : ''}`;
     const panelSanatoriosAdmin = $('#panelSanatoriosAdmin');
     if(panelSanatoriosAdmin) panelSanatoriosAdmin.style.display = currentMedico.es_admin ? '' : 'none';
@@ -1935,11 +1950,101 @@ if('serviceWorker' in navigator){
 
 
   // ---- Nav ----
+  function activarVista(viewId){
+    document.querySelectorAll('.navtab').forEach(b => b.classList.toggle('active', b.dataset.view === viewId));
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === viewId));
+  }
   document.querySelectorAll('.navtab').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.navtab').forEach(b => b.classList.toggle('active', b === btn));
-      document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === btn.dataset.view));
+      activarVista(btn.dataset.view);
+      sincronizarHistorial();
     });
+  });
+
+  // ---- Historial: el botón "atrás" del celular/navegador vuelve a la pantalla anterior ----
+  // Cada pantalla (pestaña + ficha abierta + ventanas emergentes) es una entrada del
+  // historial del navegador. Sin esto, "atrás" sacaba de la app directamente.
+  // `i` es la posición de la entrada; `pila` la espeja para poder mirar la anterior.
+  let aplicandoHistorial = false;
+  let atrasPendiente = false;
+  let sincronizarDespues = false;
+  const capasAbiertas = [];
+  const pila = [];
+
+  function pantallaActual(){
+    const tab = document.querySelector('.navtab.active');
+    const v = tab ? tab.dataset.view : 'viewResumen';
+    const fichaAbierta = v === 'viewPacientes' && !!currentPacienteId && pacDetailView.style.display === 'block';
+    return { v, f: fichaAbierta ? currentPacienteId : null, c: capasAbiertas.length };
+  }
+  function mismaVista(a, b){ return !!a && !!b && a.v === b.v && (a.f || null) === (b.f || null); }
+  function mismaPantalla(a, b){ return mismaVista(a, b) && (a.c || 0) === (b.c || 0); }
+
+  function sincronizarHistorial(){
+    if(aplicandoHistorial) return;
+    if(atrasPendiente){ sincronizarDespues = true; return; }
+    const act = pantallaActual();
+    const prev = history.state;
+    if(mismaPantalla(prev, act)) return;
+    const i0 = (prev && prev.i) || 0;
+    // Pasar de una ficha vieja a otra sin pasar por la lista: reemplaza, no apila.
+    const reemplaza = prev && prev.v === act.v && prev.f && act.f && prev.f !== act.f && (prev.c || 0) === act.c;
+    act.i = reemplaza ? i0 : i0 + 1;
+    pila.length = act.i + 1;
+    pila[act.i] = act;
+    if(reemplaza) history.replaceState(act, ''); else history.pushState(act, '');
+  }
+
+  function abrirCapa(cerrar){
+    capasAbiertas.push(cerrar);
+    sincronizarHistorial();
+  }
+  // Cierre hecho desde la propia app (botón de cerrar, aceptar, etc.): saca la entrada
+  // del historial; el cierre real ocurre en popstate (o acá si el navegador no responde).
+  function cerrarCapaUI(){
+    if(!capasAbiertas.length) return;
+    atrasPendiente = true;
+    history.back();
+    setTimeout(() => {
+      if(!atrasPendiente) return;
+      atrasPendiente = false;
+      const cerrar = capasAbiertas.pop();
+      if(cerrar) cerrar();
+      if(sincronizarDespues){ sincronizarDespues = false; sincronizarHistorial(); }
+    }, 1000);
+  }
+
+  function aplicarPantalla(st){
+    activarVista(st.v);
+    if(st.v !== 'viewPacientes') return;
+    if(st.f && pacientes.some(p => p.id === st.f)){
+      currentPacienteId = st.f;
+      pacListView.style.display = 'none';
+      pacDetailView.style.display = 'block';
+      activarFichaTab('fichaTabGenerales');
+      renderPacienteDetail();
+    } else {
+      currentPacienteId = null;
+      pacDetailView.style.display = 'none';
+      pacListView.style.display = 'block';
+      renderPacientes();
+    }
+  }
+
+  window.addEventListener('popstate', (e) => {
+    const eraPropio = atrasPendiente;
+    atrasPendiente = false;
+    const st = e.state;
+    const destinoCapas = (st && st.c) || 0;
+    while(capasAbiertas.length > destinoCapas){
+      const cerrar = capasAbiertas.pop();
+      try { cerrar(); } catch(_e){}
+    }
+    if(!eraPropio && st && st.v && !mismaVista(st, pantallaActual())){
+      aplicandoHistorial = true;
+      try { aplicarPantalla(st); } finally { aplicandoHistorial = false; }
+    }
+    if(sincronizarDespues){ sincronizarDespues = false; sincronizarHistorial(); }
   });
 
   function activarFichaTab(tabId){
@@ -2208,9 +2313,14 @@ if('serviceWorker' in navigator){
     $('#manualIcMsg').textContent = '';
     $('#manualIcFecha').value = new Date().toISOString().slice(0,10);
     manualIcOverlay.style.display = 'flex';
+    abrirCapa(cerrarManualIc);
     setTimeout(() => $('#manualIcPaciente').focus(), 50);
   }
-  function cerrarManualIc(){ manualIcOverlay.style.display = 'none'; }
+  function cerrarManualIc(){
+    const estabaAbierto = manualIcOverlay.style.display !== 'none';
+    manualIcOverlay.style.display = 'none';
+    if(estabaAbierto && capasAbiertas.includes(cerrarManualIc)) cerrarCapaUI();
+  }
   $('#btnAddManual').addEventListener('click', abrirManualIc);
   $('#btnCerrarManualIc').addEventListener('click', cerrarManualIc);
   manualIcOverlay.addEventListener('click', (e) => { if(e.target === manualIcOverlay) cerrarManualIc(); });
@@ -3200,6 +3310,7 @@ if('serviceWorker' in navigator){
     pacDetailView.style.display = 'block';
     activarFichaTab('fichaTabGenerales');
     renderPacienteDetail();
+    sincronizarHistorial();
   }
 
   // Normaliza un teléfono argentino a formato E.164 para wa.me (asume celular: 549 + código de área + número)
@@ -3892,10 +4003,21 @@ if('serviceWorker' in navigator){
   });
 
   $('#btnPacBack').addEventListener('click', () => {
+    const st = history.state;
+    const anterior = st && st.i ? pila[st.i - 1] : null;
+    if(anterior && anterior.v === 'viewPacientes' && !anterior.f && !(st.c) && !atrasPendiente){
+      history.back();
+      return;
+    }
     currentPacienteId = null;
     pacDetailView.style.display = 'none';
     pacListView.style.display = 'block';
     renderPacientes();
+    if(st && st.f){
+      const nueva = Object.assign({}, st, { f: null });
+      history.replaceState(nueva, '');
+      if(st.i !== undefined) pila[st.i] = nueva;
+    }
   });
 
   function refreshFichaResumen(){
@@ -4856,6 +4978,14 @@ if('serviceWorker' in navigator){
     $('#evolCama').value = i.cama || '';
     $('#evolucionLocMsg').textContent = '';
     $('#evolucionOverlay').style.display = 'flex';
+    if(!capasAbiertas.includes(cerrarEvolucion)) abrirCapa(cerrarEvolucion);
+  }
+  function cerrarEvolucion(){
+    const overlay = $('#evolucionOverlay');
+    const estabaAbierto = overlay.style.display !== 'none';
+    overlay.style.display = 'none';
+    currentInternacionId = null;
+    if(estabaAbierto && capasAbiertas.includes(cerrarEvolucion)) cerrarCapaUI();
   }
 
   async function saveInternacionField(key, value){
@@ -4872,10 +5002,7 @@ if('serviceWorker' in navigator){
   $('#evolHabitacion').addEventListener('blur', () => saveInternacionField('habitacion', $('#evolHabitacion').value.trim()));
   $('#evolCama').addEventListener('blur', () => saveInternacionField('cama', $('#evolCama').value.trim()));
 
-  $('#btnCerrarEvolucion').addEventListener('click', () => {
-    $('#evolucionOverlay').style.display = 'none';
-    currentInternacionId = null;
-  });
+  $('#btnCerrarEvolucion').addEventListener('click', cerrarEvolucion);
 
   // Botón "Dar de alta" directo en la tarjeta de internado (Internados y
   // Resumen comparten internadoCardHtml, así que funciona en las dos vistas).
