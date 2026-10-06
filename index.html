@@ -126,20 +126,56 @@
     background:var(--panel); color:var(--text); font-size:13px;
   }
   input[type=text]{min-width:220px}
-  .resumenSaludo{margin:0 0 16px 0}
-  .resumenSaludo h1{margin:0; font-size:26px; font-weight:700; letter-spacing:-0.01em}
-  .resumenFecha{font-size:14px; color:var(--muted); margin-top:2px}
-  .resumenKpisCalmos{grid-template-columns:repeat(auto-fit, minmax(170px, 1fr))}
-  .resumenKpisCalmos .kpiCard{background:var(--panel); color:var(--text); border:1px solid var(--border); box-shadow:none; border-radius:14px; padding:16px 18px}
+  .resumenSaludo{display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:0 0 20px 0}
+  .resumenSaludo h1{margin:0; font-size:28px; font-weight:700; letter-spacing:-0.01em}
+  .resumenFecha{font-size:14px; color:var(--muted)}
+  .resumenKpisCalmos{grid-template-columns:repeat(4, minmax(0, 1fr)); gap:16px}
+  .resumenKpisCalmos .kpiCard{background:var(--panel); color:var(--text); border:1px solid var(--border); box-shadow:none; border-radius:14px; padding:18px 20px}
   .resumenKpisCalmos .kpiCard.kpiClickable:hover{transform:none; box-shadow:0 2px 10px rgba(0,0,0,0.08); border-color:var(--kpi)}
   .resumenKpisCalmos .kpiTop{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--muted)}
   .resumenKpisCalmos .kpiDot{width:10px; height:10px; border-radius:50%; background:var(--kpi); flex-shrink:0}
-  .resumenKpisCalmos .kpiNumero{font-size:38px; margin-top:8px}
-  .resumenKpisCalmos .kpiSub{font-size:12px; color:var(--muted); margin-top:6px; min-height:16px}
+  .resumenKpisCalmos .kpiNumero{font-size:40px; margin-top:8px; line-height:1.1}
+  .resumenKpisCalmos .kpiSub{font-size:13px; color:var(--muted); margin-top:4px; min-height:18px}
+  .resumenKpisCalmos .kpiSub b{font-weight:600}
   .resumenCols{display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start}
-  .resumenColPrincipal{flex:1.6 1 560px; min-width:0}
-  .resumenColLateral{flex:1 1 320px; min-width:0}
-  @media (max-width:760px){ .resumenColLateral{order:-1; flex-basis:100%} }
+  .resumenColPrincipal{flex:1.6 1 560px; min-width:0; display:flex; flex-direction:column; gap:20px}
+  .resumenColLateral{flex:1 1 340px; min-width:0; display:flex; flex-direction:column; gap:20px}
+  @media (max-width:760px){
+    .resumenColLateral{order:-1; flex-basis:100%}
+    .resumenKpisCalmos{grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px}
+    .resumenKpisCalmos .kpiCard{padding:14px 16px}
+    .resumenKpisCalmos .kpiNumero{font-size:32px}
+    .resumenSaludo h1{font-size:24px}
+  }
+  .resCard{background:var(--panel); border:1px solid var(--border); border-radius:14px}
+  .resCardHead{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; border-bottom:1px solid var(--border)}
+  .resCardHead h2{margin:0; font-size:17px; font-weight:700}
+  .resCardHead a{font-size:13px; font-weight:600; text-decoration:none; cursor:pointer; color:var(--accent)}
+  .resCardBody{padding:6px 20px 12px}
+  .resDia{font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; padding:12px 0 6px}
+  .resDia + .resFila{border-top:0}
+  .resFila{display:flex; align-items:center; gap:14px; padding:10px 0; border-bottom:1px solid var(--border)}
+  .resFila:last-child{border-bottom:0}
+  .resFila[data-paciente-id]{cursor:pointer}
+  .resHora{width:52px; flex-shrink:0; font-size:15px; font-weight:700}
+  .resFila .info{flex:1; min-width:0}
+  .resFila .nom{font-weight:600}
+  .resFila .det{font-size:13px; color:var(--muted)}
+  .resDot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px}
+  .resChip{font-size:12px; font-weight:700; padding:4px 10px; border-radius:999px; white-space:nowrap; background:rgba(29,78,216,0.12); color:var(--accent)}
+  .resChip.gris{background:var(--bg); color:var(--muted)}
+  .resChip.violeta{background:rgba(91,63,196,0.14); color:var(--purple)}
+  .resAviso{color:var(--danger); font-size:12px; font-weight:600}
+  .resBtn{min-height:44px; padding:0 14px; border-radius:10px; font-size:13px; font-weight:600; white-space:nowrap}
+  .resBtnPedir{background:var(--panel); color:var(--accent); border:1px solid var(--accent); font-weight:700}
+  .resVacio{color:var(--muted); font-size:14px; padding:14px 0 8px}
+  .resVerMas{display:inline-block; margin-top:6px; font-size:13px; font-weight:600; color:var(--accent); background:none; border:none; padding:6px 0; min-height:0; cursor:pointer}
+  .resVerMas:hover{background:none; text-decoration:underline}
+  .headIconBtn{position:relative; width:44px; height:44px; border-radius:10px; border:1px solid var(--border); background:var(--panel); color:var(--text); display:inline-flex; align-items:center; justify-content:center; padding:0}
+  .headIconBtn:hover{background:var(--bg)}
+  .headIconBtn svg{width:18px; height:18px}
+  .headBadge{position:absolute; top:6px; right:6px; min-width:16px; height:16px; border-radius:8px; background:var(--danger); color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; padding:0 4px; box-sizing:border-box}
+  .headAvatar{width:36px; height:36px; border-radius:50%; background:rgba(29,78,216,0.12); color:var(--accent); display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0}
   .paraHacerTitulo{font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin:14px 0 6px}
   .paraHacerTitulo.alerta{color:var(--danger)}
   .paraHacerAviso{display:flex; gap:10px; align-items:flex-start; padding:10px 12px; margin-bottom:8px; background:rgba(220,38,38,0.12); border-radius:10px; cursor:pointer; font-size:14px}
@@ -563,11 +599,14 @@
         </div>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
+        <button type="button" class="headIconBtn" id="btnBuscarGlobal" aria-label="Buscar paciente" title="Buscar paciente"><i data-lucide="search"></i></button>
+        <button type="button" class="headIconBtn" id="btnCampana" aria-label="Recordatorios" title="Recordatorios" style="display:none"><i data-lucide="bell"></i><span class="headBadge" id="campanaBadge" style="display:none"></span></button>
         <button class="secondary !text-xs !py-1.5 !px-3" id="btnAjustes" style="display:none"><i data-lucide="settings"></i> Ajustes</button>
         <button class="secondary !text-xs !py-1.5 !px-3" id="btnTheme"><i data-lucide="moon"></i> Modo oscuro</button>
         <button class="secondary !text-xs !py-1.5 !px-3" id="btnGoogleCal"><i data-lucide="calendar"></i> Conectar Google Calendar</button>
         <button class="secondary !text-xs !py-1.5 !px-3" id="btnNotif"><i data-lucide="bell"></i> Activar notificaciones</button>
         <button class="!text-xs !py-1.5 !px-3 !bg-rose-50 !text-rose-600 hover:!bg-rose-100 dark:!bg-rose-950/40 dark:!text-rose-400" id="btnLogout">Cerrar sesión</button>
+        <span class="headAvatar" id="headAvatar" aria-hidden="true"></span>
       </div>
     </div>
   </header>
@@ -596,8 +635,8 @@
       <div class="resumenFecha" id="resumenFecha"></div>
     </div>
     <div class="resumenKpis resumenKpisCalmos" id="resumenKpisRow">
-      <div class="kpiCard kpiClickable" style="--kpi:#1D4ED8" data-kpi-action="pacientesCondicion" data-cond="programado" role="button" tabindex="0">
-        <div class="kpiTop"><span class="kpiDot"></span>Cirugías programadas</div>
+      <div class="kpiCard kpiClickable" style="--kpi:#1D4ED8" data-kpi-action="agenda" role="button" tabindex="0">
+        <div class="kpiTop"><span class="kpiDot"></span>Cirugías esta semana</div>
         <div class="kpiNumero" id="kpiCirugias">0</div>
         <div class="kpiSub" id="kpiCirugiasSub"></div>
       </div>
@@ -606,15 +645,10 @@
         <div class="kpiNumero" id="kpiInternados">0</div>
         <div class="kpiSub" id="kpiInternadosSub"></div>
       </div>
-      <div class="kpiCard kpiClickable" style="--kpi:#DC2626" data-kpi-action="interconsultas" role="button" tabindex="0">
-        <div class="kpiTop"><span class="kpiDot"></span>Interconsultas pendientes</div>
-        <div class="kpiNumero" id="kpiInterconsultas">0</div>
-        <div class="kpiSub">Para contestar</div>
-      </div>
       <div class="kpiCard kpiClickable" style="--kpi:#17693B" data-kpi-action="pacientesCondicion" data-cond="programar" role="button" tabindex="0">
         <div class="kpiTop"><span class="kpiDot"></span>Listos para programar</div>
         <div class="kpiNumero" id="kpiProgramar">0</div>
-        <div class="kpiSub">Falta poner la fecha</div>
+        <div class="kpiSub" style="color:var(--done); font-weight:600">Falta poner la fecha</div>
       </div>
       <div class="kpiCard kpiClickable" style="--kpi:#5B3FC4" data-kpi-action="pacientesCondicion" data-cond="falta_pedir,esperando,esperando_materiales" role="button" tabindex="0">
         <div class="kpiTop"><span class="kpiDot"></span>En trámite</div>
@@ -625,28 +659,29 @@
 
     <div class="resumenCols">
       <div class="resumenColPrincipal">
-        <div class="panel" id="resumenSemanaPanel" style="margin-bottom:16px">
-          <h2 style="margin:0 0 12px 0; font-size:16px">Esta semana</h2>
-          <div id="resumenSemanaGrid"></div>
-        </div>
-        <div class="toolbar">
-          <span class="count" id="resumenCount"></span>
-        </div>
-        <div id="resumenContainer"></div>
-        <div class="empty" id="resumenEmpty">No hay cirugías programadas, internados ni interconsultas pendientes.</div>
+        <section class="resCard" id="resumenSemanaPanel">
+          <div class="resCardHead"><h2>Esta semana</h2><a data-action="verAgenda" role="button" tabindex="0">Ver agenda →</a></div>
+          <div class="resCardBody" id="resumenSemanaGrid"></div>
+        </section>
+        <section class="resCard" id="resumenInternadosPanel">
+          <div class="resCardHead"><h2>Internados</h2><a data-action="verInternados" role="button" tabindex="0">Ver todos →</a></div>
+          <div class="resCardBody" id="resumenContainer"></div>
+        </section>
       </div>
 
       <div class="resumenColLateral">
-        <div class="panel" id="paraHacerPanel" style="margin-bottom:16px">
-          <h2 style="margin:0; font-size:16px">Para hacer</h2>
-          <div id="paraHacerAvisos"></div>
-          <div id="paraHacerRecordatorios"></div>
-          <div class="msg" id="paraHacerVacio" style="display:none; margin-top:10px">Nada urgente por ahora.</div>
-        </div>
-        <div class="panel" id="resenasPendientesPanel" style="margin-bottom:16px; display:none">
-          <h2 style="margin:0 0 12px 0; font-size:14px"><i data-lucide="star"></i> Pedidos de reseña pendientes</h2>
-          <div id="resenasPendientesList"></div>
-        </div>
+        <section class="resCard" id="paraHacerPanel">
+          <div class="resCardHead"><h2>Para hacer</h2></div>
+          <div class="resCardBody">
+            <div id="paraHacerAvisos"></div>
+            <div id="paraHacerRecordatorios"></div>
+            <div id="paraHacerInterconsultas"></div>
+            <div id="resenasPendientesPanel" style="display:none">
+              <div id="resenasPendientesList"></div>
+            </div>
+            <div class="resVacio" id="paraHacerVacio" style="display:none">Nada urgente por ahora.</div>
+          </div>
+        </section>
       </div>
     </div>
   </div>
@@ -2026,6 +2061,8 @@ if('serviceWorker' in navigator){
     if(navtabActividad) navtabActividad.style.display = currentMedico.es_admin ? '' : 'none';
     const navtabRecordatorios = $('#navtabRecordatorios');
     if(navtabRecordatorios) navtabRecordatorios.style.display = currentMedico.es_admin ? '' : 'none';
+    const btnCampana = $('#btnCampana');
+    if(btnCampana) btnCampana.style.display = currentMedico.es_admin ? '' : 'none';
     aplicarRestriccionesRol();
     actualizarMasVisible();
     await loadAll();
@@ -4543,7 +4580,7 @@ if('serviceWorker' in navigator){
   // es una métrica de actividad, no de resultado: la app no puede saber si
   // el paciente efectivamente dejó la reseña en Google, eso no es visible
   // por paciente desde ningún lado.
-  const RESENAS_PENDIENTES_LIMITE = 10;
+  const RESENAS_PENDIENTES_LIMITE = 3;
   let resenasPendientesExpandido = false;
 
   function renderResenasPendientes(){
@@ -4556,35 +4593,31 @@ if('serviceWorker' in navigator){
     const solicitadas = pacientes.filter(p => p.review_solicitado_at);
     const mesActual = toISODate(new Date()).slice(0, 7);
     const esteMes = solicitadas.filter(p => (p.review_solicitado_at || '').slice(0, 7) === mesActual).length;
-    const statsHtml = `<div class="meta" style="margin-bottom:12px">${esteMes} pedida${esteMes === 1 ? '' : 's'} este mes · ${solicitadas.length} en total</div>`;
-
     const pendientesTotal = pacientes
       .filter(p => (p.operado || pacienteCondicion(p) === 'consulta') && !p.review_solicitado_at && normalizePhoneAR(p.telefono).length >= 11)
       .sort((a, b) => (b.fecha_qx || b.created_at || '').localeCompare(a.fecha_qx || a.created_at || ''));
     const pendientes = resenasPendientesExpandido ? pendientesTotal : pendientesTotal.slice(0, RESENAS_PENDIENTES_LIMITE);
     const restantes = pendientesTotal.length - pendientes.length;
 
-    let listaHtml;
+    const titulo = pendientesTotal.length ? `Pedir reseña · ${pendientesTotal.length} pendiente${pendientesTotal.length === 1 ? '' : 's'}` : 'Pedir reseña';
+    let html = `<div class="paraHacerTitulo">${titulo}</div>`;
     if(pendientesTotal.length === 0){
-      listaHtml = '<div class="msg" style="margin:0">¡Estás al día! No hay pedidos de reseña pendientes.</div>';
+      html += '<div class="resVacio" style="padding:4px 0 6px">¡Estás al día! No hay pedidos de reseña pendientes.</div>';
     } else {
-      listaHtml = pendientes.map(p => `
-      <div class="row" style="justify-content:space-between; align-items:center; margin-top:0; padding:8px 0; border-bottom:1px solid var(--border)">
-        <div data-paciente-id="${p.id}" style="cursor:pointer">
-          <div style="font-weight:600">${escapeHtml(p.nombre)}</div>
-          <div class="meta" style="font-size:12px">${p.operado ? 'Operado' : 'Consulta'}${p.sanatorio ? ' · ' + escapeHtml(p.sanatorio) : ''}</div>
-        </div>
-        <button type="button" class="secondary" data-action="pedirResenaPanel" data-id="${p.id}" style="font-size:12px; padding:6px 10px; white-space:nowrap"><i data-lucide="star"></i> Pedir reseña</button>
-      </div>
-    `).join('');
-      if(restantes > 0){
-        listaHtml += `<button type="button" class="secondary" data-action="verMasResenas" style="width:100%; margin-top:8px; font-size:12px">Ver ${restantes} más</button>`;
-      } else if(resenasPendientesExpandido && pendientesTotal.length > RESENAS_PENDIENTES_LIMITE){
-        listaHtml += `<button type="button" class="secondary" data-action="verMenosResenas" style="width:100%; margin-top:8px; font-size:12px">Ver menos</button>`;
-      }
+      html += pendientes.map(p => `
+        <div class="resFila" style="padding:8px 0">
+          <div class="info" data-paciente-id="${p.id}" style="cursor:pointer">
+            <div class="nom" style="font-size:14px">${escapeHtml(p.nombre)}</div>
+            <div class="det" style="font-size:12px">${p.operado ? 'Operado' : 'Consulta'}${p.sanatorio ? ' · ' + escapeHtml(p.sanatorio) : ''}</div>
+          </div>
+          <button type="button" class="resBtn resBtnPedir" data-action="pedirResenaPanel" data-id="${p.id}">Pedir</button>
+        </div>`).join('');
+      if(restantes > 0) html += `<button type="button" class="resVerMas" data-action="verMasResenas">Ver ${restantes} más →</button>`;
+      else if(resenasPendientesExpandido && pendientesTotal.length > RESENAS_PENDIENTES_LIMITE) html += `<button type="button" class="resVerMas" data-action="verMenosResenas">Ver menos</button>`;
     }
-
-    $('#resenasPendientesList').innerHTML = statsHtml + listaHtml;
+    html += `<div class="det" style="font-size:12px; color:var(--muted); margin-top:6px">${esteMes} pedida${esteMes === 1 ? '' : 's'} este mes · ${solicitadas.length} en total</div>`;
+    $('#resenasPendientesList').innerHTML = html;
+    renderParaHacerVacio();
   }
 
   async function pedirResenaDesdePanel(pacienteId){
@@ -5725,63 +5758,79 @@ if('serviceWorker' in navigator){
 
   // ==================== RESUMEN ====================
   const resumenContainer = $('#resumenContainer');
-  const resumenCount = $('#resumenCount');
-  const resumenEmpty = $('#resumenEmpty');
 
-  function resumenCirugiaCardHtml(p, color){
-    const meta = [p.edad ? p.edad + ' años' : '', p.os || ''].filter(Boolean).join(' · ');
-    const fechaLine = p.fecha_qx ? escapeHtml(p.fecha_qx) + (p.hora_qx ? ' · ' + escapeHtml(p.hora_qx.slice(0,5)) : '') : '';
-    return `<div class="internadoCard${nivelProgramaCardClass(p)}" data-paciente-id="${p.id}" style="border-left:5px solid ${color}">
-      <div class="nombre">${escapeHtml(p.nombre)}</div>
-      ${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ''}
-      ${p.operacion ? `<div class="meta">${escapeHtml(p.operacion)}</div>` : ''}
-      ${p.diagnostico ? `<div class="meta">${escapeHtml(p.diagnostico)}</div>` : ''}
-      <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap">${condicionBadgeHtml(p)}</div>
-      ${fechaLine ? `<div class="dias">${fechaLine}</div>` : ''}
-    </div>`;
+  // Ventana de "Esta semana": de hoy al domingo; si hoy es sábado o domingo, la semana que viene también.
+  function ventanaSemana(){
+    const hoy = new Date();
+    const dow = (hoy.getDay() + 6) % 7; // lunes = 0
+    const dias = dow >= 5 ? 7 + (6 - dow) : 6 - dow;
+    return Array.from({ length: dias + 1 }, (_, i) => addDays(hoy, i));
   }
 
-  function resumenInterconsultaCardHtml(it, color){
-    return `<div class="internadoCard" data-ic-id="${it.id}" style="border-left:5px solid ${color}">
-      <div class="habCama">${escapeHtml(it.habitacion)}${it.cama ? ' · Cama ' + escapeHtml(it.cama) : ''}</div>
-      <div class="nombre">${escapeHtml(it.paciente)}</div>
-      ${it.diagnostico ? `<div class="meta">${escapeHtml(it.diagnostico)}</div>` : ''}
-      <div class="dias">${escapeHtml(it.fecha)}</div>
-    </div>`;
-  }
-
-  function renderResumenSemana(){
-    const grid = $('#resumenSemanaGrid');
-    const start = startOfWeek(new Date());
-    const today = new Date();
+  function resumenSemanaItems(){
+    const dias = ventanaSemana();
     const pacMap = {};
     pacientes.forEach(p => { if(p.fecha_qx) (pacMap[p.fecha_qx] = pacMap[p.fecha_qx] || []).push(p); });
     const consMap = {};
     consultorioDias.forEach(c => (consMap[c.fecha] = consMap[c.fecha] || []).push(c));
+    return dias.map(d => {
+      const iso = toISODate(d);
+      return { d, iso, cirugias: pacMap[iso] || [], consultorios: consMap[iso] || [] };
+    });
+  }
 
-    grid.innerHTML = `<div style="display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px">` +
-      DOW_LABELS.map((label, i) => {
-        const d = addDays(start, i);
-        const iso = toISODate(d);
-        const isToday = sameDate(d, today);
-        const cirugiasDia = pacMap[iso] || [];
-        const consultoriosDia = consMap[iso] || [];
-        return `<div style="text-align:center">
-          <div style="font-size:10px; color:var(--muted)">${label}</div>
-          <div style="width:24px; height:24px; border-radius:50%; margin:4px auto; display:flex; align-items:center; justify-content:center; font-size:12px; ${isToday ? 'background:var(--accent); color:#fff; font-weight:700;' : ''}">${d.getDate()}</div>
-          <div style="display:flex; flex-direction:column; gap:2px">
-            ${cirugiasDia.map(p => `<div class="calEventChip" data-paciente-id="${p.id}" style="background:${sanatorioColor(p.sanatorio)||'#64748b'}; font-size:10px" title="${escapeHtml(p.nombre + (p.operacion ? ' — ' + p.operacion : ''))}">${escapeHtml(p.operacion || p.nombre)}</div>`).join('')}
-            ${consultoriosDia.map(c => `<div class="calEventChip" style="background:var(--purple); font-size:10px" title="Consultorio${c.sanatorio ? ' — ' + c.sanatorio : ''}"><i data-lucide="calendar-clock"></i> ${escapeHtml(c.sanatorio || 'Consultorio')}</div>`).join('')}
+  function etiquetaDia(d){
+    const hoy = new Date();
+    const t = d.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric' });
+    const base = t.charAt(0).toUpperCase() + t.slice(1);
+    if(sameDate(d, hoy)) return 'Hoy · ' + base;
+    if(sameDate(d, addDays(hoy, 1))) return 'Mañana · ' + base;
+    return base;
+  }
+
+  function renderResumenSemana(){
+    const grid = $('#resumenSemanaGrid');
+    const dias = resumenSemanaItems().filter(x => x.cirugias.length || x.consultorios.length);
+    if(!dias.length){
+      grid.innerHTML = '<div class="resVacio">No hay cirugías ni consultorio en los próximos días.</div>';
+      return;
+    }
+    grid.innerHTML = dias.map(({ d, cirugias, consultorios }) => {
+      const choque = cirugias.length > 0 && consultorios.length > 0;
+      const filas = cirugias.slice().sort((a, b) => (a.hora_qx || '99').localeCompare(b.hora_qx || '99')).map(p => {
+        const color = sanatorioColor(p.sanatorio) || '#64748b';
+        const op = p.operado || pacienteCondicion(p) === 'operado';
+        return `<div class="resFila" data-paciente-id="${p.id}">
+          <div class="resHora">${p.hora_qx ? escapeHtml(p.hora_qx.slice(0, 5)) : '—'}</div>
+          <div class="info">
+            <div class="nom">${escapeHtml(p.nombre)}</div>
+            <div class="det">${p.operacion ? escapeHtml(p.operacion) + (p.sanatorio ? ' · ' : '') : ''}${p.sanatorio ? `<span class="resDot" style="background:${color}"></span>${escapeHtml(p.sanatorio)}` : ''}</div>
           </div>
-          ${cirugiasDia.length > 0 && consultoriosDia.length > 0 ? `<div class="calOverlapWarning" style="justify-content:center"><i data-lucide="triangle-alert"></i></div>` : ''}
+          <span class="resChip${op ? ' gris' : ''}">${op ? 'Operado' : 'Programado'}</span>
         </div>`;
-      }).join('') + `</div>`;
+      }).join('') + consultorios.map(c => {
+        const hora = c.hora_inicio ? c.hora_inicio.slice(0, 5) : '—';
+        return `<div class="resFila">
+          <div class="resHora">${hora}</div>
+          <div class="info"><div class="nom">Consultorio</div><div class="det">${c.sanatorio ? escapeHtml(c.sanatorio) : 'Sin sanatorio'}</div></div>
+          <span class="resChip violeta">Consultorio</span>
+        </div>`;
+      }).join('');
+      return `<div class="resDia">${escapeHtml(etiquetaDia(d))}${choque ? ' <span class="resAviso">· cirugía y consultorio el mismo día</span>' : ''}</div>${filas}`;
+    }).join('');
   }
 
   $('#resumenSemanaGrid').addEventListener('click', (e) => {
     const el = e.target.closest('[data-paciente-id]');
     if(el) openPacienteFromAgenda(el.dataset.pacienteId);
   });
+
+  function activarVerMas(el, fn){
+    el.addEventListener('click', fn);
+    el.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); fn(); } });
+  }
+  document.querySelectorAll('#viewResumen [data-action="verAgenda"]').forEach(a => activarVerMas(a, () => document.querySelector('.navtab[data-view="viewAgenda"]').click()));
+  document.querySelectorAll('#viewResumen [data-action="verInternados"]').forEach(a => activarVerMas(a, () => document.querySelector('.navtab[data-view="viewInternados"]').click()));
 
   function renderResumenSaludo(){
     const hora = new Date().getHours();
@@ -5792,7 +5841,22 @@ if('serviceWorker' in navigator){
     $('#resumenFecha').textContent = fecha.charAt(0).toUpperCase() + fecha.slice(1);
   }
 
-  // Lo que te toca a vos: trámites sin respuesta hace mucho y recordatorios de hoy.
+  function renderHeaderExtras(){
+    const av = $('#headAvatar');
+    if(av && currentMedico && currentMedico.nombre){
+      const ini = currentMedico.nombre.split(/\s+/).filter(t => t && !/^dra?\.?$/i.test(t)).map(t => t[0]).slice(0, 2).join('').toUpperCase();
+      av.textContent = ini;
+    }
+    const n = recordatorios.filter(r => r.fecha <= toISODate(new Date())).length;
+    const badge = $('#campanaBadge');
+    if(badge){
+      badge.textContent = n;
+      badge.style.display = n ? 'flex' : 'none';
+      $('#btnCampana').setAttribute('aria-label', n ? `Recordatorios, ${n} para hoy` : 'Recordatorios');
+    }
+  }
+
+  // Lo que te toca a vos: trámites sin respuesta hace mucho, recordatorios de hoy e interconsultas por contestar.
   function renderParaHacer(){
     const panel = $('#paraHacerPanel');
     if(!panel) return;
@@ -5806,11 +5870,24 @@ if('serviceWorker' in navigator){
     $('#paraHacerRecordatorios').innerHTML = recs.length === 0 ? '' :
       `<div class="paraHacerTitulo">Recordatorios de hoy</div>` +
       recs.map(r => `<label class="paraHacerRec"><input type="checkbox" data-action="completarRecordatorioResumen" data-id="${r.id}"><span>${escapeHtml(r.texto)}${r.paciente ? ` <span style="color:var(--muted)">· ${escapeHtml(r.paciente)}</span>` : ''}</span></label>`).join('');
-    $('#paraHacerVacio').style.display = (avisos.length || recs.length) ? 'none' : 'block';
+    const nIc = items.filter(it => it.estado === 'pendiente').length;
+    $('#paraHacerInterconsultas').innerHTML = nIc === 0 ? '' :
+      `<div class="paraHacerTitulo">Interconsultas</div>
+       <div class="resFila" data-ir="interconsultas" style="cursor:pointer; padding:8px 0"><div class="info"><div class="nom" style="font-size:14px">${nIc} para contestar</div></div><span class="resChip violeta">Ver →</span></div>`;
+    renderHeaderExtras();
+    renderParaHacerVacio();
+  }
+  function renderParaHacerVacio(){
+    const vacio = $('#paraHacerVacio');
+    if(!vacio) return;
+    const hayAlgo = $('#paraHacerAvisos').innerHTML || $('#paraHacerRecordatorios').innerHTML || $('#paraHacerInterconsultas').innerHTML ||
+      ($('#resenasPendientesPanel').style.display !== 'none' && $('#resenasPendientesList').querySelector('[data-action="pedirResenaPanel"]'));
+    vacio.style.display = hayAlgo ? 'none' : 'block';
   }
   $('#paraHacerPanel').addEventListener('click', (e) => {
     const aviso = e.target.closest('.paraHacerAviso');
     if(aviso) openPacienteFromAgenda(aviso.dataset.pacienteId);
+    if(e.target.closest('[data-ir="interconsultas"]')) document.querySelector('.navtab[data-view="viewInterconsultas"]').click();
   });
   $('#paraHacerPanel').addEventListener('change', async (e) => {
     const cb = e.target.closest('[data-action="completarRecordatorioResumen"]');
@@ -5822,85 +5899,63 @@ if('serviceWorker' in navigator){
     renderRecordatorios();
   });
 
+  function filaInternadoHtml(i){
+    const paciente = pacientes.find(p => p.id === i.paciente_id);
+    const color = sanatorioColor(i.sanatorio) || '#64748b';
+    const lugar = [i.sector, i.habitacion ? 'hab. ' + i.habitacion : '', i.cama ? 'cama ' + i.cama : ''].filter(Boolean).join(', ');
+    const dias = diasInternado(i.fecha_ingreso);
+    const cond = paciente ? pacienteCondicion(paciente) : '';
+    return `<div class="resFila"${paciente ? ` data-paciente-id="${paciente.id}"` : ''}>
+      <div class="info">
+        <div class="nom">${escapeHtml(paciente ? paciente.nombre : '')}${cond === 'programado' ? ' <span class="resChip" style="margin-left:6px">Programado</span>' : ''}</div>
+        <div class="det"><span class="resDot" style="background:${color}"></span>${escapeHtml(i.sanatorio || 'Sin sanatorio')}${lugar ? ' · ' + escapeHtml(lugar) : ''} · ${dias} día${dias === 1 ? '' : 's'}</div>
+      </div>
+      <button type="button" class="secondary resBtn" data-action="editarUbicacionCard" data-id="${i.id}" title="Editar sector/habitación/cama" aria-label="Editar ubicación"><i data-lucide="pencil"></i></button>
+      <button type="button" class="secondary resBtn" data-action="darAltaCard" data-id="${i.id}">Dar de alta</button>
+    </div>`;
+  }
+
   function renderResumen(){
     renderResumenSaludo();
     renderResumenSemana();
     renderResenasPendientes();
     renderParaHacer();
-    const cirugias = pacientes.filter(p => pacienteCondicion(p) === 'programado');
+    const programadas = pacientes.filter(p => pacienteCondicion(p) === 'programado');
     const internadosActivos = activeInternaciones();
-    const interconsultasPend = items.filter(it => it.estado === 'pendiente');
     const programarList = pacientes.filter(p => pacienteCondicion(p) === 'programar');
     const pendienteList = pacientes.filter(p => ['falta_pedir', 'esperando', 'esperando_materiales'].includes(pacienteCondicion(p)));
 
-    $('#kpiCirugias').textContent = cirugias.length;
+    const isosSemana = new Set(ventanaSemana().map(toISODate));
+    const estaSemana = programadas.filter(p => isosSemana.has(p.fecha_qx));
+    $('#kpiCirugias').textContent = estaSemana.length;
     $('#kpiInternados').textContent = internadosActivos.length;
-    $('#kpiInterconsultas').textContent = interconsultasPend.length;
     $('#kpiProgramar').textContent = programarList.length;
     $('#kpiPendientes').textContent = pendienteList.length;
 
     const hoyIso = toISODate(new Date());
-    const proxima = cirugias.filter(p => p.fecha_qx >= hoyIso)
+    const proxima = programadas.filter(p => p.fecha_qx >= hoyIso)
       .sort((a, b) => (a.fecha_qx + (a.hora_qx || '')).localeCompare(b.fecha_qx + (b.hora_qx || '')))[0];
     $('#kpiCirugiasSub').textContent = proxima
-      ? 'Próxima: ' + fechaDia(proxima.fecha_qx) + (proxima.hora_qx ? ' · ' + proxima.hora_qx.slice(0, 5) : '')
+      ? 'Próxima: ' + fechaDia(proxima.fecha_qx) + (proxima.hora_qx ? ', ' + proxima.hora_qx.slice(0, 5) : '')
       : 'Ninguna próxima';
     const enUti = internadosActivos.filter(isUtiUci).length;
     $('#kpiInternadosSub').textContent = enUti ? `${enUti} en UTI` : '';
     const nFalta = pendienteList.filter(p => pacienteCondicion(p) === 'falta_pedir').length;
-    $('#kpiPendientesSub').textContent = pendienteList.length ? `${nFalta} falta pedir · ${pendienteList.length - nFalta} esperando` : '';
+    $('#kpiPendientesSub').innerHTML = pendienteList.length
+      ? `${nFalta ? `<b style="color:var(--danger)">${nFalta} falta pedir</b> · ` : ''}${pendienteList.length - nFalta} esperando` : '';
 
-    const sanatoriosSet = new Set();
-    cirugias.forEach(p => p.sanatorio && sanatoriosSet.add(p.sanatorio));
-    internadosActivos.forEach(i => i.sanatorio && sanatoriosSet.add(i.sanatorio));
-    interconsultasPend.forEach(it => it.sanatorio && sanatoriosSet.add(it.sanatorio));
-
-    const total = cirugias.length + internadosActivos.length + interconsultasPend.length;
-    resumenCount.textContent = `${total} elemento(s)`;
-    resumenEmpty.style.display = total === 0 ? 'block' : 'none';
-
-    const nombres = Array.from(sanatoriosSet).sort((a,b) => a.localeCompare(b));
-
-    resumenContainer.innerHTML = nombres.map(nombre => {
-      const color = sanatorioColor(nombre) || '#64748b';
-      const iGroup = internadosActivos.filter(i => i.sanatorio === nombre)
-        .sort((a,b) => {
-          const sa = a.sector || '', sb = b.sector || '';
-          if(sa !== sb) return sa.localeCompare(sb);
-          const ha = a.habitacion || '', hb = b.habitacion || '';
-          if(ha !== hb) return ha.localeCompare(hb);
-          return camaNumeric(a) - camaNumeric(b);
-        });
-      // Un paciente ya internado no se lista de nuevo en "Cirugías programadas" —
-      // la tarjeta de Internados ya muestra el aviso de "Programado" (ver
-      // internadoCardHtml). Evita la duplicación que reportó Pablo.
-      const idsInternados = new Set(iGroup.map(i => i.paciente_id));
-      const cGroup = cirugias.filter(p => p.sanatorio === nombre && !idsInternados.has(p.id))
-        .sort((a,b) => (a.fecha_qx || '').localeCompare(b.fecha_qx || ''));
-      const icGroup = interconsultasPend.filter(it => it.sanatorio === nombre);
-
-      return `
-        <div class="internadosGroup">
-          <div class="internadosGroupHead" style="border-left:6px solid ${color}">
-            <span class="sanatorioDot" style="background:${color}; width:12px; height:12px"></span>
-            <span class="internadosGroupTitle">${escapeHtml(nombre)}</span>
-            <span class="internadosGroupCount">${cGroup.length + iGroup.length + icGroup.length}</span>
-          </div>
-          ${cGroup.length ? `
-            <div class="resumenSubhead">Cirugías programadas (${cGroup.length})</div>
-            <div class="internadosCards">${cGroup.map(p => resumenCirugiaCardHtml(p, color)).join('')}</div>
-          ` : ''}
-          ${iGroup.length ? `
-            <div class="resumenSubhead">Internados (${iGroup.length})</div>
-            <div class="internadosCards">${iGroup.map(i => internadoCardHtml(i, color)).join('')}</div>
-          ` : ''}
-          ${icGroup.length ? `
-            <div class="resumenSubhead">Interconsultas (${icGroup.length})</div>
-            <div class="internadosCards">${icGroup.map(it => resumenInterconsultaCardHtml(it, color)).join('')}</div>
-          ` : ''}
-        </div>
-      `;
-    }).join('');
+    const orden = internadosActivos.slice().sort((a, b) => {
+      const sa = a.sanatorio || '', sb = b.sanatorio || '';
+      if(sa !== sb) return sa.localeCompare(sb);
+      const ca = a.sector || '', cb = b.sector || '';
+      if(ca !== cb) return ca.localeCompare(cb);
+      const ha = a.habitacion || '', hb = b.habitacion || '';
+      if(ha !== hb) return ha.localeCompare(hb);
+      return camaNumeric(a) - camaNumeric(b);
+    });
+    resumenContainer.innerHTML = orden.length
+      ? orden.map(filaInternadoHtml).join('')
+      : '<div class="resVacio">No hay pacientes internados.</div>';
   }
 
   resumenContainer.addEventListener('click', async (e) => {
@@ -5908,10 +5963,8 @@ if('serviceWorker' in navigator){
     if(editBtn){ openEvolucion(editBtn.dataset.id); return; }
     const altaBtn = e.target.closest('[data-action="darAltaCard"]');
     if(altaBtn){ await darDeAlta(altaBtn.dataset.id); return; }
-    const cirugiaCard = e.target.closest('[data-paciente-id]');
-    if(cirugiaCard){ openPacienteFromAgenda(cirugiaCard.dataset.pacienteId); return; }
-    const icCard = e.target.closest('[data-ic-id]');
-    if(icCard){ document.querySelector('.navtab[data-view="viewInterconsultas"]').click(); return; }
+    const fila = e.target.closest('[data-paciente-id]');
+    if(fila){ openPacienteFromAgenda(fila.dataset.pacienteId); return; }
   });
 
   // Lleva a la lista de Pacientes (tarjetas) y hace scroll al grupo de esa
@@ -5930,10 +5983,19 @@ if('serviceWorker' in navigator){
 
   function activarKpiCard(card){
     const action = card.dataset.kpiAction;
+    if(action === 'agenda'){ document.querySelector('.navtab[data-view="viewAgenda"]').click(); return; }
     if(action === 'internados'){ document.querySelector('.navtab[data-view="viewInternados"]').click(); return; }
     if(action === 'interconsultas'){ document.querySelector('.navtab[data-view="viewInterconsultas"]').click(); return; }
     if(action === 'pacientesCondicion'){ irAPacientesCondicion(card.dataset.cond); return; }
   }
+  $('#btnBuscarGlobal').addEventListener('click', () => {
+    document.querySelector('.navtab[data-view="viewPacientes"]').click();
+    currentPacienteId = null;
+    pacDetailView.style.display = 'none';
+    pacListView.style.display = 'block';
+    setTimeout(() => { pacSearch.focus(); pacSearch.scrollIntoView({ block: 'center' }); }, 50);
+  });
+  $('#btnCampana').addEventListener('click', () => document.querySelector('.navtab[data-view="viewRecordatorios"]').click());
   $('#resumenKpisRow').addEventListener('click', (e) => {
     const card = e.target.closest('[data-kpi-action]');
     if(card) activarKpiCard(card);
