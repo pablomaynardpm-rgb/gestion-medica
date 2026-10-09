@@ -279,6 +279,7 @@
   .loginLogoBadge img{width:38px; height:38px; object-fit:contain}
   .loginLabel{display:block; font-size:12px; color:var(--muted); margin:10px 0 4px}
   .loginBox input{width:100%}
+  .recResaltado{outline:2px solid var(--accent); outline-offset:2px; border-radius:8px; background:rgba(29,78,216,0.10)}
   .topbar{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap}
   .navtabs{display:flex; gap:6px; margin:16px 0; border-bottom:1px solid var(--border); flex-wrap:wrap}
   .navtab{
@@ -1631,6 +1632,12 @@ if('serviceWorker' in navigator){
   let consultorioDias = [];
   let auditoria = [];
   let recordatorios = [];
+  // Enlace externo a un recordatorio: https://app.pablomaynard.com.ar/?recordatorio={id}
+  // Se lee al cargar; si hay que loguearse, se abre recién cuando la app ya entró.
+  let recordatorioDeLinkId = (() => {
+    const v = new URLSearchParams(location.search).get('recordatorio');
+    return /^\d+$/.test(v || '') ? Number(v) : null;
+  })();
   let sortKey = 'default', sortDir = 'asc';
 
   function isUtiUci(it){
@@ -2068,6 +2075,7 @@ if('serviceWorker' in navigator){
     await loadAll();
     await checkGoogleCalendarStatus();
     handleGoogleCalendarRedirect();
+    await abrirRecordatorioDeLink();
   }
 
   function aplicarRestriccionesRol(){
@@ -4351,7 +4359,7 @@ if('serviceWorker' in navigator){
   function recordatorioRowHtml(r, hoy){
     const atrasado = r.fecha < hoy;
     const cuando = (r.fecha === hoy ? 'Hoy' : new Date(r.fecha + 'T00:00:00').toLocaleDateString('es-AR')) + (r.hora ? ' · ' + r.hora.slice(0,5) : '');
-    return `<div class="auditRow" data-id="${r.id}" style="align-items:center">
+    return `<div class="auditRow" id="rec-${r.id}" data-id="${r.id}" style="align-items:center">
       <input type="checkbox" data-action="completarRecordatorio" data-id="${r.id}" title="Marcar como completado" style="width:auto; margin:0">
       <span class="auditFecha" style="${atrasado ? 'color:var(--pending); font-weight:600' : ''}">${escapeHtml(cuando)}${atrasado ? ' · atrasado' : ''}</span>
       <span style="flex:1; min-width:200px">${escapeHtml(r.texto)}${r.paciente ? ` <span class="auditDetalle">· ${escapeHtml(r.paciente)}</span>` : ''}</span>
@@ -4372,6 +4380,30 @@ if('serviceWorker' in navigator){
       `<div class="resumenSubhead">${titulo} (${rows.length})</div>${rows.map(r => recordatorioRowHtml(r, hoy)).join('')}`
     ).join('');
     renderParaHacer();
+  }
+
+  // Abre la pestaña Recordatorios y resalta el recordatorio del enlace (?recordatorio=ID).
+  async function abrirRecordatorioDeLink(){
+    const id = recordatorioDeLinkId;
+    if(id === null) return;
+    recordatorioDeLinkId = null;
+    try{
+      const url = new URL(location.href);
+      url.searchParams.delete('recordatorio');
+      history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+    }catch(_){}
+    if(!currentMedico || !currentMedico.es_admin){ flash('Ese recordatorio no está disponible en tu cuenta.', true); return; }
+    document.querySelector('.navtab[data-view="viewRecordatorios"]').click();
+    const fila = document.getElementById('rec-' + id);
+    if(fila){
+      fila.classList.add('recResaltado');
+      fila.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => fila.classList.remove('recResaltado'), 6000);
+      return;
+    }
+    // No está entre los pendientes: puede estar completado o borrado.
+    const { data } = await sb.from('recordatorios').select('texto, completado').eq('id', id).maybeSingle();
+    flash(data && data.completado ? `Ese recordatorio ya está completado: «${data.texto}».` : 'Ese recordatorio ya no existe.', true);
   }
 
   function ordenarRecordatorios(){
